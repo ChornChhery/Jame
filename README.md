@@ -146,15 +146,14 @@ CREATE TABLE products (
     name TEXT NOT NULL,
     description TEXT,
     price REAL NOT NULL,
-    cost_price REAL, -- for profit calculation
+    total REAL, -- for profit calculation
     quantity INTEGER NOT NULL DEFAULT 0,
-    min_stock_level INTEGER DEFAULT 5, -- for low stock alerts
+    low_stock INTEGER DEFAULT 5, -- for low stock alerts
     code TEXT UNIQUE, -- QR/barcode
     category TEXT,
     brand TEXT,
     unit TEXT DEFAULT 'pcs', -- kg, liter, pcs, etc.
-    image_path TEXT, -- local image storage
-    is_active BOOLEAN DEFAULT 1,
+    image TEXT, -- local image storage
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -166,8 +165,8 @@ CREATE TABLE categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
     description TEXT,
-    color_code TEXT DEFAULT '#FFC928',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -178,7 +177,7 @@ CREATE TABLE sales (
     sale_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     total_amount REAL NOT NULL,
     tax_amount REAL DEFAULT 0,
-    discount_amount REAL DEFAULT 0,
+    discount REAL DEFAULT 0,
     payment_method TEXT DEFAULT 'QR', -- QR, Cash, Card
     payment_status TEXT DEFAULT 'Completed', -- Pending, Completed, Cancelled
     customer_name TEXT,
