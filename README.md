@@ -144,100 +144,59 @@ All while being fully **offline-capable**, cost-efficient, and simple to use.
 CREATE TABLE products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    description TEXT,
     price REAL NOT NULL,
-    total REAL, -- for profit calculation
     quantity INTEGER NOT NULL DEFAULT 0,
-    low_stock INTEGER DEFAULT 5, -- for low stock alerts
-    code TEXT UNIQUE, -- QR/barcode
-    category TEXT,
-    brand TEXT,
-    unit TEXT DEFAULT 'pcs', -- kg, liter, pcs, etc.
-    image TEXT, -- local image storage
+    low_stock INTEGER DEFAULT 5,
+    code TEXT UNIQUE NOT NULL, -- QR/Barcode for scanning
+    category TEXT, -- Simple text field (e.g., "Snacks", "Drinks")
+    unit TEXT DEFAULT 'pcs', -- e.g., 'kg', 'liter', 'box'
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-#### 2. **categories** table
-```sql
-CREATE TABLE categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### 3. **sales** table
+#### 2. **sales** table
 ```sql
 CREATE TABLE sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sale_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     total_amount REAL NOT NULL,
-    tax_amount REAL DEFAULT 0,
-    discount REAL DEFAULT 0,
-    payment_method TEXT DEFAULT 'QR', -- QR, Cash, Card
-    payment_status TEXT DEFAULT 'Completed', -- Pending, Completed, Cancelled
+    payment_status TEXT DEFAULT 'Completed', -- 'Pending', 'Completed', 'Cancelled'
+    receipt_number TEXT UNIQUE NOT NULL, -- e.g., "JAME-2024-001"
     customer_name TEXT,
     customer_phone TEXT,
-    receipt_number TEXT UNIQUE,
-    notes TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-#### 4. **sale_items** table
+#### 3. **sale_items** table
 ```sql
 CREATE TABLE sale_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sale_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL,
-    unit_price REAL NOT NULL,
-    total_price REAL NOT NULL,
-    discount_amount REAL DEFAULT 0,
+    unit_price REAL NOT NULL, -- Price at time of sale (critical for reporting)
+    total_price REAL NOT NULL, -- quantity * unit_price
     FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products (id)
 );
 ```
 
-#### 5. **inventory_logs** table
+#### 4. **inventories** table
 ```sql
-CREATE TABLE inventory_logs (
+CREATE TABLE inventories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     product_id INTEGER NOT NULL,
-    change_type TEXT NOT NULL, -- 'STOCK_IN', 'STOCK_OUT', 'ADJUSTMENT', 'SALE'
-    quantity_change INTEGER NOT NULL, -- positive for in, negative for out
+    change_type TEXT NOT NULL, -- 'SALE', 'STOCK_IN', 'ADJUSTMENT'
+    quantity_change INTEGER NOT NULL, -- Negative for sales, positive for restock
     previous_quantity INTEGER NOT NULL,
     new_quantity INTEGER NOT NULL,
-    reference_id INTEGER, -- sale_id if from sale, null for manual adjustment
-    notes TEXT,
+    reference_id INTEGER, -- Optional: sale_id if change is from a sale
+    notes TEXT, -- e.g., "Initial stock", "Supplier delivery", "Damaged goods"
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (product_id) REFERENCES products (id)
 );
-```
-
-#### 6. **app_settings** table
-```sql
-CREATE TABLE app_settings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    setting_key TEXT UNIQUE NOT NULL,
-    setting_value TEXT,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- Default settings
-INSERT INTO app_settings (setting_key, setting_value) VALUES 
-('shop_name', 'My Shop'),
-('shop_address', ''),
-('shop_phone', ''),
-('tax_rate', '0'),
-('currency_symbol', '$'),
-('receipt_footer', 'Thank you for shopping with us!'),
-('low_stock_alert', '1'),
-('auto_backup', '1');
 ```
 
 ### Database Indexes (for performance)
@@ -246,9 +205,11 @@ INSERT INTO app_settings (setting_key, setting_value) VALUES
 CREATE INDEX idx_products_code ON products(code);
 CREATE INDEX idx_products_category ON products(category);
 CREATE INDEX idx_sales_date ON sales(sale_date);
+CREATE INDEX idx_sales_status ON sales(payment_status);
 CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
 CREATE INDEX idx_sale_items_product_id ON sale_items(product_id);
-CREATE INDEX idx_inventory_logs_product_id ON inventory_logs(product_id);
+CREATE INDEX idx_inventory_logs_product_id ON inventories(product_id);
+CREATE INDEX idx_inventory_logs_created_at ON inventories(created_at);
 ```
 
 ---
