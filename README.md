@@ -150,6 +150,7 @@ CREATE TABLE products (
     code TEXT UNIQUE NOT NULL, -- QR/Barcode for scanning
     category TEXT, -- Simple text field (e.g., "Snacks", "Drinks")
     unit TEXT DEFAULT 'pcs', -- e.g., 'kg', 'liter', 'box'
+    image TEXT, -- local image storage
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -163,6 +164,8 @@ CREATE TABLE sales (
     total_amount REAL NOT NULL,
     payment_status TEXT DEFAULT 'Completed', -- 'Pending', 'Completed', 'Cancelled'
     receipt_number TEXT UNIQUE NOT NULL, -- e.g., "JAME-2024-001"
+    payment_method TEXT DEFAULT 'QR', -- QR, Cash, Card
+    description TEXT,
     customer_name TEXT,
     customer_phone TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
