@@ -136,9 +136,9 @@ All while being fully **offline-capable**, cost-efficient, and simple to use.
 
 ## 🗄️ Database Design with User Management
 
-### Database Schema with User Table (ONLY NEW TABLE)
+### Database Schema 
 
-#### 1. **users** table (NEW - Only Additional Table)
+#### 1. **users** table
 ```sql
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -159,7 +159,7 @@ CREATE TABLE users (
 );
 ```
 
-#### 2. **products** table (UPDATED - Added user_id only)
+#### 2. **products** table
 ```sql
 CREATE TABLE products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -179,7 +179,7 @@ CREATE TABLE products (
 );
 ```
 
-#### 3. **sales** table (UPDATED - Added user_id only)
+#### 3. **sales** table
 ```sql
 CREATE TABLE sales (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -192,13 +192,12 @@ CREATE TABLE sales (
     description TEXT,
     customer_name TEXT,
     customer_phone TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
     UNIQUE(user_id, receipt_number) -- Receipt number unique per user
 );
 ```
 
-#### 4. **sale_items** table (No changes - inherits user through sale)
+#### 4. **sale_items** table
 ```sql
 CREATE TABLE sale_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -219,9 +218,8 @@ CREATE TABLE inventories (
     user_id INTEGER NOT NULL, -- Links inventory change to specific user
     product_id INTEGER NOT NULL,
     change_type TEXT NOT NULL, -- 'SALE', 'STOCK_IN', 'ADJUSTMENT'
-    quantity_change INTEGER NOT NULL,
-    previous_quantity INTEGER NOT NULL,
-    new_quantity INTEGER NOT NULL,
+    stock_before INTEGER NOT NULL,
+    stock_after INTEGER NOT NULL,
     reference_id INTEGER, -- sale_id if change is from a sale
     notes TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -732,4 +730,237 @@ In your user model and currency formatter:
 - [ ] Add user welcome header and branding
 - [ ] Implement route protection and auth guards
 - [ ] Add user avatar and profile management
-- [ ] Configure Thai Baht currency
+- [ ] Configure Thai Baht currency formatting
+
+### Phase 5: Testing & Security
+- [ ] Test user data isolation (ensure users can't see others' data)
+- [ ] Verify password hashing and authentication security
+- [ ] Test session management and logout functionality
+- [ ] Validate all database queries include user_id filtering
+- [ ] Test currency display with Thai Baht default
+- [ ] Ensure proper error handling for authentication failures
+
+### Phase 6: Polish & Deployment
+- [ ] Add user onboarding flow for shop setup
+- [ ] Implement data backup/restore per user
+- [ ] Add user-specific low stock notifications
+- [ ] Test app performance with multiple users
+- [ ] Optimize database queries with proper indexing
+- [ ] Prepare app for production deployment
+
+---
+
+## 🛠 Future Upgrades
+
+### Authentication & User Features
+- ✅ Two-factor authentication (2FA)
+- ✅ Social login (Google, Facebook)
+- ✅ Password recovery via email
+- ✅ Multi-device session management
+- ✅ User profile picture upload
+
+### Business Features
+- ✅ Employee management (for shop owners)
+- ✅ Customer accounts and loyalty programs
+- ✅ Advanced analytics with insights
+- ✅ Multi-location support for chain stores
+- ✅ Integration with Thai payment systems (PromptPay, TrueMoney)
+
+### Technical Upgrades
+- 🌍 Cloud sync with user accounts
+- 📤 Data sharing between team members
+- 🔄 Real-time sync across devices
+- 📊 Advanced reporting dashboard
+- 🖨️ Bluetooth printer integration
+
+### Localization Features
+- 🇹🇭 Full Thai language support
+- 💰 Thai Baht currency formatting
+- 📋 Thai tax receipt compliance
+- 🏪 Thai business registration integration
+
+---
+
+## 🔐 Security Considerations
+
+### Password Security
+- Use bcrypt or Argon2 for password hashing
+- Implement password strength requirements
+- Add rate limiting for login attempts
+- Store sensitive data encrypted
+
+### Session Management
+- Implement secure session tokens
+- Add session expiration
+- Support session revocation
+- Track active sessions per user
+
+### Data Privacy
+- Ensure complete data isolation between users
+- Implement data backup with encryption
+- Add user data export/deletion options
+- Follow local privacy regulations
+
+### Database Security
+- Use parameterized queries to prevent SQL injection
+- Implement proper foreign key constraints
+- Add database-level user permissions if needed
+- Regular security audits of database access
+
+---
+
+## 🇹🇭 Thai Market Specific Features
+
+### Currency & Localization
+- **Default Currency**: Thai Baht (฿ THB)
+- **Currency Formatting**: 1,234.56 ฿
+- **Number Format**: Thai number formatting standards
+- **Date Format**: Buddhist calendar option
+- **Language Support**: Thai and English interface
+
+### Payment Integration
+- **PromptPay QR Code**: Generate PromptPay QR for payments
+- **TrueMoney Integration**: Support TrueMoney wallet payments
+- **Bank QR Codes**: Support major Thai bank QR payments
+- **Cash Payment**: Still support cash transactions
+
+### Business Compliance
+- **Thai Tax Receipts**: Generate tax-compliant receipts
+- **VAT Calculation**: Support Thai VAT requirements
+- **Business Registration**: Store Thai business license info
+- **Receipt Templates**: Thai-style receipt formatting
+
+### Sample Thai User Data Structure
+```sql
+-- Example Thai user data
+INSERT INTO users (
+  username, email, first_name, last_name, shop_name, 
+  shop_address, shop_phone, currency, payment_qr_info
+) VALUES (
+  'somchai_shop', 'somchai@email.com', 'สมชาย', 'ใจดี',
+  'ร้านขายของชำสมชาย', '123 ถนนสุขุมวิท กรุงเทพฯ 10110',
+  '081-234-5678', 'THB', '0812345678' -- PromptPay phone number
+);
+```
+
+---
+
+## 📊 User Analytics Dashboard (Thai Context)
+
+### Personal Metrics to Display
+- **Daily/Weekly/Monthly Sales**: Revenue trends in Thai Baht
+- **Best Selling Products**: Top products from user's inventory
+- **Stock Alerts**: Low stock items with Thai product names
+- **Customer Insights**: Thai customer behavior patterns
+- **Profit Margins**: Revenue vs. cost analysis in THB
+- **Sales Trends**: Peak hours considering Thai business hours
+
+### Thai Business Insights
+- **Peak Hours**: 8-10 AM, 5-7 PM (typical Thai shopping patterns)
+- **Seasonal Trends**: Songkran, New Year, monsoon season impacts
+- **Product Categories**: Thai food items, beverages, household goods
+- **Payment Methods**: Cash vs. QR vs. digital wallet usage in Thailand
+
+---
+
+## 🎯 Implementation Priority for Thai Market
+
+### High Priority (Must Have)
+1. **User Authentication**: Secure login with Thai phone number support
+2. **Thai Baht Currency**: Default THB with proper formatting (฿ symbol)
+3. **PromptPay QR Generation**: Essential for Thai payment ecosystem
+4. **Thai Product Categories**: Support for Thai product names and categories
+5. **Data Isolation**: Complete user data separation for privacy
+
+### Medium Priority (Should Have)
+1. **Thai Language Interface**: Bilingual Thai/English support
+2. **Thai Receipt Format**: Comply with Thai business receipt standards
+3. **Tax Calculations**: Support Thai VAT and tax requirements
+4. **Thai Date Format**: Buddhist calendar option
+5. **Thai Business Info**: Support for Thai business license fields
+
+### Low Priority (Nice to Have)
+1. **Advanced Thai Payment**: TrueMoney, bank-specific QR codes
+2. **Thai Compliance**: Full tax authority compliance
+3. **Thai Customer Features**: Thai customer loyalty programs
+4. **Regional Analytics**: Thailand-specific business insights
+5. **Thai Cloud Sync**: Integration with Thai cloud services
+
+---
+
+## 💡 Next Steps for Thai Market Success
+
+### 1. Start with Core User System
+- Focus on user authentication and data isolation first
+- Implement Thai Baht as default currency
+- Create basic PromptPay QR code generation
+
+### 2. Localize Essential Features
+- Add Thai language support to key screens
+- Format currency properly with Thai Baht symbol
+- Support Thai phone numbers for PromptPay
+
+### 3. Build Thai-Specific Features
+- Research Thai receipt requirements
+- Study local payment preferences
+- Understand Thai small business needs
+
+### 4. Test with Thai Users
+- Get feedback from Thai shop owners
+- Test with actual Thai products and pricing
+- Validate payment workflows with Thai customers
+
+### 5. Scale for Thai Market
+- Partner with local payment providers
+- Integrate with Thai e-commerce platforms
+- Add features specific to Thai retail culture
+
+---
+
+## 🎯 Key Benefits for Thai Shop Owners
+
+### **For Thai Shop Owners**
+- **Familiar Currency**: Default Thai Baht reduces confusion
+- **PromptPay Ready**: Generate QR codes Thai customers recognize
+- **Thai Product Support**: Handle Thai product names and categories
+- **Local Business Compliance**: Support Thai business requirements
+- **Offline Operation**: Works without internet (important in rural Thailand)
+
+### **Technical Benefits**
+- **User Data Privacy**: Complete isolation between different shop owners
+- **Scalable for Thailand**: Ready for thousands of Thai users
+- **Security Best Practices**: Password hashing and secure sessions
+- **Thai Payment Integration**: Built for Thai financial ecosystem
+
+### **Business Benefits for You (Developer)**
+- **Thai Market Ready**: Competitive advantage in Thai market
+- **Professional Solution**: Comparable to international POS systems
+- **Local Expertise**: Understanding of Thai business needs
+- **Growth Potential**: Expandable to Southeast Asian markets
+
+---
+
+## 🏪 Thai Shop Owner User Journey
+
+### **Registration Process**
+1. **Download App** → Choose Thai language
+2. **Create Account** → Enter Thai name and shop details
+3. **Shop Setup** → Add Thai business info and PromptPay details
+4. **Add Products** → Support for Thai product names and prices in THB
+5. **First Sale** → Generate PromptPay QR, customer pays, receipt in Thai format
+
+### **Daily Operations**
+1. **Morning Login** → See yesterday's sales in THB
+2. **Scan Products** → Thai barcode/QR support
+3. **Customer Checkout** → Generate PromptPay QR code
+4. **Receipt Generation** → Thai-format receipt with shop details
+5. **Evening Review** → Check daily sales and low stock alerts
+
+### **Weekly/Monthly Management**
+1. **Sales Reports** → Thai Baht revenue analysis
+2. **Inventory Management** → Stock alerts for Thai products
+3. **Customer Insights** → Thai shopping pattern analysis
+4. **Tax Preparation** → Thai tax-compliant sales records
+5. **Business Growth** → Expansion planning with Thai market data
+
+This updated documentation now focuses specifically on adding only the users table while maintaining all existing functionality, with Thai Baht as the default currency and consideration for the Thai market. The architecture is simplified but still provides complete user authentication and data isolation without unnecessary additional tables.
