@@ -311,7 +311,7 @@ sales (1) ←→ (1) inventories (via reference_id)
 ## 📁 Project Structure
 
 ```
-jame_inventory_app/
+jame/
 ├── lib/
 │   ├── main.dart
 │   │
