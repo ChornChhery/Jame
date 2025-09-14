@@ -211,7 +211,7 @@ CREATE TABLE sale_items (
 );
 ```
 
-#### 5. **inventories** table (UPDATED - Added user_id only)
+#### 5. **inventories** table
 ```sql
 CREATE TABLE inventories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -258,14 +258,14 @@ CREATE INDEX idx_inventory_created_user ON inventories(user_id, created_at);
 ### Complete Entity Relationship Diagram
 
 ```
-users (1) ←→ (∞) products
-users (1) ←→ (∞) sales  
-users (1) ←→ (∞) inventories
+users (1) ←→ (M) products
+users (1) ←→ (M) sales  
+users (1) ←→ (M) inventories
 
-products (1) ←→ (∞) sale_items
-products (1) ←→ (∞) inventories
+products (1) ←→ (M) sale_items
+products (1) ←→ (M) inventories
 
-sales (1) ←→ (∞) sale_items
+sales (1) ←→ (M) sale_items
 sales (1) ←→ (1) inventories (via reference_id)
 ```
 
@@ -308,7 +308,7 @@ sales (1) ←→ (1) inventories (via reference_id)
 
 ---
 
-## 📁 Project Structure (Updated with User Management)
+## 📁 Project Structure
 
 ```
 jame_inventory_app/
@@ -597,7 +597,7 @@ The architecture now includes **Authentication Layer** and **User Context**:
 +---------------------------+
 ```
 
-### Dependencies (Updated pubspec.yaml)
+### Dependencies
 ```yaml
 dependencies:
   flutter:
