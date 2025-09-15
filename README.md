@@ -316,200 +316,54 @@ jame/
 │   ├── main.dart
 │   │
 │   ├── core/
-│   │   ├── constants/
-│   │   │   ├── app_colors.dart
-│   │   │   ├── app_strings.dart
-│   │   │   ├── app_sizes.dart
-│   │   │   └── app_routes.dart
-│   │   │
-│   │   ├── utils/
-│   │   │   ├── date_formatter.dart
-│   │   │   ├── currency_formatter.dart      # UPDATED - Default THB
-│   │   │   ├── qr_helper.dart
-│   │   │   ├── receipt_generator.dart
-│   │   │   ├── validators.dart
-│   │   │   ├── encryption_helper.dart       # NEW - Password hashing
-│   │   │   └── session_manager.dart         # NEW - User session management
-│   │   │
-│   │   ├── services/
-│   │   │   ├── database_service.dart
-│   │   │   ├── auth_service.dart            # NEW - Authentication service
-│   │   │   ├── user_service.dart            # NEW - User management
-│   │   │   ├── pdf_service.dart
-│   │   │   ├── payment_service.dart
-│   │   │   ├── backup_service.dart
-│   │   │   └── notification_service.dart
-│   │   │
-│   │   └── theme/
-│   │       ├── app_theme.dart
-│   │       └── text_styles.dart
+│   │   ├── constants.dart          # All constants in one file
+│   │   ├── theme.dart             # All theme & colors
+│   │   ├── utils.dart             # All utilities combined
+│   │   └── services.dart          # All services in one file
 │   │
-│   ├── data/
-│   │   ├── models/
-│   │   │   ├── user.dart                    # NEW - User model
-│   │   │   ├── product.dart                 # UPDATED - Added user_id
-│   │   │   ├── category.dart
-│   │   │   ├── sale.dart                    # UPDATED - Added user_id
-│   │   │   ├── sale_item.dart
-│   │   │   ├── inventory_log.dart           # UPDATED - Added user_id
-│   │   │   ├── cart_item.dart
-│   │   │   └── app_settings.dart
-│   │   │
-│   │   ├── database/
-│   │   │   ├── database_helper.dart         # UPDATED - Added user table
-│   │   │   ├── migrations.dart              # UPDATED - User table migration
-│   │   │   └── dao/
-│   │   │       ├── user_dao.dart            # NEW - User queries
-│   │   │       ├── product_dao.dart         # UPDATED - Filter by user_id
-│   │   │       ├── category_dao.dart
-│   │   │       ├── sale_dao.dart            # UPDATED - Filter by user_id
-│   │   │       ├── inventory_dao.dart       # UPDATED - Filter by user_id
-│   │   │       └── settings_dao.dart
-│   │   │
-│   │   └── repositories/
-│   │       ├── user_repository.dart         # NEW - User business logic
-│   │       ├── auth_repository.dart         # NEW - Authentication logic
-│   │       ├── product_repository.dart      # UPDATED - User-scoped operations
-│   │       ├── sale_repository.dart         # UPDATED - User-scoped operations
-│   │       ├── inventory_repository.dart    # UPDATED - User-scoped operations
-│   │       └── settings_repository.dart
+│   ├── models/
+│   │   ├── user.dart              # User model
+│   │   ├── product.dart           # Product model
+│   │   ├── sale.dart              # Sale & sale_item models
+│   │   └── inventory.dart         # Inventory & cart models
 │   │
-│   ├── presentation/
-│   │   ├── pages/
-│   │   │   ├── splash/
-│   │   │   │   └── splash_screen.dart
-│   │   │   │
-│   │   │   ├── auth/                        # NEW - Authentication pages
-│   │   │   │   ├── login_screen.dart
-│   │   │   │   ├── signup_screen.dart
-│   │   │   │   ├── forgot_password_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── auth_form.dart
-│   │   │   │       ├── password_field.dart
-│   │   │   │       └── social_login_buttons.dart
-│   │   │   │
-│   │   │   ├── profile/                     # NEW - User profile pages
-│   │   │   │   ├── profile_screen.dart
-│   │   │   │   ├── edit_profile_screen.dart
-│   │   │   │   ├── shop_settings_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── profile_header.dart
-│   │   │   │       ├── shop_info_card.dart
-│   │   │   │       └── profile_menu_item.dart
-│   │   │   │
-│   │   │   ├── dashboard/
-│   │   │   │   ├── dashboard_screen.dart    # UPDATED - User-specific data
-│   │   │   │   └── widgets/
-│   │   │   │       ├── user_welcome_header.dart     # NEW
-│   │   │   │       ├── personal_sales_summary.dart  # UPDATED
-│   │   │   │       ├── quick_actions_grid.dart
-│   │   │   │       └── low_stock_alerts.dart
-│   │   │   │
-│   │   │   ├── products/
-│   │   │   │   ├── product_list_screen.dart         # UPDATED - User's products only
-│   │   │   │   ├── product_detail_screen.dart
-│   │   │   │   ├── add_edit_product_screen.dart     # UPDATED - Auto-assign user_id
-│   │   │   │   └── widgets/
-│   │   │   │       ├── product_card.dart
-│   │   │   │       ├── product_search_bar.dart
-│   │   │   │       └── category_filter_chips.dart
-│   │   │   │
-│   │   │   ├── scanner/
-│   │   │   │   ├── qr_scanner_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── scanner_overlay.dart
-│   │   │   │       └── manual_code_input.dart
-│   │   │   │
-│   │   │   ├── cart/
-│   │   │   │   ├── cart_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── cart_item_tile.dart
-│   │   │   │       ├── cart_summary.dart
-│   │   │   │       └── quantity_selector.dart
-│   │   │   │
-│   │   │   ├── payment/
-│   │   │   │   ├── payment_screen.dart              # UPDATED - User's payment QR
-│   │   │   │   ├── payment_success_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── payment_qr_display.dart
-│   │   │   │       ├── payment_method_selector.dart
-│   │   │   │       └── amount_display.dart
-│   │   │   │
-│   │   │   ├── receipt/
-│   │   │   │   ├── receipt_screen.dart              # UPDATED - User shop details
-│   │   │   │   ├── receipt_preview_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── receipt_header.dart          # UPDATED - User shop info
-│   │   │   │       ├── receipt_items_list.dart
-│   │   │   │       └── receipt_footer.dart
-│   │   │   │
-│   │   │   ├── reports/
-│   │   │   │   ├── personal_reports_screen.dart     # UPDATED - Personal analytics
-│   │   │   │   ├── sales_report_screen.dart         # UPDATED - User's sales only
-│   │   │   │   ├── inventory_report_screen.dart     # UPDATED - User's inventory
-│   │   │   │   └── widgets/
-│   │   │   │       ├── personal_chart.dart          # NEW - Personal analytics
-│   │   │   │       ├── report_filter.dart
-│   │   │   │       └── report_summary_card.dart
-│   │   │   │
-│   │   │   ├── inventory/
-│   │   │   │   ├── inventory_screen.dart            # UPDATED - User's inventory only
-│   │   │   │   ├── stock_adjustment_screen.dart
-│   │   │   │   ├── inventory_logs_screen.dart
-│   │   │   │   └── widgets/
-│   │   │   │       ├── inventory_item_card.dart
-│   │   │   │       ├── stock_level_indicator.dart
-│   │   │   │       └── adjustment_form.dart
-│   │   │   │
-│   │   │   └── settings/
-│   │   │       ├── settings_screen.dart             # UPDATED - User preferences
-│   │   │       ├── account_settings_screen.dart     # NEW
-│   │   │       ├── backup_restore_screen.dart
-│   │   │       └── widgets/
-│   │   │           ├── setting_tile.dart
-│   │   │           ├── account_info_card.dart       # NEW
-│   │   │           └── backup_options.dart
-│   │   │
-│   │   ├── widgets/
-│   │   │   ├── common/
-│   │   │   │   ├── custom_app_bar.dart
-│   │   │   │   ├── user_avatar.dart                 # NEW - User profile picture
-│   │   │   │   ├── loading_widget.dart
-│   │   │   │   ├── error_widget.dart
-│   │   │   │   ├── empty_state_widget.dart
-│   │   │   │   ├── custom_button.dart
-│   │   │   │   ├── custom_text_field.dart
-│   │   │   │   └── confirmation_dialog.dart
-│   │   │   │
-│   │   │   └── navigation/
-│   │   │       ├── bottom_nav_bar.dart
-│   │   │       ├── drawer_menu.dart                 # UPDATED - User info in drawer
-│   │   │       └── auth_wrapper.dart                # NEW - Route protection
-│   │   │
-│   │   └── providers/
-│   │       ├── auth_provider.dart                   # NEW - Authentication state
-│   │       ├── user_provider.dart                   # NEW - User profile state
-│   │       ├── cart_provider.dart                   # UPDATED - User-scoped cart
-│   │       ├── product_provider.dart                # UPDATED - User's products only
-│   │       ├── sale_provider.dart                   # UPDATED - User's sales only
-│   │       ├── inventory_provider.dart              # UPDATED - User's inventory
-│   │       ├── theme_provider.dart
-│   │       └── settings_provider.dart               # UPDATED - User preferences
+│   ├── database/
+│   │   ├── database_helper.dart   # SQLite setup & all DAOs
+│   │   └── repositories.dart      # All repositories combined
 │   │
-│   └── routes/
-│       └── app_router.dart                          # UPDATED - Auth-protected routes
+│   ├── screens/
+│   │   ├── auth_screens.dart      # Login & signup combined
+│   │   ├── dashboard_screen.dart  # Main dashboard
+│   │   ├── products_screen.dart   # Product list & add/edit
+│   │   ├── scanner_screen.dart    # QR scanner
+│   │   ├── cart_screen.dart       # Shopping cart
+│   │   ├── payment_screen.dart    # Payment & QR generation
+│   │   ├── receipt_screen.dart    # Receipt display
+│   │   ├── reports_screen.dart    # Analytics & reports
+│   │   ├── profile_screen.dart    # User profile & settings
+│   │   └── inventory_screen.dart  # Stock management
+│   │
+│   ├── widgets/
+│   │   ├── common_widgets.dart    # Reusable UI components
+│   │   └── custom_widgets.dart    # App-specific widgets
+│   │
+│   ├── providers/
+│   │   ├── auth_provider.dart     # Authentication state
+│   │   ├── app_provider.dart      # Main app state (products, sales, cart)
+│   │   └── settings_provider.dart # Settings & preferences
+│   │
+│   └── routes.dart                # All routing logic
 │
 ├── assets/
 │   ├── images/
 │   │   ├── logo.png
-│   │   ├── default_avatar.png                       # NEW - Default user avatar
-│   │   ├── placeholder_product.png
-│   │   └── icons/
+│   │   ├── default_avatar.png
+│   │   └── placeholder_product.png
 │   │
 │   └── data/
-│       └── sample_products.json                     # UPDATED - Include user_id samples
+│       └── sample_data.json
 │
-├── pubspec.yaml                                     # UPDATED - Added crypto dependency
+├── pubspec.yaml
 ├── README.md
 └── .gitignore
 ```
