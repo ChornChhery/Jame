@@ -10,115 +10,325 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _obscurePassword = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
+    );
+    _animationController.forward();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppConstants.lightGray,
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
+        child: SingleChildScrollView(
+          child: Container(
+            height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryYellow,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.store,
-                    size: 60,
-                    color: AppConstants.primaryDarkBlue,
-                  ),
-                ),
-                SizedBox(height: 32),
-                
-                // Title
-                Text(
-                  AppConstants.appName,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryDarkBlue,
-                  ),
-                ),
-                Text(
-                  AppConstants.loginTitle,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: AppConstants.textDarkGray,
-                  ),
-                ),
-                SizedBox(height: 32),
-
-                // Email field
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: AppConstants.email,
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
-                    if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                // Password field
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: AppConstants.password,
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
-                    if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 32),
-
-                // Login button
-                Consumer<AuthProvider>(
-                  builder: (context, auth, child) {
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: auth.isLoading ? null : _handleLogin,
-                        child: auth.isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text(AppConstants.login),
+                // Header Section with Background
+                Expanded(
+                  flex: 4,
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppConstants.primaryDarkBlue,
+                          AppConstants.primaryDarkBlue.withOpacity(0.8),
+                        ],
                       ),
-                    );
-                  },
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(40),
+                        bottomRight: Radius.circular(40),
+                      ),
+                    ),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: SlideTransition(
+                        position: _slideAnimation,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Logo with modern design
+                            Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: AppConstants.primaryYellow,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.store_rounded,
+                                size: 50,
+                                color: AppConstants.primaryDarkBlue,
+                              ),
+                            ),
+                            SizedBox(height: 24),
+                            
+                            // App Name
+                            Text(
+                              AppConstants.appName,
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              AppConstants.loginTitle,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.8),
+                                fontWeight: FontWeight.w300,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                SizedBox(height: 16),
 
-                // Signup link
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, AppConstants.signupRoute),
-                  child: Text('ยังไม่มีบัญชี? สมัครสมาชิก'),
+                // Form Section
+                Expanded(
+                  flex: 6,
+                  child: Padding(
+                    padding: EdgeInsets.all(32.0),
+                    child: FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Welcome text
+                            Text(
+                              'ยินดีต้อนรับกลับ',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: AppConstants.primaryDarkBlue,
+                              ),
+                            ),
+                            Text(
+                              'เข้าสู่ระบบเพื่อดำเนินการต่อ',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppConstants.textDarkGray,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            SizedBox(height: 40),
+
+                            // Email field with modern design
+                            _buildModernTextField(
+                              controller: _emailController,
+                              label: AppConstants.email,
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
+                                if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+                                return null;
+                              },
+                            ),
+                            SizedBox(height: 20),
+
+                            // Password field
+                            _buildModernTextField(
+                              controller: _passwordController,
+                              label: AppConstants.password,
+                              icon: Icons.lock_outline,
+                              obscureText: _obscurePassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                  color: AppConstants.textDarkGray,
+                                ),
+                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              ),
+                              validator: (value) {
+                                if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
+                                if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                                return null;
+                              },
+                            ),
+                            SizedBox(height: 32),
+
+                            // Login button
+                            Consumer<AuthProvider>(
+                              builder: (context, auth, child) {
+                                return Container(
+                                  width: double.infinity,
+                                  height: 56,
+                                  child: ElevatedButton(
+                                    onPressed: auth.isLoading ? null : _handleLogin,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppConstants.primaryDarkBlue,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shadowColor: Colors.transparent,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: auth.isLoading
+                                        ? SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(
+                                            AppConstants.login,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                  ),
+                                );
+                              },
+                            ),
+                            SizedBox(height: 24),
+
+                            // Signup link
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'ยังไม่มีบัญชี? ',
+                                  style: TextStyle(
+                                    color: AppConstants.textDarkGray,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pushNamed(context, AppConstants.signupRoute),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: Text(
+                                    'สมัครสมาชิก',
+                                    style: TextStyle(
+                                      color: AppConstants.primaryDarkBlue,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      validator: validator,
+      style: TextStyle(
+        fontSize: 16,
+        color: AppConstants.primaryDarkBlue,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
+        suffixIcon: suffixIcon,
+        labelStyle: TextStyle(
+          color: AppConstants.textDarkGray,
+          fontSize: 14,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Colors.grey.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppConstants.primaryDarkBlue,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppConstants.errorRed,
+            width: 1,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppConstants.errorRed,
+            width: 2,
+          ),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       ),
     );
   }
@@ -139,6 +349,9 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(
           content: Text('อีเมลหรือรหัสผ่านไม่ถูกต้อง'),
           backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.all(16),
         ),
       );
     }
@@ -148,6 +361,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 }
@@ -157,7 +371,7 @@ class SignupScreen extends StatefulWidget {
   _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -168,184 +382,537 @@ class _SignupScreenState extends State<SignupScreen> {
   final _shopNameController = TextEditingController();
   final _shopAddressController = TextEditingController();
   final _shopPhoneController = TextEditingController();
+  
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  int _currentStep = 0;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _animationController.forward();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppConstants.lightGray,
-      appBar: AppBar(
-        title: Text(AppConstants.signupTitle),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                // Personal Info
-                Text(
-                  'ข้อมูลส่วนตัว',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryDarkBlue,
+        child: Column(
+          children: [
+            // Header
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryDarkBlue,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(32),
+                  bottomRight: Radius.circular(32),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.arrow_back_ios, color: Colors.white),
+                      ),
+                      Expanded(
+                        child: Text(
+                          AppConstants.signupTitle,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                      SizedBox(width: 48), // Balance the back button
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  
+                  // Progress indicator
+                  Row(
+                    children: [
+                      _buildStepIndicator(0, 'ข้อมูลส่วนตัว'),
+                      Expanded(child: _buildStepLine(0 < _currentStep)),
+                      _buildStepIndicator(1, 'ข้อมูลร้าน'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Form content
+            Expanded(
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: _currentStep == 0 ? _buildPersonalInfoStep() : _buildShopInfoStep(),
                   ),
                 ),
-                SizedBox(height: 16),
+              ),
+            ),
 
-                Row(
-                  children: [
+            // Bottom buttons
+            Container(
+              padding: EdgeInsets.all(24),
+              child: Row(
+                children: [
+                  if (_currentStep > 0) ...[
                     Expanded(
-                      child: TextFormField(
-                        controller: _firstNameController,
-                        decoration: InputDecoration(
-                          labelText: 'ชื่อ',
-                          prefixIcon: Icon(Icons.person),
+                      child: OutlinedButton(
+                        onPressed: () {
+                          setState(() => _currentStep = 0);
+                          _animationController.reset();
+                          _animationController.forward();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppConstants.primaryDarkBlue,
+                          side: BorderSide(color: AppConstants.primaryDarkBlue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 16),
                         ),
-                        validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อ' : null,
+                        child: Text('ย้อนกลับ'),
                       ),
                     ),
                     SizedBox(width: 16),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _lastNameController,
-                        decoration: InputDecoration(
-                          labelText: 'นามสกุล',
-                        ),
-                        validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกนามสกุล' : null,
-                      ),
-                    ),
                   ],
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'ชื่อผู้ใช้',
-                    prefixIcon: Icon(Icons.account_circle),
+                  Expanded(
+                    child: Consumer<AuthProvider>(
+                      builder: (context, auth, child) {
+                        return ElevatedButton(
+                          onPressed: auth.isLoading ? null : (_currentStep == 0 ? _nextStep : _handleSignup),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppConstants.primaryDarkBlue,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: auth.isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  _currentStep == 0 ? 'ถัดไป' : AppConstants.signup,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        );
+                      },
+                    ),
                   ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'กรุณากรอกชื่อผู้ใช้';
-                    if (value!.length < 3) return 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: AppConstants.email,
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
-                    if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: AppConstants.password,
-                    prefixIcon: Icon(Icons.lock),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
-                    if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: 'ยืนยันรหัสผ่าน',
-                    prefixIcon: Icon(Icons.lock_outline),
-                  ),
-                  validator: (value) {
-                    if (value != _passwordController.text) return 'รหัสผ่านไม่ตรงกัน';
-                    return null;
-                  },
-                ),
-                SizedBox(height: 24),
-
-                // Shop Info
-                Text(
-                  'ข้อมูลร้าน',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryDarkBlue,
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _shopNameController,
-                  decoration: InputDecoration(
-                    labelText: AppConstants.shopName,
-                    prefixIcon: Icon(Icons.store),
-                  ),
-                  validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _shopAddressController,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: 'ที่อยู่ร้าน',
-                    prefixIcon: Icon(Icons.location_on),
-                  ),
-                ),
-                SizedBox(height: 16),
-
-                TextFormField(
-                  controller: _shopPhoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'เบอร์โทรร้าน',
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                ),
-                SizedBox(height: 32),
-
-                // Signup button
-                Consumer<AuthProvider>(
-                  builder: (context, auth, child) {
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: auth.isLoading ? null : _handleSignup,
-                        child: auth.isLoading
-                            ? CircularProgressIndicator(color: Colors.white)
-                            : Text(AppConstants.signup),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: 16),
-
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('มีบัญชีแล้ว? เข้าสู่ระบบ'),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildStepIndicator(int step, String label) {
+    bool isActive = step <= _currentStep;
+    bool isCurrent = step == _currentStep;
+    
+    return Column(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: isActive ? AppConstants.primaryYellow : Colors.white.withOpacity(0.3),
+            shape: BoxShape.circle,
+            border: isCurrent ? Border.all(color: Colors.white, width: 2) : null,
+          ),
+          child: Center(
+            child: Text(
+              '${step + 1}',
+              style: TextStyle(
+                color: isActive ? AppConstants.primaryDarkBlue : Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepLine(bool isCompleted) {
+    return Container(
+      height: 2,
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      decoration: BoxDecoration(
+        color: isCompleted ? AppConstants.primaryYellow : Colors.white.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(1),
+      ),
+    );
+  }
+
+  Widget _buildPersonalInfoStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ข้อมูลส่วนตัว',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppConstants.primaryDarkBlue,
+          ),
+        ),
+        Text(
+          'กรอกข้อมูลส่วนตัวของคุณ',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppConstants.textDarkGray,
+          ),
+        ),
+        SizedBox(height: 32),
+
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernTextField(
+                controller: _firstNameController,
+                label: 'ชื่อ',
+                icon: Icons.person_outline,
+                validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อ' : null,
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: _buildModernTextField(
+                controller: _lastNameController,
+                label: 'นามสกุล',
+                icon: Icons.person_outline,
+                validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกนามสกุล' : null,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 20),
+
+        _buildModernTextField(
+          controller: _usernameController,
+          label: 'ชื่อผู้ใช้',
+          icon: Icons.account_circle_outlined,
+          validator: (value) {
+            if (value?.isEmpty ?? true) return 'กรุณากรอกชื่อผู้ใช้';
+            if (value!.length < 3) return 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
+            return null;
+          },
+        ),
+        SizedBox(height: 20),
+
+        _buildModernTextField(
+          controller: _emailController,
+          label: AppConstants.email,
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+          validator: (value) {
+            if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
+            if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+            return null;
+          },
+        ),
+        SizedBox(height: 20),
+
+        _buildModernTextField(
+          controller: _passwordController,
+          label: AppConstants.password,
+          icon: Icons.lock_outline,
+          obscureText: _obscurePassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+              color: AppConstants.textDarkGray,
+            ),
+            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+          ),
+          validator: (value) {
+            if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
+            if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+            return null;
+          },
+        ),
+        SizedBox(height: 20),
+
+        _buildModernTextField(
+          controller: _confirmPasswordController,
+          label: 'ยืนยันรหัสผ่าน',
+          icon: Icons.lock_outline,
+          obscureText: _obscureConfirmPassword,
+          suffixIcon: IconButton(
+            icon: Icon(
+              _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+              color: AppConstants.textDarkGray,
+            ),
+            onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+          ),
+          validator: (value) {
+            if (value != _passwordController.text) return 'รหัสผ่านไม่ตรงกัน';
+            return null;
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShopInfoStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ข้อมูลร้าน',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppConstants.primaryDarkBlue,
+          ),
+        ),
+        Text(
+          'กรอกข้อมูลร้านค้าของคุณ',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppConstants.textDarkGray,
+          ),
+        ),
+        SizedBox(height: 32),
+
+        _buildModernTextField(
+          controller: _shopNameController,
+          label: AppConstants.shopName,
+          icon: Icons.store_outlined,
+          validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
+        ),
+        SizedBox(height: 20),
+
+        _buildModernTextField(
+          controller: _shopAddressController,
+          label: 'ที่อยู่ร้าน',
+          icon: Icons.location_on_outlined,
+          maxLines: 3,
+        ),
+        SizedBox(height: 20),
+
+        _buildModernTextField(
+          controller: _shopPhoneController,
+          label: 'เบอร์โทรร้าน',
+          icon: Icons.phone_outlined,
+          keyboardType: TextInputType.phone,
+        ),
+        SizedBox(height: 32),
+
+        Container(
+          padding: EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppConstants.primaryYellow.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppConstants.primaryYellow.withOpacity(0.3),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: AppConstants.primaryDarkBlue,
+                size: 20,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'ข้อมูลร้านค้าจะถูกใช้ในการออกใบเสร็จและเอกสารทางการเงิน',
+                  style: TextStyle(
+                    color: AppConstants.primaryDarkBlue,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 24),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'มีบัญชีแล้ว? ',
+              style: TextStyle(
+                color: AppConstants.textDarkGray,
+                fontSize: 14,
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                'เข้าสู่ระบบ',
+                style: TextStyle(
+                  color: AppConstants.primaryDarkBlue,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      validator: validator,
+      maxLines: maxLines,
+      style: TextStyle(
+        fontSize: 16,
+        color: AppConstants.primaryDarkBlue,
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
+        suffixIcon: suffixIcon,
+        labelStyle: TextStyle(
+          color: AppConstants.textDarkGray,
+          fontSize: 14,
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: Colors.grey.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppConstants.primaryDarkBlue,
+            width: 2,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppConstants.errorRed,
+            width: 1,
+          ),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(
+            color: AppConstants.errorRed,
+            width: 2,
+          ),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      ),
+    );
+  }
+
+  void _nextStep() {
+    if (!_validateCurrentStep()) return;
+    
+    setState(() => _currentStep = 1);
+    _animationController.reset();
+    _animationController.forward();
+  }
+
+  bool _validateCurrentStep() {
+    final currentFocus = FocusScope.of(context);
+    if (!currentFocus.hasPrimaryFocus) {
+      currentFocus.unfocus();
+    }
+
+    // Validate only the fields in current step
+    if (_currentStep == 0) {
+      bool isValid = true;
+      if (_firstNameController.text.trim().isEmpty) isValid = false;
+      if (_lastNameController.text.trim().isEmpty) isValid = false;
+      if (_usernameController.text.trim().isEmpty || _usernameController.text.trim().length < 3) isValid = false;
+      if (_emailController.text.trim().isEmpty || !AppUtils.isValidEmail(_emailController.text.trim())) isValid = false;
+      if (_passwordController.text.isEmpty || !AppUtils.isValidPassword(_passwordController.text)) isValid = false;
+      if (_confirmPasswordController.text != _passwordController.text) isValid = false;
+      
+      if (!isValid) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง'),
+            backgroundColor: AppConstants.errorRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: EdgeInsets.all(16),
+          ),
+        );
+      }
+      return isValid;
+    }
+    return true;
   }
 
   Future<void> _handleSignup() async {
@@ -370,6 +937,9 @@ class _SignupScreenState extends State<SignupScreen> {
         SnackBar(
           content: Text(error),
           backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.all(16),
         ),
       );
     }
@@ -386,6 +956,7 @@ class _SignupScreenState extends State<SignupScreen> {
     _shopNameController.dispose();
     _shopAddressController.dispose();
     _shopPhoneController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 }
