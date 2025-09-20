@@ -6,6 +6,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/payment_screen.dart';
+import 'screens/receipt_screen.dart';
 import 'providers/auth_provider.dart';
 import 'core/constants.dart';
 
@@ -93,7 +94,7 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (context) => _buildProtectedRoute(
             context,
-            () => PlaceholderScreen(title: 'ใบเสร็จ'),
+            () => ReceiptScreen(),
             'ใบเสร็จ',
           ),
         );

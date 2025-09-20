@@ -9,6 +9,7 @@ import '../core/constants.dart';
 import '../core/utils.dart';
 import '../widgets/add_edit_product_dialog.dart';
 import '../widgets/product_details_dialog.dart';
+import '../widgets/manual_sale_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -215,43 +216,35 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     // Connection status indicator
                     Consumer<AuthProvider>(
                       builder: (context, auth, child) {
-                        return FutureBuilder<bool>(
-                          future: auth.testServerConnection(),
-                          builder: (context, snapshot) {
-                            final isConnected = snapshot.data ?? false;
-                            return Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isConnected 
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.orange.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isConnected ? Colors.green : Colors.orange,
-                                  width: 1,
+                        return Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.blue,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.cloud_done,
+                                color: Colors.blue,
+                                size: 12,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'พร้อมใช้',
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isConnected ? Icons.cloud_done : Icons.cloud_off,
-                                    color: isConnected ? Colors.green : Colors.orange,
-                                    size: 12,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    isConnected ? 'ออนไลน์' : 'ออฟไลน์', // Online/Offline
-                                    style: TextStyle(
-                                      color: isConnected ? Colors.green : Colors.orange,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                            ],
+                          ),
                         );
                       },
                     ),
@@ -542,6 +535,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         'gradient': [AppConstants.primaryYellow, AppConstants.primaryYellow.withOpacity(0.7)],
       },
       {
+        'title': 'ขายด่วน',
+        'icon': Icons.point_of_sale,
+        'color': Colors.purple,
+        'isManualSale': true,
+        'gradient': [Colors.purple, Colors.purple.withOpacity(0.7)],
+      },
+      {
         'title': 'จัดการสินค้า',
         'icon': Icons.inventory_2_outlined,
         'color': AppConstants.softBlue,
@@ -583,7 +583,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             crossAxisCount: 2,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: 1.1,
+            childAspectRatio: 1.0,
           ),
           itemCount: actions.length,
           itemBuilder: (context, index) {
@@ -592,7 +592,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               action['title'] as String,
               action['icon'] as IconData,
               action['gradient'] as List<Color>,
-              () => Navigator.pushNamed(context, action['route'] as String),
+              () {
+                if (action['isManualSale'] == true) {
+                  _showManualSaleDialog();
+                } else {
+                  Navigator.pushNamed(context, action['route'] as String);
+                }
+              },
             );
           },
         ),
@@ -1102,6 +1108,17 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     _animationController.dispose();
     super.dispose();
   }
+
+  void _showManualSaleDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ManualSaleDialog(
+        onSaleCompleted: () {
+          _loadData(); // Refresh dashboard data
+        },
+      ),
+    );
+  }
 }
 
 // ================================
@@ -1568,17 +1585,20 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     SizedBox(height: 4),
                     Row(
                       children: [
-                        Text(
-                          '฿${NumberFormat('#,##0.00').format(product.price)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: AppConstants.primaryDarkBlue,
-                            fontSize: 14,
+                        Flexible(
+                          child: Text(
+                            '฿${NumberFormat('#,##0.00').format(product.price)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppConstants.primaryDarkBlue,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Spacer(),
+                        SizedBox(width: 8),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
                             color: isLowStock ? Colors.orange : Colors.green,
                             borderRadius: BorderRadius.circular(8),
@@ -1587,7 +1607,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             'คงเหลือ ${product.quantity}',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
@@ -1596,64 +1616,113 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     ),
                   ],
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (isLowStock)
-                      Icon(
-                        Icons.warning,
-                        color: Colors.orange,
-                        size: 20,
+                trailing: SizedBox(
+                  width: 90, // Further reduced trailing width
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Compact Add to Cart button
+                      GestureDetector(
+                        onTap: product.quantity > 0 ? () => _addToCart(product) : null,
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: product.quantity > 0 
+                                ? AppConstants.primaryDarkBlue.withOpacity(0.1)
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.add_shopping_cart,
+                            color: product.quantity > 0 
+                                ? AppConstants.primaryDarkBlue 
+                                : Colors.grey[400],
+                            size: 14,
+                          ),
+                        ),
                       ),
-                    SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                        switch (value) {
-                          case 'view':
-                            _showProductDetailsDialog(product);
-                            break;
-                          case 'edit':
-                            _showAddEditProductDialog(product: product);
-                            break;
-                          case 'delete':
-                            _showDeleteConfirmDialog(product);
-                            break;
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'view',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility, size: 18),
-                              SizedBox(width: 8),
-                              Text('ดูรายละเอียด'),
-                            ],
-                          ),
+                      SizedBox(width: 4),
+                      if (isLowStock)
+                        Icon(
+                          Icons.warning,
+                          color: Colors.orange,
+                          size: 14,
                         ),
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 18),
-                              SizedBox(width: 8),
-                              Text('แก้ไข'),
-                            ],
-                          ),
+                      if (isLowStock)
+                        SizedBox(width: 4),
+                      PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        iconSize: 14,
+                        constraints: BoxConstraints(
+                          minWidth: 28,
+                          minHeight: 28,
                         ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, size: 18, color: Colors.red),
-                              SizedBox(width: 8),
-                              Text('ลบ', style: TextStyle(color: Colors.red)),
-                            ],
+                        onSelected: (value) {
+                          switch (value) {
+                            case 'add_to_cart':
+                              _addToCart(product);
+                              break;
+                            case 'view':
+                              _showProductDetailsDialog(product);
+                              break;
+                            case 'edit':
+                              _showAddEditProductDialog(product: product);
+                              break;
+                            case 'delete':
+                              _showDeleteConfirmDialog(product);
+                              break;
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            value: 'add_to_cart',
+                            height: 35,
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_shopping_cart, size: 14, color: AppConstants.primaryDarkBlue),
+                                SizedBox(width: 4),
+                                Expanded(child: Text('เพิ่มในตะกร้า', style: TextStyle(color: AppConstants.primaryDarkBlue, fontSize: 11))),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          PopupMenuItem(
+                            value: 'view',
+                            height: 35,
+                            child: Row(
+                              children: [
+                                Icon(Icons.visibility, size: 14),
+                                SizedBox(width: 4),
+                                Expanded(child: Text('ดูรายละเอียด', style: TextStyle(fontSize: 11))),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'edit',
+                            height: 35,
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit, size: 14),
+                                SizedBox(width: 4),
+                                Expanded(child: Text('แก้ไข', style: TextStyle(fontSize: 11))),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'delete',
+                            height: 35,
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete, size: 14, color: Colors.red),
+                                SizedBox(width: 4),
+                                Expanded(child: Text('ลบ', style: TextStyle(color: Colors.red, fontSize: 11))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
                 onTap: () => _showProductDetailsDialog(product),
               ),
@@ -1900,6 +1969,41 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             child: Text('ลบ'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _addToCart(Product product) {
+    if (product.quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('สินค้านี้หมดสต็อกแล้ว'),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    appProvider.addToCart(product, quantity: 1);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
+        backgroundColor: AppConstants.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16),
+        action: SnackBarAction(
+          label: 'ดูตะกร้า',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.pushNamed(context, AppConstants.cartRoute);
+          },
+        ),
       ),
     );
   }

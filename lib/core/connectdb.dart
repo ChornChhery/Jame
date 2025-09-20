@@ -397,8 +397,8 @@ class ConnectDB {
           user.currency,
           user.paymentQr ?? '',
           user.profileImage ?? '',
-          user.createdAt?.toIso8601String(),
-          user.updatedAt?.toIso8601String(),
+          user.createdAt?.toUtc()?.toIso8601String(),
+          user.updatedAt?.toUtc()?.toIso8601String(),
         ],
       );
       
@@ -449,8 +449,8 @@ class ConnectDB {
           product.category ?? '',
           product.unit,
           product.image ?? '',
-          product.createdAt,
-          product.updatedAt,
+          product.createdAt?.toUtc(), // Convert to UTC for MySQL
+          product.updatedAt?.toUtc(), // Convert to UTC for MySQL
         ],
       );
       
@@ -482,18 +482,17 @@ class ConnectDB {
       // First sync the sale with parameterized query
       final saleResult = await connection.query(
         '''
-        INSERT INTO sales (id, user_id, sale_date, total_amount, payment_status,
+        INSERT INTO sales (user_id, sale_date, total_amount, payment_status,
                           receipt_number, payment_method, description, 
                           customer_name, customer_phone)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         total_amount=VALUES(total_amount), payment_status=VALUES(payment_status),
         payment_method=VALUES(payment_method)
         ''',
         [
-          sale.id,
           sale.userId,
-          sale.saleDate,
+          sale.saleDate.toUtc(), // Convert to UTC for MySQL
           sale.totalAmount,
           sale.paymentStatus,
           sale.receiptNumber,
@@ -504,20 +503,38 @@ class ConnectDB {
         ],
       );
       
+      // Get the sale ID (either inserted or existing)
+      int saleId;
+      if (saleResult.insertId != null && saleResult.insertId! > 0) {
+        saleId = saleResult.insertId!;
+        debugPrint('✅ New sale created with ID: $saleId');
+      } else {
+        // If it was an update, find the existing sale ID
+        final existingSale = await connection.query(
+          'SELECT id FROM sales WHERE receipt_number = ? AND user_id = ? LIMIT 1',
+          [sale.receiptNumber, sale.userId]
+        );
+        if (existingSale.isNotEmpty) {
+          saleId = existingSale.first['id'];
+          debugPrint('✅ Using existing sale ID: $saleId');
+        } else {
+          throw Exception('Could not determine sale ID after insertion');
+        }
+      }
+      
       if (saleResult.affectedRows != null && saleResult.affectedRows! > 0) {
-        // Then sync all sale items with parameterized queries
+        // Then sync all sale items with the correct sale_id
         for (var item in items) {
           await connection.query(
             '''
-            INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, total_price)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price)
+            VALUES (?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
             quantity=VALUES(quantity), unit_price=VALUES(unit_price), 
             total_price=VALUES(total_price)
             ''',
             [
-              item.id,
-              item.saleId,
+              saleId, // Use the actual sale ID from database
               item.productId,
               item.quantity,
               item.unitPrice,
