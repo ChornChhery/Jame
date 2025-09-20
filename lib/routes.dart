@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'screens/auth_screens.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/profile_screen.dart';
 import 'core/constants.dart';
 
 class AppRoutes {
@@ -35,7 +36,7 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => PlaceholderScreen(title: 'รายงาน'));
       
       case AppConstants.profileRoute:
-        return MaterialPageRoute(builder: (_) => PlaceholderScreen(title: 'โปรไฟล์'));
+        return MaterialPageRoute(builder: (_) => ProfileScreen());
       
       default:
         return MaterialPageRoute(

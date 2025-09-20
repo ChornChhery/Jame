@@ -58,6 +58,8 @@ class ConnectDB {
   
   MySqlConnection? _connection;
   Socket? _socket;
+  DateTime? _lastConnectionTime;
+  static const Duration _connectionMaxAge = Duration(minutes: 5); // Close connections after 5 minutes
 
   // ==================== CONFIGURATION VALIDATION ====================
   
@@ -126,21 +128,47 @@ class ConnectDB {
     );
   }
   
-  /// Get or create MySQL connection with timeout handling
+  /// Get or create MySQL connection with proper lifecycle management
   Future<MySqlConnection> _getConnection() async {
     try {
-      if (_connection == null) {
+      // Check if we need a new connection
+      if (_connection == null || _isConnectionStale()) {
+        await _closeExistingConnection();
         debugPrint('🔌 Creating new MySQL connection...');
-        // Use standard timeout for remote servers per specification
+        
+        // Create new connection with timeout
         _connection = await MySqlConnection.connect(_connectionSettings)
             .timeout(Duration(seconds: 10));
+        _lastConnectionTime = DateTime.now();
         debugPrint('✅ MySQL connection established');
       }
       return _connection!;
     } catch (e) {
       debugPrint('❌ MySQL connection failed: $e');
-      _connection = null; // Reset connection on failure
+      await _closeExistingConnection(); // Clean up on failure
       rethrow;
+    }
+  }
+  
+  /// Check if current connection is stale and should be recreated
+  bool _isConnectionStale() {
+    if (_lastConnectionTime == null) return true;
+    return DateTime.now().difference(_lastConnectionTime!) > _connectionMaxAge;
+  }
+  
+  /// Close existing connection properly
+  Future<void> _closeExistingConnection() async {
+    try {
+      if (_connection != null) {
+        await _connection!.close();
+        _connection = null;
+        _lastConnectionTime = null;
+        debugPrint('🔌 Previous MySQL connection closed');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error closing previous connection: $e');
+      _connection = null;
+      _lastConnectionTime = null;
     }
   }
   
@@ -228,11 +256,14 @@ class ConnectDB {
 
   /// Execute MySQL command with proper SQL execution
   Future<Map<String, dynamic>> _executeMySQLCommand(String sqlCommand) async {
+    MySqlConnection? connection;
     try {
       final queryPreview = sqlCommand.length > 50 ? sqlCommand.substring(0, 50) + '...' : sqlCommand;
       debugPrint('📤 Executing SQL: $queryPreview');
       
-      final connection = await _getConnection();
+      // Get fresh connection for command execution
+      connection = await MySqlConnection.connect(_connectionSettings)
+          .timeout(Duration(seconds: 10));
       
       // Execute the SQL command
       final result = await connection.query(sqlCommand);
@@ -248,6 +279,12 @@ class ConnectDB {
     } catch (e) {
       debugPrint('❌ MySQL command execution failed: $e');
       return {'success': false, 'message': 'Command failed: $e'};
+    } finally {
+      try {
+        await connection?.close();
+      } catch (e) {
+        debugPrint('⚠️ Error closing command connection: $e');
+      }
     }
   }
 
@@ -255,11 +292,15 @@ class ConnectDB {
   
   /// Execute MySQL SELECT query with parameters and return results
   Future<List<Map<String, dynamic>>> executeSelectQuery(String query, [List<dynamic>? parameters]) async {
+    MySqlConnection? connection;
     try {
       final queryPreview = query.length > 50 ? query.substring(0, 50) + '...' : query;
       debugPrint('📥 Executing SELECT: $queryPreview');
       
-      final connection = await _getConnection();
+      // Get fresh connection for each query to avoid socket issues
+      connection = await MySqlConnection.connect(_connectionSettings)
+          .timeout(Duration(seconds: 10));
+      
       final results = await connection.query(query, parameters);
       
       // Convert results to List<Map<String, dynamic>>
@@ -278,17 +319,29 @@ class ConnectDB {
       
     } catch (e) {
       debugPrint('❌ SELECT query failed: $e');
+      debugPrint('💡 MySQL connection issue - check network connectivity');
       throw Exception('SELECT query failed: $e');
+    } finally {
+      // Always close the connection after use
+      try {
+        await connection?.close();
+      } catch (e) {
+        debugPrint('⚠️ Error closing SELECT connection: $e');
+      }
     }
   }
   
   /// Execute MySQL UPDATE/INSERT/DELETE query with parameters
   Future<bool> executeUpdateQuery(String query, [List<dynamic>? parameters]) async {
+    MySqlConnection? connection;
     try {
       final queryPreview = query.length > 50 ? query.substring(0, 50) + '...' : query;
       debugPrint('📤 Executing UPDATE query: $queryPreview');
       
-      final connection = await _getConnection();
+      // Get fresh connection for each query to avoid socket issues
+      connection = await MySqlConnection.connect(_connectionSettings)
+          .timeout(Duration(seconds: 10));
+      
       final result = await connection.query(query, parameters);
       
       debugPrint('✅ UPDATE query executed, affected rows: ${result.affectedRows}');
@@ -296,16 +349,27 @@ class ConnectDB {
       
     } catch (e) {
       debugPrint('❌ UPDATE query failed: $e');
+      debugPrint('💡 MySQL connection issue - check network connectivity');
       return false;
+    } finally {
+      // Always close the connection after use
+      try {
+        await connection?.close();
+      } catch (e) {
+        debugPrint('⚠️ Error closing UPDATE connection: $e');
+      }
     }
   }
 
   /// Sync individual user to MySQL with parameterized queries
   Future<bool> syncUserToMySQL(User user) async {
+    MySqlConnection? connection;
     try {
       debugPrint('👤 Syncing user: ${user.username} to MySQL');
       
-      final connection = await _getConnection();
+      // Get fresh connection for sync operation
+      connection = await MySqlConnection.connect(_connectionSettings)
+          .timeout(Duration(seconds: 10));
       
       // Use parameterized query to prevent SQL injection
       // Remove id from INSERT to let MySQL auto-increment assign it
@@ -344,15 +408,24 @@ class ConnectDB {
     } catch (e) {
       debugPrint('❌ User sync to MySQL failed: $e');
       return false;
+    } finally {
+      try {
+        await connection?.close();
+      } catch (e) {
+        debugPrint('⚠️ Error closing user sync connection: $e');
+      }
     }
   }
 
   /// Sync individual product to MySQL with parameterized queries
   Future<bool> syncProductToMySQL(Product product) async {
+    MySqlConnection? connection;
     try {
       debugPrint('📦 Syncing product: ${product.name} to MySQL');
       
-      final connection = await _getConnection();
+      // Get fresh connection for sync operation
+      connection = await MySqlConnection.connect(_connectionSettings)
+          .timeout(Duration(seconds: 10));
       
       // Use parameterized query to prevent SQL injection
       final result = await connection.query(
@@ -387,15 +460,24 @@ class ConnectDB {
     } catch (e) {
       debugPrint('❌ Product sync to MySQL failed: $e');
       return false;
+    } finally {
+      try {
+        await connection?.close();
+      } catch (e) {
+        debugPrint('⚠️ Error closing product sync connection: $e');
+      }
     }
   }
 
   /// Sync individual sale to MySQL with parameterized queries
   Future<bool> syncSaleToMySQL(Sale sale, List<SaleItem> items) async {
+    MySqlConnection? connection;
     try {
       debugPrint('💰 Syncing sale: ${sale.receiptNumber} to MySQL');
       
-      final connection = await _getConnection();
+      // Get fresh connection for sync operation
+      connection = await MySqlConnection.connect(_connectionSettings)
+          .timeout(Duration(seconds: 10));
       
       // First sync the sale with parameterized query
       final saleResult = await connection.query(
@@ -451,6 +533,12 @@ class ConnectDB {
     } catch (e) {
       debugPrint('❌ Sale sync to MySQL failed: $e');
       return false;
+    } finally {
+      try {
+        await connection?.close();
+      } catch (e) {
+        debugPrint('⚠️ Error closing sale sync connection: $e');
+      }
     }
   }
 
@@ -665,11 +753,7 @@ class ConnectDB {
   /// Close any open connections
   Future<void> close() async {
     try {
-      if (_connection != null) {
-        await _connection!.close();
-        _connection = null;
-        debugPrint('🔌 MySQL connection closed');
-      }
+      await _closeExistingConnection();
       if (_socket != null) {
         await _socket!.close();
         _socket = null;
