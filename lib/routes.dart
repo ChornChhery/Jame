@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'screens/auth_screens.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/cart_screen.dart';
 import 'providers/auth_provider.dart';
 import 'core/constants.dart';
 
@@ -55,7 +56,7 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (context) => _buildProtectedRoute(
             context,
-            () => PlaceholderScreen(title: 'สินค้า'),
+            () => ProductsScreen(arguments: settings.arguments as Map<String, dynamic>?),
             'สินค้า',
           ),
         );
@@ -73,7 +74,7 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (context) => _buildProtectedRoute(
             context,
-            () => PlaceholderScreen(title: 'ตะกร้า'),
+            () => CartScreen(),
             'ตะกร้า',
           ),
         );

@@ -1,10 +1,14 @@
 // FILE: lib/screens/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
+import '../models/product.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
+import '../widgets/add_edit_product_dialog.dart';
+import '../widgets/product_details_dialog.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -1096,6 +1100,815 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   @override
   void dispose() {
     _animationController.dispose();
+    super.dispose();
+  }
+}
+
+// ================================
+// PRODUCTS MANAGEMENT SCREEN
+// ================================
+
+class ProductsScreen extends StatefulWidget {
+  final Map<String, dynamic>? arguments;
+  
+  const ProductsScreen({Key? key, this.arguments}) : super(key: key);
+
+  @override
+  _ProductsScreenState createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStateMixin {
+  late TabController _tabController;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedCategory;
+  bool _isLoading = false;
+  List<Product> _filteredProducts = [];
+  
+  final List<String> _thaiCategories = [
+    'อาหารและเครื่องดื่ม',
+    'ของใช้ในบ้าน',
+    'เครื่องเขียน',
+    'ยาและอุปกรณ์การแพทย์',
+    'เสื้อผ้าและเครื่องแต่งกาย',
+    'อิเล็กทรอนิกส์',
+    'เครื่องใช้ในครัว',
+    'อื่นๆ'
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _initializeAnimations();
+    _loadProducts();
+    
+    // Add listener to search controller
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text;
+      });
+      _searchProducts();
+    });
+    
+    // Handle navigation arguments for scanner integration
+    if (widget.arguments != null) {
+      final args = widget.arguments!;
+      if (args['mode'] == 'add') {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showAddEditProductDialog(prefilledCode: args['code']);
+        });
+      } else if (args['mode'] == 'view' && args['product'] != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showProductDetailsDialog(args['product']);
+        });
+      }
+    }
+  }
+
+  void _initializeAnimations() {
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    
+    _animationController.forward();
+  }
+
+  Future<void> _loadProducts() async {
+    setState(() => _isLoading = true);
+    
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final app = Provider.of<AppProvider>(context, listen: false);
+    
+    if (auth.currentUser?.id != null) {
+      await app.loadProducts(auth.currentUser!.id!);
+    }
+    
+    setState(() => _isLoading = false);
+    _searchProducts();
+  }
+
+  void _searchProducts() {
+    final app = Provider.of<AppProvider>(context, listen: false);
+    List<Product> products = app.products;
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      products = products.where((product) {
+        return product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+               product.code.toLowerCase().contains(_searchQuery.toLowerCase());
+      }).toList();
+    }
+
+    // Filter by category
+    if (_selectedCategory != null) {
+      products = products.where((product) {
+        return product.category == _selectedCategory;
+      }).toList();
+    }
+
+    setState(() {
+      _filteredProducts = products;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildAppBar(),
+            _buildSearchAndFilter(),
+            _buildTabBar(),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildProductsList(),
+                  _buildLowStockAlerts(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      floatingActionButton: _buildFAB(),
+    );
+  }
+
+  // Placeholder for the remaining methods
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppConstants.primaryDarkBlue,
+            AppConstants.primaryDarkBlue.withOpacity(0.8),
+          ],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(
+              Icons.arrow_back_ios,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'จัดการสินค้า',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Consumer<AppProvider>(
+                  builder: (context, app, child) {
+                    return Text(
+                      'ทั้งหมด ${app.products.length} รายการ',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchAndFilter() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        children: [
+          // Search bar
+          Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'ค้นหาสินค้า...', // Search products...
+                hintStyle: TextStyle(color: Colors.grey[600]),
+                prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear, color: Colors.grey[600]),
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchProducts();
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              onChanged: (value) => _searchProducts(),
+            ),
+          ),
+          SizedBox(height: 12),
+          
+          // Filter chips
+          SizedBox(
+            height: 40,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _thaiCategories.length + 1,
+              itemBuilder: (context, index) {
+                if (index == 0) {
+                  return Padding(
+                    padding: EdgeInsets.only(left: 4, right: 8),
+                    child: FilterChip(
+                      label: Text('ทั้งหมด'), // All
+                      selected: _selectedCategory == null,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedCategory = null;
+                        });
+                        _searchProducts();
+                      },
+                      backgroundColor: Colors.grey[200],
+                      selectedColor: AppConstants.primaryDarkBlue.withOpacity(0.2),
+                      checkmarkColor: AppConstants.primaryDarkBlue,
+                    ),
+                  );
+                }
+                
+                final category = _thaiCategories[index - 1];
+                return Padding(
+                  padding: EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(category),
+                    selected: _selectedCategory == category,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedCategory = selected ? category : null;
+                      });
+                      _searchProducts();
+                    },
+                    backgroundColor: Colors.grey[200],
+                    selectedColor: AppConstants.primaryDarkBlue.withOpacity(0.2),
+                    checkmarkColor: AppConstants.primaryDarkBlue,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: AppConstants.primaryDarkBlue,
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.grey[600],
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.inventory_2),
+                SizedBox(width: 8),
+                Text('รายการสินค้า'), // Product List
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.warning_amber),
+                SizedBox(width: 8),
+                Text('สต็อกต่ำ'), // Low Stock
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductsList() {
+    return Consumer<AppProvider>(
+      builder: (context, app, child) {
+        if (_isLoading && app.products.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(
+                color: AppConstants.primaryDarkBlue,
+              ),
+            ),
+          );
+        }
+
+        if (app.products.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.inventory_2,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'ยังไม่มีสินค้า',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'เริ่มต้นด้วยการเพิ่มสินค้าใหม่',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: _filteredProducts.length,
+          itemBuilder: (context, index) {
+            final product = _filteredProducts[index];
+            final isLowStock = product.quantity <= product.lowStock;
+            
+            return Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isLowStock ? Colors.orange[300]! : Colors.grey[200]!,
+                  width: isLowStock ? 2 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.all(16),
+                leading: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: product.image != null && product.image!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            product.image!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.inventory_2,
+                                color: AppConstants.primaryDarkBlue,
+                                size: 24,
+                              );
+                            },
+                          ),
+                        )
+                      : Icon(
+                          Icons.inventory_2,
+                          color: AppConstants.primaryDarkBlue,
+                          size: 24,
+                        ),
+                ),
+                title: Text(
+                  product.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (product.code != null && product.code!.isNotEmpty)
+                      Text(
+                        'รหัส: ${product.code}',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '฿${NumberFormat('#,##0.00').format(product.price)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: AppConstants.primaryDarkBlue,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Spacer(),
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isLowStock ? Colors.orange : Colors.green,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'คงเหลือ ${product.quantity}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isLowStock)
+                      Icon(
+                        Icons.warning,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                    SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      onSelected: (value) {
+                        switch (value) {
+                          case 'view':
+                            _showProductDetailsDialog(product);
+                            break;
+                          case 'edit':
+                            _showAddEditProductDialog(product: product);
+                            break;
+                          case 'delete':
+                            _showDeleteConfirmDialog(product);
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: 'view',
+                          child: Row(
+                            children: [
+                              Icon(Icons.visibility, size: 18),
+                              SizedBox(width: 8),
+                              Text('ดูรายละเอียด'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'edit',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit, size: 18),
+                              SizedBox(width: 8),
+                              Text('แก้ไข'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete, size: 18, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('ลบ', style: TextStyle(color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                onTap: () => _showProductDetailsDialog(product),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildLowStockAlerts() {
+    return Consumer<AppProvider>(
+      builder: (context, app, child) {
+        final lowStockProducts = app.products
+            .where((product) => product.quantity <= product.lowStock)
+            .toList();
+
+        if (lowStockProducts.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    size: 64,
+                    color: Colors.green[400],
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'สต็อกปกติ',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.green[600],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'ไม่มีสินค้าที่มีสต็อกต่ำ',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[500],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          itemCount: lowStockProducts.length,
+          itemBuilder: (context, index) {
+            final product = lowStockProducts[index];
+            final urgencyLevel = product.quantity == 0 ? 2 : 
+                               product.quantity <= (product.lowStock * 0.5) ? 1 : 0;
+            
+            return Container(
+              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: urgencyLevel == 2 ? Colors.red :
+                         urgencyLevel == 1 ? Colors.orange : Colors.amber,
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ListTile(
+                contentPadding: EdgeInsets.all(16),
+                leading: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: (urgencyLevel == 2 ? Colors.red :
+                           urgencyLevel == 1 ? Colors.orange : Colors.amber)
+                           .withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    urgencyLevel == 2 ? Icons.error :
+                    urgencyLevel == 1 ? Icons.warning : Icons.info,
+                    color: urgencyLevel == 2 ? Colors.red :
+                           urgencyLevel == 1 ? Colors.orange : Colors.amber,
+                    size: 24,
+                  ),
+                ),
+                title: Text(
+                  product.name,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      urgencyLevel == 2 ? 'หมด! ต้องเติมสต็อกด่วน' :
+                      urgencyLevel == 1 ? 'สต็อกต่ำมาก! ควรเติมสต็อก' :
+                      'สต็อกต่ำ แนะนำให้เติมสต็อก',
+                      style: TextStyle(
+                        color: urgencyLevel == 2 ? Colors.red :
+                               urgencyLevel == 1 ? Colors.orange : Colors.amber[700],
+                        fontWeight: FontWeight.w500,
+                        fontSize: 12,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          'คงเหลือ: ${product.quantity}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Text(
+                          'ขั้นต่ำ: ${product.lowStock}',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                trailing: ElevatedButton(
+                  onPressed: () => _showAddEditProductDialog(product: product),
+                  child: Text('เติมสต็อก'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppConstants.primaryDarkBlue,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: Size(0, 32),
+                  ),
+                ),
+                onTap: () => _showProductDetailsDialog(product),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFAB() {
+    return FloatingActionButton.extended(
+      onPressed: () => _showAddEditProductDialog(),
+      backgroundColor: AppConstants.primaryDarkBlue,
+      foregroundColor: Colors.white,
+      icon: Icon(Icons.add),
+      label: Text('เพิ่มสินค้า'),
+    );
+  }
+
+  void _showAddEditProductDialog({Product? product, String? prefilledCode}) {
+    showDialog(
+      context: context,
+      builder: (context) => AddEditProductDialog(
+        product: product,
+        prefilledCode: prefilledCode,
+        onSaved: () {
+          _loadProducts();
+        },
+      ),
+    );
+  }
+
+  void _showProductDetailsDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => ProductDetailsDialog(
+        product: product,
+        onEdit: () {
+          Navigator.pop(context);
+          _showAddEditProductDialog(product: product);
+        },
+        onDelete: () {
+          Navigator.pop(context);
+          _showDeleteConfirmDialog(product);
+        },
+      ),
+    );
+  }
+
+  void _showDeleteConfirmDialog(Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('ยืนยันการลบ'),
+        content: Text('คุณต้องการลบสินค้า "${product.name}" หรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                final appProvider = Provider.of<AppProvider>(context, listen: false);
+                
+                await appProvider.deleteProduct(
+                  product.id!,
+                  authProvider.currentUser!.id!,
+                );
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('ลบสินค้าเรียบร้อยแล้ว'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+                
+                _loadProducts();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('เกิดข้อผิดพลาด: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('ลบ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _animationController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 }
