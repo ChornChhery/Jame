@@ -4,7 +4,8 @@
 ---
 
 ## 📋 Table of Contents
-1. [App Concept Overview](#app-concept-overview)
+1. [Environment Setup](#environment-setup)
+2. [App Concept Overview](#app-concept-overview)
 2. [Goals & Core Features](#goals--core-features)
 3. [App Pages & User Flow](#app-pages--user-flow)
 4. [Tech Stack](#tech-stack)
@@ -16,6 +17,29 @@
 10. [Authentication & User Management](#authentication--user-management)
 11. [Getting Started Checklist](#getting-started-checklist)
 12. [Future Upgrades](#future-upgrades)
+
+---
+
+## 🔧 Environment Setup
+
+**IMPORTANT: Before running the app, you must configure your MySQL database connection in the `.env` file.**
+
+Create a `.env` file in the project root with the following configuration:
+
+```env
+# MySQL Database Configuration
+MYSQL_HOST=your_mysql_server_host
+MYSQL_PORT=3306
+MYSQL_USER=your_mysql_username
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=your_database_name
+```
+
+**Security Note**: 
+- All values are mandatory - no default fallback values are provided for security
+- The app will throw exceptions if any MySQL configuration is missing
+- Never commit your `.env` file to version control
+- The database helper will automatically create all required MySQL tables on first connection
 
 ---
 
@@ -125,7 +149,7 @@ All while being fully **offline-capable**, cost-efficient, and simple to use.
 |-----------|----------------|-------------|
 | **UI** | Flutter | Build responsive, cross-platform mobile app |
 | **Language** | Dart | Used with Flutter to build logic and UI |
-| **Database** | SQLite (sqflite) | Local database for storing users, products, sales, etc. |
+| **Database** | MySQL (Direct Connection) | Primary database with server connectivity |
 | **Authentication** | Local (SQLite) + crypto | Secure password hashing and user session |
 | **QR Scanner** | mobile_scanner | Scan product QR codes |
 | **QR Generator** | qr_flutter | Generate payment QR codes |
@@ -136,116 +160,126 @@ All while being fully **offline-capable**, cost-efficient, and simple to use.
 
 ## 🗄️ Database Design with User Management
 
-### Database Schema 
+### Database Schema (MySQL)
 
 #### 1. **users** table
 ```sql
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL, -- Encrypted password
-    first_name TEXT NOT NULL,
-    last_name TEXT NOT NULL,
-    shop_name TEXT NOT NULL,
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL, -- Encrypted password
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    shop_name VARCHAR(255) NOT NULL,
     shop_address TEXT,
-    shop_phone TEXT,
-    shop_email TEXT,
-    currency TEXT DEFAULT 'THB', -- Default Thai Baht
+    shop_phone VARCHAR(50),
+    shop_email VARCHAR(255),
+    currency VARCHAR(10) DEFAULT 'THB', -- Default Thai Baht
     payment_qr TEXT, -- Store QR payment details (PromptPay, etc.)
     profile_image TEXT, -- Local image path
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 ```
 
 #### 2. **products** table
 ```sql
 CREATE TABLE products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL, -- Links product to specific user
-    name TEXT NOT NULL,
-    price REAL NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 0,
-    low_stock INTEGER DEFAULT 5,
-    code TEXT NOT NULL, -- QR/Barcode for scanning (unique per user)
-    category TEXT,
-    unit TEXT DEFAULT 'pcs',
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL, -- Links product to specific user
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    low_stock INT DEFAULT 5,
+    code VARCHAR(255) NOT NULL, -- QR/Barcode for scanning (unique per user)
+    category VARCHAR(255),
+    unit VARCHAR(50) DEFAULT 'pcs',
     image TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    UNIQUE(user_id, code) -- Code unique per user
-);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_code_per_user (user_id, code), -- Code unique per user
+    INDEX idx_products_user_id (user_id)
+) ENGINE=InnoDB;
 ```
 
 #### 3. **sales** table
 ```sql
 CREATE TABLE sales (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL, -- Links sale to specific user
-    sale_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    total_amount REAL NOT NULL,
-    payment_status TEXT DEFAULT 'Completed',
-    receipt_number TEXT NOT NULL, -- Format: USERNAME-YYYYMMDD-001
-    payment_method TEXT DEFAULT 'QR',
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL, -- Links sale to specific user
+    sale_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10,2) NOT NULL,
+    payment_status VARCHAR(50) DEFAULT 'Completed',
+    receipt_number VARCHAR(255) NOT NULL, -- Format: USERNAME-YYYYMMDD-001
+    payment_method VARCHAR(50) DEFAULT 'QR',
     description TEXT,
-    customer_name TEXT,
-    customer_phone TEXT,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    UNIQUE(user_id, receipt_number) -- Receipt number unique per user
-);
+    customer_name VARCHAR(255),
+    customer_phone VARCHAR(50),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_receipt_per_user (user_id, receipt_number), -- Receipt number unique per user
+    INDEX idx_sales_user_id (user_id),
+    INDEX idx_sales_date_user (user_id, sale_date)
+) ENGINE=InnoDB;
 ```
 
 #### 4. **sale_items** table
 ```sql
 CREATE TABLE sale_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sale_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    quantity INTEGER NOT NULL,
-    unit_price REAL NOT NULL,
-    total_price REAL NOT NULL,
-    FOREIGN KEY (sale_id) REFERENCES sales (id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products (id)
-);
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    sale_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    unit_price DECIMAL(10,2) NOT NULL,
+    total_price DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    INDEX idx_sale_items_sale_id (sale_id),
+    INDEX idx_sale_items_product_id (product_id)
+) ENGINE=InnoDB;
 ```
 
 #### 5. **inventories** table
 ```sql
 CREATE TABLE inventories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL, -- Links inventory change to specific user
-    product_id INTEGER NOT NULL,
-    change_type TEXT NOT NULL, -- 'SALE', 'STOCK_IN', 'ADJUSTMENT'
-    stock_before INTEGER NOT NULL,
-    stock_after INTEGER NOT NULL,
-    reference_id INTEGER, -- sale_id if change is from a sale
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL, -- Links inventory change to specific user
+    product_id INT NOT NULL,
+    change_type VARCHAR(50) NOT NULL, -- 'SALE', 'STOCK_IN', 'ADJUSTMENT'
+    stock_before INT NOT NULL,
+    stock_after INT NOT NULL,
+    reference_id INT, -- sale_id if change is from a sale
     notes TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products (id)
-);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    INDEX idx_inventory_user_id (user_id),
+    INDEX idx_inventory_product_user (user_id, product_id)
+) ENGINE=InnoDB;
 ```
 
 ### Database Indexes (for performance)
 ```sql
--- User-related indexes (NEW)
+-- User-related indexes
 CREATE INDEX idx_users_username ON users(username);
 CREATE INDEX idx_users_email ON users(email);
 
--- Updated existing indexes to include user_id
+-- Product indexes
 CREATE INDEX idx_products_user_id ON products(user_id);
 CREATE INDEX idx_products_code_user ON products(user_id, code);
 CREATE INDEX idx_products_category_user ON products(user_id, category);
 
+-- Sales indexes
 CREATE INDEX idx_sales_user_id ON sales(user_id);
 CREATE INDEX idx_sales_date_user ON sales(user_id, sale_date);
 CREATE INDEX idx_sales_status_user ON sales(user_id, payment_status);
 
+-- Sale items indexes
 CREATE INDEX idx_sale_items_sale_id ON sale_items(sale_id);
 CREATE INDEX idx_sale_items_product_id ON sale_items(product_id);
 
+-- Inventory indexes
 CREATE INDEX idx_inventory_user_id ON inventories(user_id);
 CREATE INDEX idx_inventory_product_user ON inventories(user_id, product_id);
 CREATE INDEX idx_inventory_created_user ON inventories(user_id, created_at);
@@ -328,7 +362,7 @@ jame/
 │   │   └── inventory.dart         # Inventory & cart models
 │   │
 │   ├── database/
-│   │   ├── database_helper.dart   # SQLite setup & all DAOs
+│   │   ├── database_helper.dart   # MySQL setup & all DAOs
 │   │   └── repositories.dart      # All repositories combined
 │   │
 │   ├── screens/
@@ -444,7 +478,7 @@ The architecture now includes **Authentication Layer** and **User Context**:
 +---------------------------+
             ↓
 +---------------------------+
-| Data Layer               | ← SQLite + Repositories (User-filtered)
+| Data Layer               | ← MySQL + Repositories (User-filtered)
 | - UserDAO                |
 | - ProductDAO             |
 | - SaleDAO                |
@@ -460,8 +494,7 @@ dependencies:
   # State Management
   provider: ^6.0.5
   
-  # Database
-  sqflite: ^2.3.0
+  # Database - Direct MySQL Connection
   path: ^1.8.3
   
   # Authentication & Security

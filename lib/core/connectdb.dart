@@ -1,152 +1,345 @@
 // FILE: lib/core/connectdb.dart
 // Direct MySQL connection for Jame project - Single file solution
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:mysql1/mysql1.dart';
 import '../models/user.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
-import '../database/database_helper.dart';
+// Removed circular import: '../database/database_helper.dart'
 
 class ConnectDB {
   static final ConnectDB _instance = ConnectDB._internal();
   factory ConnectDB() => _instance;
   ConnectDB._internal();
 
-  // ==================== MySQL Server Configuration ====================
-  // Update these with your actual MySQL server details
-  static const String serverHost = 'localhost';           // Your MySQL server IP/domain
-  static const int serverPort = 3306;                     // MySQL port (default: 3306)
-  static const String serverUser = 'your_username';       // Your MySQL username
-  static const String serverPassword = 'your_password';   // Your MySQL password
-  static const String serverDatabase = 'jame_database';   // Your MySQL database name
+  // ==================== MySQL Server Configuration from .env ====================
+  // All values must be set in .env file - no fallback values for security
+  static String get serverHost {
+    final host = dotenv.env['DB_HOST'];
+    if (host == null || host.isEmpty) {
+      throw Exception('DB_HOST not found in .env file');
+    }
+    return host;
+  }
   
-  // Connection timeout
-  static const Duration connectionTimeout = Duration(seconds: 10);
+  static int get serverPort {
+    // Use default MySQL port 3306 like PHP PDO
+    return 3306;
+  }
   
+  static String get serverUser {
+    final user = dotenv.env['DB_USERNAME'];
+    if (user == null || user.isEmpty) {
+      throw Exception('DB_USERNAME not found in .env file');
+    }
+    return user;
+  }
+  
+  static String get serverPassword {
+    final password = dotenv.env['DB_PASSWORD'];
+    if (password == null || password.isEmpty) {
+      throw Exception('DB_PASSWORD not found in .env file');
+    }
+    return password;
+  }
+  
+  static String get serverDatabase {
+    final database = dotenv.env['DB_NAME'];
+    if (database == null || database.isEmpty) {
+      throw Exception('DB_NAME not found in .env file');
+    }
+    return database;
+  }
+  static Duration get connectionTimeout => Duration(seconds: 10); // Standard timeout for remote servers per specification
+  
+  MySqlConnection? _connection;
   Socket? _socket;
 
-  // ==================== DIRECT MySQL PROTOCOL CONNECTION ====================
+  // ==================== CONFIGURATION VALIDATION ====================
   
-  /// Test direct connection to MySQL server
-  Future<bool> testMySQLConnection() async {
+  /// Check if configuration is valid
+  bool _isConfigurationValid() {
     try {
-      _socket = await Socket.connect(serverHost, serverPort, timeout: connectionTimeout);
+      // Try to access all required environment variables
+      final host = serverHost;
+      final port = serverPort;
+      final user = serverUser;
+      final password = serverPassword;
+      final database = serverDatabase;
       
-      if (_socket != null) {
-        await _socket!.close();
-        _socket = null;
-        debugPrint('✅ MySQL server is reachable at $serverHost:$serverPort');
-        return true;
-      }
-      return false;
+      // All values are successfully retrieved from .env
+      return host.isNotEmpty && 
+             user.isNotEmpty && 
+             password.isNotEmpty && 
+             database.isNotEmpty &&
+             port > 0 && port < 65536;
     } catch (e) {
-      debugPrint('❌ MySQL connection test failed: $e');
+      debugPrint('❌ Configuration validation failed: $e');
       return false;
     }
   }
+  
+  /// Get configuration status
+  Map<String, dynamic> getConfigStatus() {
+    try {
+      final host = serverHost;
+      final port = serverPort;
+      final user = serverUser;
+      final database = serverDatabase;
+      // Don't access password here for security
+      
+      return {
+        'env_loaded': dotenv.env.isNotEmpty,
+        'config_valid': _isConfigurationValid(),
+        'host_configured': host.isNotEmpty,
+        'user_configured': user.isNotEmpty,
+        'password_configured': dotenv.env.containsKey('MYSQL_PASSWORD'),
+        'database_configured': database.isNotEmpty,
+        'port_configured': port > 0 && port < 65536,
+        'connection_string': 'mysql://$user:****@$host:$port/$database',
+      };
+    } catch (e) {
+      return {
+        'env_loaded': dotenv.env.isNotEmpty,
+        'config_valid': false,
+        'error': e.toString(),
+        'connection_string': 'Configuration error - check .env file',
+      };
+    }
+  }
+  
+  // ==================== MYSQL CONNECTION MANAGEMENT ====================
+  
+  /// Get MySQL connection settings - matches PHP PDO configuration
+  ConnectionSettings get _connectionSettings {
+    return ConnectionSettings(
+      host: serverHost,
+      port: serverPort,
+      user: serverUser,
+      password: serverPassword,
+      db: serverDatabase,
+      timeout: connectionTimeout,
+    );
+  }
+  
+  /// Get or create MySQL connection with timeout handling
+  Future<MySqlConnection> _getConnection() async {
+    try {
+      if (_connection == null) {
+        debugPrint('🔌 Creating new MySQL connection...');
+        // Use standard timeout for remote servers per specification
+        _connection = await MySqlConnection.connect(_connectionSettings)
+            .timeout(Duration(seconds: 10));
+        debugPrint('✅ MySQL connection established');
+      }
+      return _connection!;
+    } catch (e) {
+      debugPrint('❌ MySQL connection failed: $e');
+      _connection = null; // Reset connection on failure
+      rethrow;
+    }
+  }
+  
+  /// Test direct connection to MySQL server with enhanced diagnostics and non-blocking operation
+  Future<bool> testMySQLConnection({int maxRetries = 2}) async {
+    return await _performConnectionTest(maxRetries);
+  }
+  
+  /// Internal connection test that can be run in background
+  Future<bool> _performConnectionTest(int maxRetries) async {
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Validate configuration first
+        if (!_isConfigurationValid()) {
+          debugPrint('❌ MySQL configuration is invalid');
+          debugPrint('Config status: ${getConfigStatus()}');
+          return false;
+        }
+        
+        debugPrint('🌐 Connecting to remote MySQL server: ${serverHost}:${serverPort} (Attempt $attempt/$maxRetries)');
+        
+        // Create connection settings matching PHP PDO configuration
+        final connectionSettings = ConnectionSettings(
+          host: serverHost,
+          port: serverPort, // Default 3306 like PHP
+          user: serverUser,
+          password: serverPassword,
+          db: serverDatabase,
+          timeout: Duration(seconds: 10), // Standard timeout per specification
+        );
+        
+        // Test connection with timeout and immediate cleanup
+        final connection = await Future.any([
+          MySqlConnection.connect(connectionSettings),
+          Future.delayed(Duration(seconds: 10), () => throw TimeoutException('Connection timeout', Duration(seconds: 10)))
+        ]);
+        
+        await connection.close();
+        
+        debugPrint('✅ Remote MySQL server connection successful on attempt $attempt');
+        return true;
+        
+      } catch (e) {
+        final errorMessage = e.toString();
+        final truncatedError = errorMessage.length > 100 ? errorMessage.substring(0, 100) + '...' : errorMessage;
+        debugPrint('❌ MySQL connection attempt $attempt failed: $truncatedError');
+        
+        if (attempt == maxRetries) {
+          // Provide detailed diagnostics on final failure
+          debugPrint('🔍 Connection Details:');
+          try {
+            debugPrint('   Host: ${serverHost}');
+            debugPrint('   Port: ${serverPort}');
+            debugPrint('   Database: ${serverDatabase}');
+            debugPrint('   User: ${serverUser}');
+          } catch (configError) {
+            debugPrint('   Configuration Error: $configError');
+          }
+          
+          debugPrint('💡 Troubleshooting Tips:');
+          if (errorMessage.contains('timeout') || errorMessage.contains('Timeout')) {
+            debugPrint('   - Check if connected to PSU network/VPN');
+            debugPrint('   - University firewall may block external connections');
+            debugPrint('   - Try connecting from university campus');
+            debugPrint('   - Mobile networks may have stricter timeouts');
+          } else if (errorMessage.contains('Connection refused')) {
+            debugPrint('   - Verify server host and port are correct');
+            debugPrint('   - Check if MySQL service is running');
+          } else if (errorMessage.contains('Access denied')) {
+            debugPrint('   - Check username and password in .env file');
+            debugPrint('   - Verify database permissions');
+          }
+          debugPrint('   - Test phpMyAdmin access: https://mysql.mcs.psu.ac.th/');
+          debugPrint('   - Contact PSU IT for mobile app access permissions');
+          debugPrint('   - Current resolved IP: Likely university internal network');
+          
+        } else {
+          // Brief delay between retries
+          await Future.delayed(Duration(milliseconds: 300));
+        }
+      }
+    }
+    return false;
+  }
 
-  /// Send MySQL command via raw socket connection
+  /// Execute MySQL command with proper SQL execution
   Future<Map<String, dynamic>> _executeMySQLCommand(String sqlCommand) async {
     try {
-      // Note: This is a simplified implementation
-      // For production, you'd need a proper MySQL client library
+      final queryPreview = sqlCommand.length > 50 ? sqlCommand.substring(0, 50) + '...' : sqlCommand;
+      debugPrint('📤 Executing SQL: $queryPreview');
       
-      _socket = await Socket.connect(serverHost, serverPort, timeout: connectionTimeout);
+      final connection = await _getConnection();
       
-      if (_socket == null) {
-        return {'success': false, 'message': 'Cannot connect to MySQL server'};
-      }
-
-      // MySQL handshake and authentication would go here
-      // This is a placeholder for the actual MySQL protocol implementation
+      // Execute the SQL command
+      final result = await connection.query(sqlCommand);
       
-      await _socket!.close();
-      _socket = null;
-      
-      return {'success': true, 'message': 'Command executed successfully'};
+      debugPrint('✅ SQL executed successfully, affected rows: ${result.affectedRows}');
+      return {
+        'success': true, 
+        'message': 'Command executed successfully',
+        'affected_rows': result.affectedRows,
+        'insert_id': result.insertId,
+      };
       
     } catch (e) {
-      debugPrint('MySQL command execution failed: $e');
+      debugPrint('❌ MySQL command execution failed: $e');
       return {'success': false, 'message': 'Command failed: $e'};
     }
   }
 
-  // ==================== SYNC SQLite TO MySQL ====================
+  // ==================== MYSQL DATABASE OPERATIONS ====================
   
-  /// Sync all local SQLite data to MySQL server
-  Future<SyncResult> syncSQLiteToMySQL(int userId) async {
-    final result = SyncResult();
-    
+  /// Execute MySQL SELECT query with parameters and return results
+  Future<List<Map<String, dynamic>>> executeSelectQuery(String query, [List<dynamic>? parameters]) async {
     try {
-      // Test connection first
-      bool canConnect = await testMySQLConnection();
-      if (!canConnect) {
-        result.success = false;
-        result.message = 'Cannot connect to MySQL server';
-        return result;
+      final queryPreview = query.length > 50 ? query.substring(0, 50) + '...' : query;
+      debugPrint('📥 Executing SELECT: $queryPreview');
+      
+      final connection = await _getConnection();
+      final results = await connection.query(query, parameters);
+      
+      // Convert results to List<Map<String, dynamic>>
+      List<Map<String, dynamic>> rows = [];
+      for (var row in results) {
+        Map<String, dynamic> rowMap = {};
+        for (int i = 0; i < row.length; i++) {
+          final fieldName = results.fields[i].name ?? 'field_$i';
+          rowMap[fieldName] = row[i];
+        }
+        rows.add(rowMap);
       }
-
-      // Get all local data from SQLite
-      final localUser = await DatabaseHelper.instance.getUser(userId);
-      final localProducts = await DatabaseHelper.instance.getProducts(userId);
-      final localSales = await DatabaseHelper.instance.getSales(userId);
       
-      if (localUser == null) {
-        result.success = false;
-        result.message = 'User not found in local database';
-        return result;
-      }
-
-      debugPrint('📤 Starting sync to MySQL...');
-      debugPrint('User: ${localUser.username}');
-      debugPrint('Products: ${localProducts.length}');
-      debugPrint('Sales: ${localSales.length}');
-
-      // For now, we'll simulate the sync process
-      // In a real implementation, you'd need a proper MySQL driver
-      await Future.delayed(Duration(seconds: 1)); // Simulate network delay
-      
-      result.success = true;
-      result.message = 'SQLite data synced to MySQL server';
-      result.productsCount = localProducts.length;
-      result.salesCount = localSales.length;
-      result.lastSyncTime = DateTime.now();
-      
-      debugPrint('✅ Sync to MySQL completed');
+      debugPrint('✅ SELECT query returned ${rows.length} rows');
+      return rows;
       
     } catch (e) {
-      result.success = false;
-      result.message = 'Sync to MySQL failed: $e';
-      debugPrint('❌ Sync to MySQL error: $e');
+      debugPrint('❌ SELECT query failed: $e');
+      throw Exception('SELECT query failed: $e');
     }
-    
-    return result;
+  }
+  
+  /// Execute MySQL UPDATE/INSERT/DELETE query with parameters
+  Future<bool> executeUpdateQuery(String query, [List<dynamic>? parameters]) async {
+    try {
+      final queryPreview = query.length > 50 ? query.substring(0, 50) + '...' : query;
+      debugPrint('📤 Executing UPDATE query: $queryPreview');
+      
+      final connection = await _getConnection();
+      final result = await connection.query(query, parameters);
+      
+      debugPrint('✅ UPDATE query executed, affected rows: ${result.affectedRows}');
+      return result.affectedRows != null && result.affectedRows! > 0;
+      
+    } catch (e) {
+      debugPrint('❌ UPDATE query failed: $e');
+      return false;
+    }
   }
 
-  /// Sync individual user to MySQL
+  /// Sync individual user to MySQL with parameterized queries
   Future<bool> syncUserToMySQL(User user) async {
     try {
       debugPrint('👤 Syncing user: ${user.username} to MySQL');
       
-      // Create INSERT/UPDATE SQL for user
-      String userSQL = '''
+      final connection = await _getConnection();
+      
+      // Use parameterized query to prevent SQL injection
+      final result = await connection.query(
+        '''
         INSERT INTO users (id, username, email, password, first_name, last_name, 
                           shop_name, shop_address, shop_phone, shop_email, 
                           currency, payment_qr, profile_image, created_at, updated_at)
-        VALUES (${user.id}, '${user.username}', '${user.email}', '${user.password}',
-                '${user.firstName}', '${user.lastName}', '${user.shopName}',
-                '${user.shopAddress ?? ''}', '${user.shopPhone ?? ''}', 
-                '${user.shopEmail ?? ''}', '${user.currency}', '${user.paymentQr ?? ''}',
-                '${user.profileImage ?? ''}', '${user.createdAt}', '${user.updatedAt}')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        username='${user.username}', email='${user.email}', 
-        first_name='${user.firstName}', last_name='${user.lastName}',
-        shop_name='${user.shopName}', updated_at='${user.updatedAt}';
-      ''';
+        username=VALUES(username), email=VALUES(email), 
+        first_name=VALUES(first_name), last_name=VALUES(last_name),
+        shop_name=VALUES(shop_name), updated_at=VALUES(updated_at)
+        ''',
+        [
+          user.id,
+          user.username,
+          user.email,
+          user.password,
+          user.firstName,
+          user.lastName,
+          user.shopName,
+          user.shopAddress ?? '',
+          user.shopPhone ?? '',
+          user.shopEmail ?? '',
+          user.currency,
+          user.paymentQr ?? '',
+          user.profileImage ?? '',
+          user.createdAt?.toIso8601String(),
+          user.updatedAt?.toIso8601String(),
+        ],
+      );
       
-      final result = await _executeMySQLCommand(userSQL);
-      return result['success'] ?? false;
+      debugPrint('✅ User synced successfully, affected rows: ${result.affectedRows}');
+      return result.affectedRows != null && result.affectedRows! > 0;
       
     } catch (e) {
       debugPrint('❌ User sync to MySQL failed: $e');
@@ -154,26 +347,42 @@ class ConnectDB {
     }
   }
 
-  /// Sync individual product to MySQL
+  /// Sync individual product to MySQL with parameterized queries
   Future<bool> syncProductToMySQL(Product product) async {
     try {
       debugPrint('📦 Syncing product: ${product.name} to MySQL');
       
-      String productSQL = '''
+      final connection = await _getConnection();
+      
+      // Use parameterized query to prevent SQL injection
+      final result = await connection.query(
+        '''
         INSERT INTO products (id, user_id, name, price, quantity, low_stock, code,
                              category, unit, image, created_at, updated_at)
-        VALUES (${product.id}, ${product.userId}, '${product.name}', ${product.price},
-                ${product.quantity}, ${product.lowStock}, '${product.code}',
-                '${product.category ?? ''}', '${product.unit}', '${product.image ?? ''}',
-                '${product.createdAt}', '${product.updatedAt}')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        name='${product.name}', price=${product.price}, quantity=${product.quantity},
-        low_stock=${product.lowStock}, category='${product.category ?? ''}',
-        unit='${product.unit}', updated_at='${product.updatedAt}';
-      ''';
+        name=VALUES(name), price=VALUES(price), quantity=VALUES(quantity),
+        low_stock=VALUES(low_stock), category=VALUES(category),
+        unit=VALUES(unit), updated_at=VALUES(updated_at)
+        ''',
+        [
+          product.id,
+          product.userId,
+          product.name,
+          product.price,
+          product.quantity,
+          product.lowStock,
+          product.code,
+          product.category ?? '',
+          product.unit,
+          product.image ?? '',
+          product.createdAt,
+          product.updatedAt,
+        ],
+      );
       
-      final result = await _executeMySQLCommand(productSQL);
-      return result['success'] ?? false;
+      debugPrint('✅ Product synced successfully, affected rows: ${result.affectedRows}');
+      return result.affectedRows != null && result.affectedRows! > 0;
       
     } catch (e) {
       debugPrint('❌ Product sync to MySQL failed: $e');
@@ -181,44 +390,63 @@ class ConnectDB {
     }
   }
 
-  /// Sync individual sale to MySQL
+  /// Sync individual sale to MySQL with parameterized queries
   Future<bool> syncSaleToMySQL(Sale sale, List<SaleItem> items) async {
     try {
       debugPrint('💰 Syncing sale: ${sale.receiptNumber} to MySQL');
       
-      // First sync the sale
-      String saleSQL = '''
+      final connection = await _getConnection();
+      
+      // First sync the sale with parameterized query
+      final saleResult = await connection.query(
+        '''
         INSERT INTO sales (id, user_id, sale_date, total_amount, payment_status,
                           receipt_number, payment_method, description, 
                           customer_name, customer_phone)
-        VALUES (${sale.id}, ${sale.userId}, '${sale.saleDate}', ${sale.totalAmount},
-                '${sale.paymentStatus}', '${sale.receiptNumber}', '${sale.paymentMethod}',
-                '${sale.description ?? ''}', '${sale.customerName ?? ''}', 
-                '${sale.customerPhone ?? ''}')
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        total_amount=${sale.totalAmount}, payment_status='${sale.paymentStatus}',
-        payment_method='${sale.paymentMethod}';
-      ''';
+        total_amount=VALUES(total_amount), payment_status=VALUES(payment_status),
+        payment_method=VALUES(payment_method)
+        ''',
+        [
+          sale.id,
+          sale.userId,
+          sale.saleDate,
+          sale.totalAmount,
+          sale.paymentStatus,
+          sale.receiptNumber,
+          sale.paymentMethod,
+          sale.description ?? '',
+          sale.customerName ?? '',
+          sale.customerPhone ?? '',
+        ],
+      );
       
-      final saleResult = await _executeMySQLCommand(saleSQL);
-      
-      if (saleResult['success'] == true) {
-        // Then sync all sale items
+      if (saleResult.affectedRows != null && saleResult.affectedRows! > 0) {
+        // Then sync all sale items with parameterized queries
         for (var item in items) {
-          String itemSQL = '''
+          await connection.query(
+            '''
             INSERT INTO sale_items (id, sale_id, product_id, quantity, unit_price, total_price)
-            VALUES (${item.id}, ${item.saleId}, ${item.productId}, ${item.quantity},
-                    ${item.unitPrice}, ${item.totalPrice})
+            VALUES (?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
-            quantity=${item.quantity}, unit_price=${item.unitPrice}, 
-            total_price=${item.totalPrice};
-          ''';
-          
-          await _executeMySQLCommand(itemSQL);
+            quantity=VALUES(quantity), unit_price=VALUES(unit_price), 
+            total_price=VALUES(total_price)
+            ''',
+            [
+              item.id,
+              item.saleId,
+              item.productId,
+              item.quantity,
+              item.unitPrice,
+              item.totalPrice,
+            ],
+          );
         }
       }
       
-      return saleResult['success'] ?? false;
+      debugPrint('✅ Sale synced successfully, affected rows: ${saleResult.affectedRows}');
+      return saleResult.affectedRows != null && saleResult.affectedRows! > 0;
       
     } catch (e) {
       debugPrint('❌ Sale sync to MySQL failed: $e');
@@ -226,14 +454,14 @@ class ConnectDB {
     }
   }
 
-  // ==================== SYNC MySQL TO SQLite ====================
-  
-  /// Get data from MySQL and update local SQLite
-  Future<SyncResult> syncMySQLToSQLite(int userId) async {
+  // ==================== MYSQL DATABASE TESTING ====================
+
+  /// Test MySQL database operations
+  Future<SyncResult> testDatabaseOperations(int userId) async {
     final result = SyncResult();
     
     try {
-      debugPrint('📥 Starting sync from MySQL to SQLite...');
+      debugPrint('🔄 Testing MySQL database operations...');
       
       // Test connection first
       bool canConnect = await testMySQLConnection();
@@ -243,50 +471,24 @@ class ConnectDB {
         return result;
       }
 
-      // In a real implementation, you'd execute SELECT queries to get data from MySQL
-      // For now, we'll simulate this process
-      await Future.delayed(Duration(seconds: 1)); // Simulate network delay
+      // Test table creation
+      bool tablesCreated = await createMySQLTables();
+      if (!tablesCreated) {
+        result.success = false;
+        result.message = 'Failed to create MySQL tables';
+        return result;
+      }
       
       result.success = true;
-      result.message = 'MySQL data synced to SQLite';
+      result.message = 'MySQL database operations test completed successfully';
       result.lastSyncTime = DateTime.now();
       
-      debugPrint('✅ Sync from MySQL completed');
+      debugPrint('✅ Database operations test completed');
       
     } catch (e) {
       result.success = false;
-      result.message = 'MySQL to SQLite sync failed: $e';
-      debugPrint('❌ Sync from MySQL error: $e');
-    }
-    
-    return result;
-  }
-
-  /// Bidirectional sync: SQLite ↔ MySQL
-  Future<SyncResult> bidirectionalSync(int userId) async {
-    final result = SyncResult();
-    
-    try {
-      debugPrint('🔄 Starting bidirectional sync...');
-      
-      // 1. Upload SQLite data to MySQL
-      final uploadResult = await syncSQLiteToMySQL(userId);
-      
-      // 2. Download MySQL data to SQLite  
-      final downloadResult = await syncMySQLToSQLite(userId);
-      
-      result.success = uploadResult.success && downloadResult.success;
-      result.message = 'Upload: ${uploadResult.message}, Download: ${downloadResult.message}';
-      result.productsCount = uploadResult.productsCount;
-      result.salesCount = uploadResult.salesCount;
-      result.lastSyncTime = DateTime.now();
-      
-      debugPrint('✅ Bidirectional sync completed');
-      
-    } catch (e) {
-      result.success = false;
-      result.message = 'Bidirectional sync failed: $e';
-      debugPrint('❌ Bidirectional sync error: $e');
+      result.message = 'Database operations test failed: $e';
+      debugPrint('❌ Database operations test error: $e');
     }
     
     return result;
@@ -427,22 +629,35 @@ class ConnectDB {
     try {
       bool isAvailable = await isServerAvailable();
       
+      final host = serverHost;
+      final port = serverPort;
+      final database = serverDatabase;
+      final user = serverUser;
+      
       return {
-        'server_host': serverHost,
-        'server_port': serverPort,
-        'database': serverDatabase,
+        'server_host': host,
+        'server_port': port,
+        'database': database,
         'is_available': isAvailable,
         'last_check': DateTime.now().toIso8601String(),
-        'status': isAvailable ? 'Connected' : 'Disconnected'
+        'status': isAvailable ? 'Connected' : 'Disconnected',
+        'config_valid': _isConfigurationValid(),
+        'env_loaded': dotenv.env.isNotEmpty,
+        'connection_string': 'mysql://$user:****@$host:$port/$database',
+        'config_status': getConfigStatus(),
       };
     } catch (e) {
       return {
-        'server_host': serverHost,
-        'server_port': serverPort,
-        'database': serverDatabase,
+        'server_host': 'Configuration Error',
+        'server_port': 0,
+        'database': 'Configuration Error',
         'is_available': false,
         'last_check': DateTime.now().toIso8601String(),
-        'status': 'Error: $e'
+        'status': 'Configuration Error: $e',
+        'config_valid': false,
+        'env_loaded': dotenv.env.isNotEmpty,
+        'connection_string': 'Check .env file configuration',
+        'config_status': getConfigStatus(),
       };
     }
   }
@@ -450,10 +665,14 @@ class ConnectDB {
   /// Close any open connections
   Future<void> close() async {
     try {
+      if (_connection != null) {
+        await _connection!.close();
+        _connection = null;
+        debugPrint('🔌 MySQL connection closed');
+      }
       if (_socket != null) {
         await _socket!.close();
         _socket = null;
-        debugPrint('🔌 MySQL connection closed');
       }
     } catch (e) {
       debugPrint('Error closing MySQL connection: $e');
