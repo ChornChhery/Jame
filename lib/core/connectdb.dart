@@ -308,19 +308,19 @@ class ConnectDB {
       final connection = await _getConnection();
       
       // Use parameterized query to prevent SQL injection
+      // Remove id from INSERT to let MySQL auto-increment assign it
       final result = await connection.query(
         '''
-        INSERT INTO users (id, username, email, password, first_name, last_name, 
+        INSERT INTO users (username, email, password, first_name, last_name, 
                           shop_name, shop_address, shop_phone, shop_email, 
                           currency, payment_qr, profile_image, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         username=VALUES(username), email=VALUES(email), 
         first_name=VALUES(first_name), last_name=VALUES(last_name),
         shop_name=VALUES(shop_name), updated_at=VALUES(updated_at)
         ''',
         [
-          user.id,
           user.username,
           user.email,
           user.password,
@@ -338,7 +338,7 @@ class ConnectDB {
         ],
       );
       
-      debugPrint('✅ User synced successfully, affected rows: ${result.affectedRows}');
+      debugPrint('✅ User synced successfully, affected rows: ${result.affectedRows}, insert ID: ${result.insertId}');
       return result.affectedRows != null && result.affectedRows! > 0;
       
     } catch (e) {
