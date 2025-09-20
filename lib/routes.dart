@@ -64,7 +64,7 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (context) => _buildProtectedRoute(
             context,
-            () => PlaceholderScreen(title: 'สแกน'),
+            () => ScannerScreen(),
             'สแกน',
           ),
         );
