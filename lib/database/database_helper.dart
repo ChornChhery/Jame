@@ -1,312 +1,354 @@
 // FILE: lib/database/database_helper.dart
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
 import '../core/constants.dart';
+import '../core/connectdb.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
-  static Database? _database;
+  final ConnectDB _mysqlDB = ConnectDB();
 
   DatabaseHelper._init();
 
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB('${AppConstants.dbName}');
-    return _database!;
+  // Direct MySQL approach for phpMyAdmin server with enhanced fallback handling
+  Future<void> initializeDatabase() async {
+    try {
+      debugPrint('🔄 Initializing MySQL database...');
+      
+      // Test connection first
+      final connectionTest = await _mysqlDB.testMySQLConnection();
+      if (!connectionTest) {
+        debugPrint('⚠️ MySQL server not reachable - app will work in limited mode');
+        debugPrint('⚠️ Server: ${ConnectDB.serverHost}:${ConnectDB.serverPort}');
+        debugPrint('⚠️ Please check your internet connection and server availability');
+        return; // Don't fail initialization
+      }
+      
+      final success = await _mysqlDB.createMySQLTables();
+      if (success) {
+        debugPrint('✅ MySQL database initialized successfully');
+      } else {
+        debugPrint('⚠️ MySQL tables creation failed, but continuing...');
+      }
+    } catch (e) {
+      debugPrint('⚠️ MySQL initialization failed: $e');
+      debugPrint('⚠️ App will continue in limited mode');
+      // Don't throw - allow app to continue even if MySQL is unavailable
+    }
   }
 
-  Future<Database> _initDB(String filePath) async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, filePath);
-
-    return await openDatabase(
-      path,
-      version: AppConstants.dbVersion,
-      onCreate: _createDB,
-    );
-  }
-
-  Future _createDB(Database db, int version) async {
-    // Users table
-    await db.execute('''
-      CREATE TABLE ${AppConstants.usersTable} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
-        shop_name TEXT NOT NULL,
-        shop_address TEXT,
-        shop_phone TEXT,
-        shop_email TEXT,
-        currency TEXT DEFAULT 'THB',
-        payment_qr TEXT,
-        profile_image TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    ''');
-
-    // Products table
-    await db.execute('''
-      CREATE TABLE ${AppConstants.productsTable} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        price REAL NOT NULL,
-        quantity INTEGER NOT NULL DEFAULT 0,
-        low_stock INTEGER DEFAULT 5,
-        code TEXT NOT NULL,
-        category TEXT,
-        unit TEXT DEFAULT 'pcs',
-        image TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES ${AppConstants.usersTable} (id) ON DELETE CASCADE,
-        UNIQUE(user_id, code)
-      )
-    ''');
-
-    // Sales table
-    await db.execute('''
-      CREATE TABLE ${AppConstants.salesTable} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        sale_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        total_amount REAL NOT NULL,
-        payment_status TEXT DEFAULT 'Completed',
-        receipt_number TEXT NOT NULL,
-        payment_method TEXT DEFAULT 'QR',
-        description TEXT,
-        customer_name TEXT,
-        customer_phone TEXT,
-        FOREIGN KEY (user_id) REFERENCES ${AppConstants.usersTable} (id) ON DELETE CASCADE,
-        UNIQUE(user_id, receipt_number)
-      )
-    ''');
-
-    // Sale items table
-    await db.execute('''
-      CREATE TABLE ${AppConstants.saleItemsTable} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sale_id INTEGER NOT NULL,
-        product_id INTEGER NOT NULL,
-        quantity INTEGER NOT NULL,
-        unit_price REAL NOT NULL,
-        total_price REAL NOT NULL,
-        FOREIGN KEY (sale_id) REFERENCES ${AppConstants.salesTable} (id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES ${AppConstants.productsTable} (id)
-      )
-    ''');
-
-    // Inventories table
-    await db.execute('''
-      CREATE TABLE ${AppConstants.inventoriesTable} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        product_id INTEGER NOT NULL,
-        change_type TEXT NOT NULL,
-        stock_before INTEGER NOT NULL,
-        stock_after INTEGER NOT NULL,
-        reference_id INTEGER,
-        notes TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES ${AppConstants.usersTable} (id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES ${AppConstants.productsTable} (id)
-      )
-    ''');
-
-    // Create indexes
-    await db.execute('CREATE INDEX idx_products_user_id ON ${AppConstants.productsTable}(user_id)');
-    await db.execute('CREATE INDEX idx_sales_user_id ON ${AppConstants.salesTable}(user_id)');
-    await db.execute('CREATE INDEX idx_inventories_user_id ON ${AppConstants.inventoriesTable}(user_id)');
-  }
-
-  // User operations
+  // User operations - Direct MySQL with parameterized queries
   Future<User> createUser(User user) async {
-    final db = await instance.database;
-    final id = await db.insert(AppConstants.usersTable, user.toMap());
-    return user.copyWith(id: id);
+    try {
+      // Use executeSelectQuery to insert and get the generated ID
+      final result = await _mysqlDB.executeUpdateQuery(
+        '''
+        INSERT INTO users (username, email, password, first_name, last_name, 
+                          shop_name, shop_address, shop_phone, shop_email, 
+                          currency, payment_qr, profile_image, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''',
+        [
+          user.username,
+          user.email,
+          user.password,
+          user.firstName,
+          user.lastName,
+          user.shopName,
+          user.shopAddress ?? '',
+          user.shopPhone ?? '',
+          user.shopEmail ?? '',
+          user.currency,
+          user.paymentQr ?? '',
+          user.profileImage ?? '',
+          user.createdAt?.toIso8601String(),
+          user.updatedAt?.toIso8601String(),
+        ],
+      );
+      
+      if (result) {
+        // Get the created user by email to retrieve the generated ID
+        final createdUser = await getUserByEmail(user.email);
+        if (createdUser != null) {
+          debugPrint('✅ User created successfully with ID: ${createdUser.id}');
+          return createdUser;
+        } else {
+          throw Exception('Failed to retrieve created user from MySQL');
+        }
+      } else {
+        throw Exception('Failed to insert user into MySQL');
+      }
+    } catch (e) {
+      debugPrint('❌ User creation failed: $e');
+      throw Exception('User creation failed: $e');
+    }
   }
 
   Future<User?> getUserByEmail(String email) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.usersTable,
-      where: 'email = ?',
-      whereArgs: [email],
-    );
-
-    if (maps.isNotEmpty) {
-      return User.fromMap(maps.first);
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM users WHERE email = ? LIMIT 1',
+        [email]
+      );
+      
+      if (results.isNotEmpty) {
+        return User.fromMap(results.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Get user by email failed: $e');
+      debugPrint('⚠️ MySQL connection issue - check network connectivity');
+      return null;
     }
-    return null;
   }
 
   Future<User?> getUserByUsername(String username) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.usersTable,
-      where: 'username = ?',
-      whereArgs: [username],
-    );
-
-    if (maps.isNotEmpty) {
-      return User.fromMap(maps.first);
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM users WHERE username = ? LIMIT 1',
+        [username]
+      );
+      
+      if (results.isNotEmpty) {
+        return User.fromMap(results.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Get user by username failed: $e');
+      debugPrint('⚠️ MySQL connection issue - check network connectivity');
+      return null;
     }
-    return null;
   }
 
   Future<User?> getUser(int id) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.usersTable,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-
-    if (maps.isNotEmpty) {
-      return User.fromMap(maps.first);
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM users WHERE id = ? LIMIT 1',
+        [id]
+      );
+      
+      if (results.isNotEmpty) {
+        return User.fromMap(results.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Get user failed: $e');
+      return null;
     }
-    return null;
   }
 
   Future<int> updateUser(User user) async {
-    final db = await instance.database;
-    return db.update(
-      AppConstants.usersTable,
-      user.toMap(),
-      where: 'id = ?',
-      whereArgs: [user.id],
-    );
+    try {
+      final success = await _mysqlDB.executeUpdateQuery(
+        '''UPDATE users SET 
+           username = ?, email = ?, first_name = ?, last_name = ?,
+           shop_name = ?, shop_address = ?, shop_phone = ?, shop_email = ?,
+           currency = ?, payment_qr = ?, profile_image = ?, updated_at = NOW()
+           WHERE id = ?''',
+        [
+          user.username, user.email, user.firstName, user.lastName,
+          user.shopName, user.shopAddress, user.shopPhone, user.shopEmail,
+          user.currency, user.paymentQr, user.profileImage, user.id
+        ]
+      );
+      
+      return success ? 1 : 0;
+    } catch (e) {
+      debugPrint('Update user failed: $e');
+      return 0;
+    }
   }
 
-  // Product operations
+  // Product operations - Direct MySQL with parameterized queries
   Future<Product> createProduct(Product product) async {
-    final db = await instance.database;
-    final id = await db.insert(AppConstants.productsTable, product.toMap());
-    return product.copyWith(id: id);
+    try {
+      final success = await _mysqlDB.syncProductToMySQL(product);
+      if (success) {
+        return product;
+      } else {
+        throw Exception('Failed to create product in MySQL');
+      }
+    } catch (e) {
+      throw Exception('Product creation failed: $e');
+    }
   }
 
   Future<List<Product>> getProducts(int userId) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.productsTable,
-      where: 'user_id = ?',
-      whereArgs: [userId],
-      orderBy: 'name ASC',
-    );
-
-    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM products WHERE user_id = ? ORDER BY name ASC',
+        [userId]
+      );
+      
+      return results.map((map) => Product.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('Get products failed: $e');
+      return [];
+    }
   }
 
   Future<Product?> getProductByCode(String code, int userId) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.productsTable,
-      where: 'code = ? AND user_id = ?',
-      whereArgs: [code, userId],
-    );
-
-    if (maps.isNotEmpty) {
-      return Product.fromMap(maps.first);
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM products WHERE code = ? AND user_id = ? LIMIT 1',
+        [code, userId]
+      );
+      
+      if (results.isNotEmpty) {
+        return Product.fromMap(results.first);
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Get product by code failed: $e');
+      return null;
     }
-    return null;
   }
 
   Future<int> updateProduct(Product product) async {
-    final db = await instance.database;
-    return db.update(
-      AppConstants.productsTable,
-      product.toMap(),
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [product.id, product.userId],
-    );
+    try {
+      final success = await _mysqlDB.executeUpdateQuery(
+        '''UPDATE products SET 
+           name = ?, price = ?, quantity = ?, low_stock = ?, code = ?,
+           category = ?, unit = ?, image = ?, updated_at = NOW()
+           WHERE id = ? AND user_id = ?''',
+        [
+          product.name, product.price, product.quantity, product.lowStock, product.code,
+          product.category, product.unit, product.image, product.id, product.userId
+        ]
+      );
+      
+      return success ? 1 : 0;
+    } catch (e) {
+      debugPrint('Update product failed: $e');
+      return 0;
+    }
   }
 
   Future<int> deleteProduct(int id, int userId) async {
-    final db = await instance.database;
-    return db.delete(
-      AppConstants.productsTable,
-      where: 'id = ? AND user_id = ?',
-      whereArgs: [id, userId],
-    );
+    try {
+      final success = await _mysqlDB.executeUpdateQuery(
+        'DELETE FROM products WHERE id = ? AND user_id = ?',
+        [id, userId]
+      );
+      
+      return success ? 1 : 0;
+    } catch (e) {
+      debugPrint('Delete product failed: $e');
+      return 0;
+    }
   }
 
-  // Sale operations
+  // Sale operations - Direct MySQL with parameterized queries
   Future<Sale> createSale(Sale sale, List<SaleItem> items) async {
-    final db = await instance.database;
-    
-    await db.transaction((txn) async {
-      // Insert sale
-      final saleId = await txn.insert(AppConstants.salesTable, sale.toMap());
-      
-      // Insert sale items and update product quantities
-      for (var item in items) {
-        await txn.insert(AppConstants.saleItemsTable, item.copyWith(saleId: saleId).toMap());
-        
-        // Update product quantity
-        await txn.rawUpdate('''
-          UPDATE ${AppConstants.productsTable} 
-          SET quantity = quantity - ? 
-          WHERE id = ?
-        ''', [item.quantity, item.productId]);
+    try {
+      final success = await _mysqlDB.syncSaleToMySQL(sale, items);
+      if (success) {
+        return sale;
+      } else {
+        throw Exception('Failed to create sale in MySQL');
       }
-    });
-    
-    return sale;
+    } catch (e) {
+      throw Exception('Sale creation failed: $e');
+    }
   }
 
   Future<List<Sale>> getSales(int userId) async {
-    final db = await instance.database;
-    final maps = await db.query(
-      AppConstants.salesTable,
-      where: 'user_id = ?',
-      whereArgs: [userId],
-      orderBy: 'sale_date DESC',
-    );
-
-    return List.generate(maps.length, (i) => Sale.fromMap(maps[i]));
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM sales WHERE user_id = ? ORDER BY sale_date DESC',
+        [userId]
+      );
+      
+      return results.map((map) => Sale.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('Get sales failed: $e');
+      return [];
+    }
   }
 
   Future<List<Sale>> getSalesToday(int userId) async {
-    final db = await instance.database;
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    final endOfDay = startOfDay.add(Duration(days: 1));
-
-    final maps = await db.query(
-      AppConstants.salesTable,
-      where: 'user_id = ? AND sale_date >= ? AND sale_date < ?',
-      whereArgs: [userId, startOfDay.toIso8601String(), endOfDay.toIso8601String()],
-      orderBy: 'sale_date DESC',
-    );
-
-    return List.generate(maps.length, (i) => Sale.fromMap(maps[i]));
+    try {
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
+      
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT * FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           ORDER BY sale_date DESC''',
+        [userId, startOfDay.toIso8601String(), endOfDay.toIso8601String()]
+      );
+      
+      return results.map((map) => Sale.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('Get today sales failed: $e');
+      return [];
+    }
   }
 
   Future<double> getTotalSalesToday(int userId) async {
-    final sales = await getSalesToday(userId);
-    return sales.fold<double>(0.0, (double sum, Sale sale) => sum + sale.totalAmount);
+    try {
+      final sales = await getSalesToday(userId);
+      return sales.fold<double>(0.0, (double sum, Sale sale) => sum + sale.totalAmount);
+    } catch (e) {
+      debugPrint('Get total sales today failed: $e');
+      return 0.0;
+    }
   }
 
   Future<List<Product>> getLowStockProducts(int userId) async {
-    final db = await instance.database;
-    final maps = await db.rawQuery('''
-      SELECT * FROM ${AppConstants.productsTable}
-      WHERE user_id = ? AND quantity <= low_stock
-      ORDER BY quantity ASC
-    ''', [userId]);
-
-    return List.generate(maps.length, (i) => Product.fromMap(maps[i]));
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        'SELECT * FROM products WHERE user_id = ? AND quantity <= low_stock ORDER BY quantity ASC',
+        [userId]
+      );
+      
+      return results.map((map) => Product.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('Get low stock products failed: $e');
+      return [];
+    }
   }
 
   Future<void> close() async {
-    final db = await instance.database;
-    db.close();
+    try {
+      await _mysqlDB.close();
+      debugPrint('MySQL database connection closed');
+    } catch (e) {
+      debugPrint('Error closing MySQL database connection: $e');
+    }
+  }
+  
+  // ==================== MYSQL DATABASE TESTING ====================
+  
+  /// Test MySQL database operations
+  Future<bool> testDatabaseOperations() async {
+    try {
+      debugPrint('🔄 Testing MySQL database operations...');
+      
+      // Test connection first
+      bool canConnect = await _mysqlDB.testMySQLConnection();
+      if (!canConnect) {
+        debugPrint('❌ Cannot connect to MySQL server');
+        return false;
+      }
+
+      // Test table creation
+      bool tablesCreated = await _mysqlDB.createMySQLTables();
+      if (!tablesCreated) {
+        debugPrint('❌ Failed to create MySQL tables');
+        return false;
+      }
+      
+      debugPrint('✅ MySQL database operations test completed successfully');
+      return true;
+      
+    } catch (e) {
+      debugPrint('❌ MySQL database operations test error: $e');
+      return false;
+    }
   }
 }

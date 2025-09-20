@@ -337,6 +337,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     if (!_formKey.currentState!.validate()) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Start background connection test (non-blocking)
+    auth.testServerConnectionBackground();
+    
     final success = await auth.login(
       _emailController.text.trim(),
       _passwordController.text,
@@ -345,10 +349,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     if (success) {
       Navigator.pushReplacementNamed(context, AppConstants.dashboardRoute);
     } else {
+      // Check connection status after login attempt
+      final serverConnected = await auth.testServerConnection();
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('อีเมลหรือรหัสผ่านไม่ถูกต้อง'),
-          backgroundColor: AppConstants.errorRed,
+          content: Text(serverConnected 
+              ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' // Email or password incorrect
+              : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'), // Cannot login, try again
+          backgroundColor: serverConnected ? AppConstants.errorRed : Colors.orange,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: EdgeInsets.all(16),
@@ -919,6 +928,10 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     if (!_formKey.currentState!.validate()) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Start background connection test (non-blocking)
+    auth.testServerConnectionBackground();
+    
     final error = await auth.signup(
       username: _usernameController.text.trim(),
       email: _emailController.text.trim(),
@@ -933,10 +946,18 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     if (error == null) {
       Navigator.pushReplacementNamed(context, AppConstants.dashboardRoute);
     } else {
+      // Check connection status after signup attempt
+      final serverConnected = await auth.testServerConnection();
+      
+      String message = error;
+      if (!serverConnected) {
+        message = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ไม่สามารถสมัครสมาชิกได้'; // Cannot connect to server, cannot register
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(error),
-          backgroundColor: AppConstants.errorRed,
+          content: Text(message),
+          backgroundColor: serverConnected ? AppConstants.errorRed : Colors.orange,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: EdgeInsets.all(16),

@@ -46,15 +46,34 @@ class Sale {
     return Sale(
       id: map['id'],
       userId: map['user_id'],
-      saleDate: DateTime.parse(map['sale_date']),
+      saleDate: DateTime.parse(_safeStringFromMap(map, 'sale_date')!),
       totalAmount: map['total_amount']?.toDouble() ?? 0.0,
-      paymentStatus: map['payment_status'] ?? 'Completed',
-      receiptNumber: map['receipt_number'],
-      paymentMethod: map['payment_method'] ?? 'QR',
-      description: map['description'],
-      customerName: map['customer_name'],
-      customerPhone: map['customer_phone'],
+      paymentStatus: _safeStringFromMap(map, 'payment_status') ?? 'Completed',
+      receiptNumber: _safeStringFromMap(map, 'receipt_number') ?? '',
+      paymentMethod: _safeStringFromMap(map, 'payment_method') ?? 'QR',
+      description: _safeStringFromMap(map, 'description'),
+      customerName: _safeStringFromMap(map, 'customer_name'),
+      customerPhone: _safeStringFromMap(map, 'customer_phone'),
     );
+  }
+  
+  /// Safely extract string from map, handling Blob types from MySQL
+  static String? _safeStringFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value == null) return null;
+    
+    // Handle Blob type from MySQL
+    if (value is List<int>) {
+      return String.fromCharCodes(value);
+    }
+    
+    // Handle regular string
+    if (value is String) {
+      return value.isEmpty ? null : value;
+    }
+    
+    // Convert other types to string
+    return value.toString();
   }
 
   Sale copyWith({

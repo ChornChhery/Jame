@@ -1,13 +1,16 @@
 // FILE: lib/providers/auth_provider.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/user.dart';
 import '../database/database_helper.dart';
 import '../core/utils.dart';
+import '../core/connectdb.dart';
 
 class AuthProvider extends ChangeNotifier {
   User? _currentUser;
   bool _isAuthenticated = false;
   bool _isLoading = false;
+  final ConnectDB _connectDB = ConnectDB(); // Add server connection
 
   User? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
@@ -18,21 +21,27 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Direct MySQL authentication - no local fallback
       final hashedPassword = AppUtils.hashPassword(password);
       final user = await DatabaseHelper.instance.getUserByEmail(email);
 
       if (user != null && user.password == hashedPassword) {
         _currentUser = user;
         _isAuthenticated = true;
+        
+        debugPrint('✅ User login successful: ${user.username}');
+        
         _isLoading = false;
         notifyListeners();
         return true;
       }
 
+      debugPrint('❌ Login failed: Invalid credentials for $email');
       _isLoading = false;
       notifyListeners();
       return false;
     } catch (e) {
+      debugPrint('❌ Login error: $e');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -53,22 +62,22 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Check if user already exists
+      // Check if user already exists in MySQL
       final existingUserByEmail = await DatabaseHelper.instance.getUserByEmail(email);
       if (existingUserByEmail != null) {
         _isLoading = false;
         notifyListeners();
-        return 'อีเมลนี้ถูกใช้แล้ว';
+        return 'อีเมลนี้ถูกใช้แล้ว'; // Email already used
       }
 
       final existingUserByUsername = await DatabaseHelper.instance.getUserByUsername(username);
       if (existingUserByUsername != null) {
         _isLoading = false;
         notifyListeners();
-        return 'ชื่อผู้ใช้นี้ถูกใช้แล้ว';
+        return 'ชื่อผู้ใช้นี้ถูกใช้แล้ว'; // Username already used
       }
 
-      // Create new user
+      // Create new user directly in MySQL
       final hashedPassword = AppUtils.hashPassword(password);
       final newUser = User(
         username: username,
@@ -79,7 +88,7 @@ class AuthProvider extends ChangeNotifier {
         shopName: shopName,
         shopAddress: shopAddress,
         shopPhone: shopPhone,
-        currency: 'THB',
+        currency: 'THB', // Thai market focus
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -87,10 +96,14 @@ class AuthProvider extends ChangeNotifier {
       final createdUser = await DatabaseHelper.instance.createUser(newUser);
       _currentUser = createdUser;
       _isAuthenticated = true;
+      
+      debugPrint('✅ User registration successful: ${createdUser.username}');
+      
       _isLoading = false;
       notifyListeners();
       return null; // Success
     } catch (e) {
+      debugPrint('❌ Registration error: $e');
       _isLoading = false;
       notifyListeners();
       return 'เกิดข้อผิดพลาด: ${e.toString()}';
@@ -117,6 +130,55 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  // ==================== MySQL CONNECTION TESTING ====================
+  
+  /// Test MySQL connection for debugging (non-blocking with caching)
+  bool? _lastConnectionStatus;
+  DateTime? _lastConnectionTest;
+  
+  Future<bool> testServerConnection() async {
+    try {
+      // Cache connection status for 30 seconds to avoid blocking UI
+      final now = DateTime.now();
+      if (_lastConnectionTest != null && 
+          _lastConnectionStatus != null &&
+          now.difference(_lastConnectionTest!).inSeconds < 30) {
+        return _lastConnectionStatus!;
+      }
+      
+      // Test with reduced retries for faster response
+      final result = await _connectDB.testMySQLConnection(maxRetries: 1);
+      
+      _lastConnectionStatus = result;
+      _lastConnectionTest = now;
+      
+      debugPrint(result ? '✅ MySQL connection test: SUCCESS' : '❌ MySQL connection test: FAILED');
+      return result;
+    } catch (e) {
+      debugPrint('❌ MySQL connection test error: $e');
+      _lastConnectionStatus = false;
+      _lastConnectionTest = DateTime.now();
+      return false;
+    }
+  }
+  
+  /// Background connection test (fire and forget)
+  void testServerConnectionBackground() {
+    // Run in background without blocking UI
+    testServerConnection().catchError((e) {
+      debugPrint('Background connection test failed: $e');
+    });
+  }
+  
+  /// Get MySQL server status for debugging
+  Future<Map<String, dynamic>> getServerStatus() async {
+    try {
+      return await _connectDB.getServerStatus();
+    } catch (e) {
+      return {'error': e.toString()};
     }
   }
 }

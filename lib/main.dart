@@ -1,6 +1,7 @@
 // FILE: lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'providers/auth_provider.dart';
 import 'providers/app_provider.dart';
 import 'providers/settings_provider.dart';
@@ -11,8 +12,17 @@ import 'database/database_helper.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: ".env");
+    print('✅ Environment variables loaded successfully');
+  } catch (e) {
+    print('⚠️ Warning: Could not load .env file: $e');
+    print('   App will use default configuration');
+  }
+  
   // Initialize database
-  await DatabaseHelper.instance.database;
+  await DatabaseHelper.instance.initializeDatabase();
   
   runApp(MyApp());
 }

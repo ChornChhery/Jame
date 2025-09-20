@@ -40,9 +40,55 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final app = Provider.of<AppProvider>(context, listen: false);
     
-    if (auth.currentUser != null) {
-      await app.loadProducts(auth.currentUser!.id!);
-      await app.loadSales(auth.currentUser!.id!);
+    if (auth.currentUser != null && auth.currentUser!.id != null) {
+      // Start background connection test (non-blocking)
+      auth.testServerConnectionBackground();
+      
+      try {
+        // Load data immediately without waiting for connection test
+        await app.loadProducts(auth.currentUser!.id!);
+        await app.loadSales(auth.currentUser!.id!);
+        
+        // Check connection status after data loading
+        final connectionAvailable = await auth.testServerConnection();
+        if (!connectionAvailable && mounted) {
+          // Show warning only if connection is down
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.warning_amber, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text('⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ แอปทำงานในโหมดจำกัด'), // Cannot connect to server, working in limited mode
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange[600],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: EdgeInsets.all(16),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } catch (e) {
+        // Handle data loading errors gracefully
+        debugPrint('⚠️ Data loading failed: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), // Data loading failed, please try again
+              backgroundColor: AppConstants.errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: EdgeInsets.all(16),
+            ),
+          );
+        }
+      }
+    } else {
+      debugPrint('⚠️ Cannot load data: User or User ID is null');
     }
   }
 
@@ -162,6 +208,50 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ),
                 Row(
                   children: [
+                    // Connection status indicator
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, child) {
+                        return FutureBuilder<bool>(
+                          future: auth.testServerConnection(),
+                          builder: (context, snapshot) {
+                            final isConnected = snapshot.data ?? false;
+                            return Container(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isConnected 
+                                    ? Colors.green.withOpacity(0.2)
+                                    : Colors.orange.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isConnected ? Colors.green : Colors.orange,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isConnected ? Icons.cloud_done : Icons.cloud_off,
+                                    color: isConnected ? Colors.green : Colors.orange,
+                                    size: 12,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    isConnected ? 'ออนไลน์' : 'ออฟไลน์', // Online/Offline
+                                    style: TextStyle(
+                                      color: isConnected ? Colors.green : Colors.orange,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                    SizedBox(width: 8),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),

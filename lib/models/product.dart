@@ -49,17 +49,36 @@ class Product {
     return Product(
       id: map['id'],
       userId: map['user_id'],
-      name: map['name'],
+      name: _safeStringFromMap(map, 'name') ?? '',
       price: map['price']?.toDouble() ?? 0.0,
       quantity: map['quantity'] ?? 0,
       lowStock: map['low_stock'] ?? 5,
-      code: map['code'],
-      category: map['category'],
-      unit: map['unit'] ?? 'pcs',
-      image: map['image'],
-      createdAt: map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
+      code: _safeStringFromMap(map, 'code') ?? '',
+      category: _safeStringFromMap(map, 'category'),
+      unit: _safeStringFromMap(map, 'unit') ?? 'pcs',
+      image: _safeStringFromMap(map, 'image'),
+      createdAt: map['created_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'created_at')!) : null,
+      updatedAt: map['updated_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'updated_at')!) : null,
     );
+  }
+  
+  /// Safely extract string from map, handling Blob types from MySQL
+  static String? _safeStringFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value == null) return null;
+    
+    // Handle Blob type from MySQL
+    if (value is List<int>) {
+      return String.fromCharCodes(value);
+    }
+    
+    // Handle regular string
+    if (value is String) {
+      return value.isEmpty ? null : value;
+    }
+    
+    // Convert other types to string
+    return value.toString();
   }
 
   Product copyWith({

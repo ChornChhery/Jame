@@ -1,9 +1,11 @@
 // FILE: lib/providers/app_provider.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
 import '../database/database_helper.dart';
 import '../core/utils.dart';
+import '../core/connectdb.dart';
 
 class AppProvider extends ChangeNotifier {
   List<Product> _products = [];
@@ -11,6 +13,7 @@ class AppProvider extends ChangeNotifier {
   List<Sale> _sales = [];
   bool _isLoading = false;
   String? _error;
+  final ConnectDB _connectDB = ConnectDB(); // Add server connection
 
   List<Product> get products => _products;
   List<CartItem> get cartItems => _cartItems;
@@ -21,28 +24,45 @@ class AppProvider extends ChangeNotifier {
   double get cartTotal => _cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
   int get cartItemCount => _cartItems.fold(0, (sum, item) => sum + item.quantity);
 
-  // Product operations
+  // Product operations with graceful MySQL failure handling
   Future<void> loadProducts(int userId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
+      // Test MySQL connection first
+      final connectionAvailable = await _connectDB.testMySQLConnection();
+      if (!connectionAvailable) {
+        _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
+        _products = []; // Empty list when offline
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+      
       _products = await DatabaseHelper.instance.getProducts(userId);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = 'เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า: ${e.toString()}'; // Error loading product data
+      _products = []; // Empty list on error
       _isLoading = false;
       notifyListeners();
+      debugPrint('❌ Product loading failed: $e');
     }
   }
 
   Future<bool> addProduct(Product product) async {
     try {
+      // 1. Add to local database first
       final newProduct = await DatabaseHelper.instance.createProduct(product);
       _products.add(newProduct);
       notifyListeners();
+      
+      // 2. Sync to server in background
+      _syncProductToServer(newProduct);
+      
       return true;
     } catch (e) {
       _error = e.toString();
@@ -154,6 +174,9 @@ class AppProvider extends ChangeNotifier {
           );
         }
       }
+      
+      // Sync sale to server in background
+      _syncSaleToServer(sale, saleItems);
 
       clearCart();
       await loadSales(userId);
@@ -168,11 +191,22 @@ class AppProvider extends ChangeNotifier {
 
   Future<void> loadSales(int userId) async {
     try {
+      // Test MySQL connection first
+      final connectionAvailable = await _connectDB.testMySQLConnection();
+      if (!connectionAvailable) {
+        debugPrint('⚠️ MySQL not available - sales data unavailable in limited mode');
+        _sales = []; // Empty list when offline
+        notifyListeners();
+        return;
+      }
+      
       _sales = await DatabaseHelper.instance.getSales(userId);
       notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = 'เกิดข้อผิดพลาดในการโหลดข้อมูลยอดขาย: ${e.toString()}'; // Error loading sales data
+      _sales = []; // Empty list on error
       notifyListeners();
+      debugPrint('❌ Sales loading failed: $e');
     }
   }
 
@@ -195,5 +229,55 @@ class AppProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+  
+  // ==================== SERVER SYNC METHODS ====================
+  
+  /// Sync single product to server (non-blocking)
+  void _syncProductToServer(Product product) async {
+    try {
+      await _connectDB.syncProductToMySQL(product);
+    } catch (e) {
+      // Silent fail - server sync is optional
+      debugPrint('Product server sync failed: $e');
+    }
+  }
+  
+  /// Sync sale to server (non-blocking)
+  void _syncSaleToServer(Sale sale, List<SaleItem> items) async {
+    try {
+      await _connectDB.syncSaleToMySQL(sale, items);
+    } catch (e) {
+      // Silent fail - server sync is optional
+      debugPrint('Sale server sync failed: $e');
+    }
+  }
+  
+  /// Manual sync all data with server
+  Future<bool> syncWithServer(int userId) async {
+    try {
+      // Test MySQL database operations since we're now using MySQL directly
+      final syncResult = await _connectDB.testDatabaseOperations(userId);
+      
+      if (!syncResult.success) {
+        _error = 'Database operations test failed: ${syncResult.message}';
+        notifyListeners();
+      }
+      
+      return syncResult.success;
+    } catch (e) {
+      _error = 'Database operations test failed: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+  
+  /// Test server connection
+  Future<bool> testServerConnection() async {
+    try {
+      return await _connectDB.testMySQLConnection();
+    } catch (e) {
+      return false;
+    }
   }
 }

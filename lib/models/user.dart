@@ -57,21 +57,40 @@ class User {
   factory User.fromMap(Map<String, dynamic> map) {
     return User(
       id: map['id'],
-      username: map['username'],
-      email: map['email'],
-      password: map['password'],
-      firstName: map['first_name'],
-      lastName: map['last_name'],
-      shopName: map['shop_name'],
-      shopAddress: map['shop_address'],
-      shopPhone: map['shop_phone'],
-      shopEmail: map['shop_email'],
-      currency: map['currency'] ?? 'THB',
-      paymentQr: map['payment_qr'],
-      profileImage: map['profile_image'],
-      createdAt: map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
+      username: _safeStringFromMap(map, 'username') ?? '',
+      email: _safeStringFromMap(map, 'email') ?? '',
+      password: _safeStringFromMap(map, 'password') ?? '',
+      firstName: _safeStringFromMap(map, 'first_name') ?? '',
+      lastName: _safeStringFromMap(map, 'last_name') ?? '',
+      shopName: _safeStringFromMap(map, 'shop_name') ?? '',
+      shopAddress: _safeStringFromMap(map, 'shop_address'),
+      shopPhone: _safeStringFromMap(map, 'shop_phone'),
+      shopEmail: _safeStringFromMap(map, 'shop_email'),
+      currency: _safeStringFromMap(map, 'currency') ?? 'THB',
+      paymentQr: _safeStringFromMap(map, 'payment_qr'),
+      profileImage: _safeStringFromMap(map, 'profile_image'),
+      createdAt: map['created_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'created_at')!) : null,
+      updatedAt: map['updated_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'updated_at')!) : null,
     );
+  }
+  
+  /// Safely extract string from map, handling Blob types from MySQL
+  static String? _safeStringFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value == null) return null;
+    
+    // Handle Blob type from MySQL
+    if (value is List<int>) {
+      return String.fromCharCodes(value);
+    }
+    
+    // Handle regular string
+    if (value is String) {
+      return value.isEmpty ? null : value;
+    }
+    
+    // Convert other types to string
+    return value.toString();
   }
 
   User copyWith({
