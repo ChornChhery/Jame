@@ -7,6 +7,7 @@ import 'providers/app_provider.dart';
 import 'providers/settings_provider.dart';
 import 'routes.dart';
 import 'core/theme.dart';
+import 'core/constants.dart';
 import 'database/database_helper.dart';
 
 void main() async {
@@ -39,9 +40,9 @@ class MyApp extends StatelessWidget {
       child: Consumer<AuthProvider>(
         builder: (context, auth, child) {
           return MaterialApp(
-            title: 'Jame',
+            title: AppConstants.appName,
             theme: AppTheme.lightTheme,
-            initialRoute: auth.isAuthenticated ? '/dashboard' : '/login',
+            initialRoute: auth.isAuthenticated ? AppConstants.dashboardRoute : AppConstants.loginRoute,
             onGenerateRoute: AppRoutes.generateRoute,
             debugShowCheckedModeBanner: false,
           );
