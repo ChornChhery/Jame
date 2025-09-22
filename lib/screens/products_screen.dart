@@ -164,8 +164,13 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       backgroundColor: AppConstants.primaryDarkBlue,
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text('จัดการสินค้า', 
-          style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'จัดการสินค้า',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white, // Explicitly set text color to white
+          ),
+        ),
         background: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
