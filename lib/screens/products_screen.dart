@@ -1,4 +1,3 @@
-// FILE: lib/screens/products_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
 import 'package:provider/provider.dart';
@@ -74,7 +73,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         await app.loadProducts(auth.currentUser!.id!);
       }
     } catch (e) {
-      // Handle error appropriately
       print('Error loading data: $e');
     } finally {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -102,7 +100,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         }).toList();
       }
 
-      // Sort products
       products.sort((a, b) {
         switch (_sortBy) {
           case 'name':
@@ -122,7 +119,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         setState(() => _filteredProducts = products);
       });
     } catch (e) {
-      // Handle error appropriately
       print('Error searching products: $e');
     }
   }
@@ -168,7 +164,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           'จัดการสินค้า',
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: Colors.white, // Explicitly set text color to white
+            color: Colors.white,
           ),
         ),
         background: Container(
@@ -248,7 +244,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Enhanced search bar
           Container(
             decoration: BoxDecoration(
               color: AppConstants.lightGray,
@@ -286,10 +281,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             ),
           ),
           const SizedBox(height: 12),
-          // Filter and view options
           Row(
             children: [
-              // Sort dropdown
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -320,7 +313,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
               ),
               const SizedBox(width: 12),
-              // View toggle
               Container(
                 decoration: BoxDecoration(
                   color: AppConstants.lightGray,
@@ -368,7 +360,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   Widget _buildSliverTabBar() {
-    // Calculate the total product count
     final productCount = _filteredProducts.length;
     final lowStockCount = _filteredProducts
         .where((p) => p.quantity <= p.lowStock).length;
@@ -503,29 +494,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       );
     }
     
-    return _isGridView ? _buildLowStockGrid(lowStockProducts) : _buildLowStockListView(lowStockProducts);
-  }
-
-  Widget _buildLowStockListView(List<Product> lowStockProducts) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: lowStockProducts.length,
-      itemBuilder: (context, index) => _buildEnhancedLowStockCard(lowStockProducts[index]),
-    );
-  }
-
-  Widget _buildLowStockGrid(List<Product> lowStockProducts) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      itemCount: lowStockProducts.length,
-      itemBuilder: (context, index) => _buildEnhancedLowStockCard(lowStockProducts[index]),
-    );
+    return _isGridView ? _buildProductsGrid() : _buildProductsListView();
   }
 
   Widget _buildEnhancedProductCard(Product product) {
@@ -557,10 +526,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                // Enhanced product image
                 _buildEnhancedProductImage(product, size: 50),
                 const SizedBox(width: 8),
-                // Product info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -685,7 +652,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     ],
                   ),
                 ),
-                // Action buttons
                 Container(
                   width: 36,
                   child: Column(
@@ -778,7 +744,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product image
                 Stack(
                   children: [
                     Center(child: _buildEnhancedProductImage(product, size: 60)),
@@ -802,7 +767,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ],
                 ),
                 const SizedBox(height: 10),
-                // Product name
                 Text(
                   product.name,
                   style: const TextStyle(
@@ -813,7 +777,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
-                // Price and stock
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
@@ -849,17 +812,75 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
+                    if (isLowStock)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppConstants.errorRed.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'สต็อกต่ำ',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: AppConstants.errorRed,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 const Spacer(),
-                // Action button
                 Align(
                   alignment: Alignment.centerRight,
-                  child: IconButton(
-                    onPressed: () => _addToCart(product),
-                    icon: const Icon(Icons.add_shopping_cart_rounded),
-                    color: AppConstants.primaryDarkBlue,
-                    tooltip: 'เพิ่มในตะกร้า',
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: () => _addToCart(product),
+                        icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
+                        color: AppConstants.primaryDarkBlue,
+                        tooltip: 'เพิ่มในตะกร้า',
+                      ),
+                      PopupMenuButton<String>(
+                        icon: Icon(Icons.more_vert_rounded, 
+                          color: Colors.grey[600], size: 20),
+                        onSelected: (value) => _handleProductAction(value, product),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'addStock',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_box_rounded, size: 16),
+                                SizedBox(width: 6),
+                                Text('เติมสต็อก', style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_rounded, size: 16),
+                                SizedBox(width: 6),
+                                Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_rounded, color: Colors.red, size: 16),
+                                SizedBox(width: 6),
+                                Text('ลบ', style: TextStyle(color: Colors.red, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ],
+                        padding: const EdgeInsets.all(0),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -868,11 +889,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         ),
       ),
     );
-  }
-
-  Widget _buildEnhancedLowStockCard(Product product) {
-    // Use the same layout as regular product cards for consistency
-    return _buildEnhancedProductCard(product);
   }
 
   Widget _buildEnhancedProductImage(Product product, {double size = 60}) {
@@ -1015,7 +1031,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   void _addToCart(Product product) {
-    // Show quantity selection dialog
     _showAddToCartDialog(product);
   }
 
@@ -1037,7 +1052,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     final categoryController = TextEditingController(text: product?.category ?? '');
     final imageController = TextEditingController(text: product?.image ?? '');
     
-    // Predefined categories
     final List<String> categories = [
       'อาหารและเครื่องดื่ม',
       'ของใช้ในบ้าน',
@@ -1062,7 +1076,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -1101,7 +1114,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       ],
                     ),
                   ),
-                  // Content
                   Flexible(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(20),
@@ -1159,7 +1171,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             ],
                           ),
                           const SizedBox(height: 16),
-                          // Category dropdown
                           Container(
                             decoration: BoxDecoration(
                               color: AppConstants.lightGray,
@@ -1199,7 +1210,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             maxLines: 2,
                           ),
                           const SizedBox(height: 12),
-                          // Image upload button
                           Container(
                             width: double.infinity,
                             decoration: BoxDecoration(
@@ -1223,7 +1233,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       ),
                     ),
                   ),
-                  // Actions
                   Container(
                     padding: const EdgeInsets.all(20),
                     child: Row(
@@ -2147,7 +2156,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header with product image
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -2198,13 +2206,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ],
                 ),
               ),
-              // Content
               Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      // Price and Stock Info
                       Row(
                         children: [
                           Expanded(
@@ -2285,7 +2291,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         ],
                       ),
                       const SizedBox(height: 16),
-                      // Additional Info
                       _buildInfoRow('หมวดหมู่', product.category ?? 'ไม่ระบุ', Icons.category_rounded),
                       _buildInfoRow('หน่วย', product.unit, Icons.scale_rounded),
                       _buildInfoRow('จุดเตือนสต็อกต่ำ', '${product.lowStock}', Icons.warning_rounded),
@@ -2328,7 +2333,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ),
                 ),
               ),
-              // Actions
               Container(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -2480,7 +2484,6 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 }
 
-// Custom SliverPersistentHeaderDelegate for TabBar
 class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   final TabBar tabBar;
 
