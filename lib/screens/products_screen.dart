@@ -547,7 +547,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           ),
                           if (product.category != null)
                             Container(
-                              constraints: const BoxConstraints(maxWidth: 65),
+                              constraints: const BoxConstraints(maxWidth: 90), // Increased from 65 to 90
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 4, vertical: 2),
                               decoration: BoxDecoration(
@@ -557,7 +557,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               child: Text(
                                 product.category!,
                                 style: TextStyle(
-                                  fontSize: 8,
+                                  fontSize: 14, // Increased from 8 to 12
                                   color: AppConstants.primaryDarkBlue,
                                   fontWeight: FontWeight.w500,
                                 ),
@@ -567,7 +567,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 14),
                       Text(
                         'รหัส: ${product.code}',
                         style: TextStyle(
@@ -653,18 +653,19 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ),
                 ),
                 Container(
-                  width: 36,
+                  width: 60,
                   child: Column(
                     children: [
                       IconButton(
                         onPressed: () => _addToCart(product),
-                        icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
+                        icon: const Icon(Icons.add_shopping_cart_rounded, size: 24), // Increased from 20 to 24
                         color: AppConstants.primaryDarkBlue,
                         tooltip: 'เพิ่มในตะกร้า',
                         padding: const EdgeInsets.all(0),
                         constraints: const BoxConstraints(),
                       ),
                       const SizedBox(height: 4),
+                      const SizedBox(width: 10),
                       PopupMenuButton<String>(
                         icon: Icon(Icons.more_vert_rounded, 
                           color: Colors.grey[600], size: 20),
@@ -712,8 +713,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           ),
         ),
       ),
-    );
-  }
+      );
+    }
 
   Widget _buildProductGridCard(Product product) {
     final isLowStock = product.quantity <= product.lowStock;
