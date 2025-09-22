@@ -21,7 +21,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
   
   bool _isProcessing = false;
   bool _isPaymentConfirmed = false;
-  String _paymentMethod = 'PromptPay';
+  String _paymentMethod = 'PromptPay'; // Default to PromptPay (QR)
   final _customerNameController = TextEditingController();
   final _customerPhoneController = TextEditingController();
 
@@ -762,10 +762,11 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       
-      // Complete the sale
+      // Complete the sale with the selected payment method
       final success = await app.completeSale(
         auth.currentUser!.id!,
         auth.currentUser!.username,
+        paymentMethod: _paymentMethod, // Fix: Pass the actual selected payment method
       );
       
       if (success) {
@@ -773,8 +774,10 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ชำระเงินเรียบร้อยแล้ว'),
+          SnackBar(
+            content: Text(_paymentMethod == 'Cash' 
+                ? 'ชำระเงินด้วยเงินสดเรียบร้อยแล้ว' 
+                : 'ชำระเงินผ่าน QR Code เรียบร้อยแล้ว'),
             backgroundColor: AppConstants.successGreen,
             behavior: SnackBarBehavior.floating,
           ),

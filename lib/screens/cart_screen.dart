@@ -116,8 +116,10 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Consumer<AppProvider>(
-                  builder: (context, app, child) {
+                // Fixed: Remove Consumer to prevent setState during build
+                Builder(
+                  builder: (context) {
+                    final app = Provider.of<AppProvider>(context, listen: false);
                     return Text(
                       '${app.cartItems.length} รายการ',
                       style: TextStyle(
@@ -130,8 +132,10 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
-          Consumer<AppProvider>(
-            builder: (context, app, child) {
+          // Fixed: Remove Consumer to prevent setState during build
+          Builder(
+            builder: (context) {
+              final app = Provider.of<AppProvider>(context, listen: false);
               if (app.cartItems.isEmpty) return const SizedBox();
               
               return IconButton(
@@ -255,34 +259,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 Row(
                   children: [
                     // Product Image
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppConstants.primaryDarkBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: cartItem.product.image != null && cartItem.product.image!.isNotEmpty
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                cartItem.product.image!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.inventory_2,
-                                    color: AppConstants.primaryDarkBlue,
-                                    size: 24,
-                                  );
-                                },
-                              ),
-                            )
-                          : Icon(
-                              Icons.inventory_2,
-                              color: AppConstants.primaryDarkBlue,
-                              size: 24,
-                            ),
-                    ),
+                    _buildProductImage(cartItem.product),
                     const SizedBox(width: 16),
                     
                     // Product Info
@@ -459,6 +436,37 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildProductImage(Product product) {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: product.image != null && product.image!.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                product.image!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.inventory_2,
+                    color: AppConstants.primaryDarkBlue,
+                    size: 24,
+                  );
+                },
+              ),
+            )
+          : Icon(
+              Icons.inventory_2,
+              color: AppConstants.primaryDarkBlue,
+              size: 24,
+            ),
     );
   }
 

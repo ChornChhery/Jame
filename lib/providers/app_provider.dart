@@ -89,10 +89,13 @@ class AppProvider extends ChangeNotifier {
 
   Future<bool> deleteProduct(int productId, int userId) async {
     try {
-      await DatabaseHelper.instance.deleteProduct(productId, userId);
-      _products.removeWhere((p) => p.id == productId);
-      notifyListeners();
-      return true;
+      final result = await DatabaseHelper.instance.deleteProduct(productId, userId);
+      if (result == 1) {
+        _products.removeWhere((p) => p.id == productId);
+        notifyListeners();
+        return true;
+      }
+      return false;
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -115,6 +118,7 @@ class AppProvider extends ChangeNotifier {
     final existingIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
     
     if (existingIndex != -1) {
+      // Fix: Always update quantity when adding same product
       _cartItems[existingIndex].quantity += quantity;
     } else {
       _cartItems.add(CartItem(product: product, quantity: quantity));
@@ -145,7 +149,7 @@ class AppProvider extends ChangeNotifier {
   }
 
   // Sale operations
-  Future<bool> completeSale(int userId, String username) async {
+  Future<bool> completeSale(int userId, String username, {String paymentMethod = 'QR'}) async {
     if (_cartItems.isEmpty) return false;
 
     try {
@@ -156,7 +160,7 @@ class AppProvider extends ChangeNotifier {
         totalAmount: cartTotal,
         receiptNumber: receiptNumber,
         paymentStatus: 'Completed',
-        paymentMethod: 'QR',
+        paymentMethod: paymentMethod, // Fix: Use the actual payment method
       );
 
       final saleItems = _cartItems.map((cartItem) => 
@@ -165,13 +169,19 @@ class AppProvider extends ChangeNotifier {
 
       await DatabaseHelper.instance.createSale(sale, saleItems);
       
-      // Update local product quantities
+      // Update local product quantities and sync to database
       for (var cartItem in _cartItems) {
         final productIndex = _products.indexWhere((p) => p.id == cartItem.product.id);
         if (productIndex != -1) {
-          _products[productIndex] = _products[productIndex].copyWith(
+          final updatedProduct = _products[productIndex].copyWith(
             quantity: _products[productIndex].quantity - cartItem.quantity,
           );
+          
+          // Update in local list
+          _products[productIndex] = updatedProduct;
+          
+          // Update in database
+          await DatabaseHelper.instance.updateProduct(updatedProduct);
         }
       }
       

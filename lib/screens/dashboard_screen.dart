@@ -21,24 +21,35 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   int _selectedNavIndex = 0;
+  bool _isInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: Duration(milliseconds: 1000),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
+    _initializeAnimations();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
-    _animationController.forward();
+  }
+
+  void _initializeAnimations() {
+    try {
+      _animationController = AnimationController(
+        duration: Duration(milliseconds: 1000),
+        vsync: this,
+      );
+      _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+      );
+      _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
+        CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
+      );
+      _isInitialized = true;
+      _animationController.forward();
+    } catch (e) {
+      debugPrint('Animation initialization failed: $e');
+      _isInitialized = false;
+    }
   }
 
   Future<void> _loadData() async {
@@ -117,38 +128,58 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               color: AppConstants.primaryDarkBlue,
               child: SingleChildScrollView(
                 physics: AlwaysScrollableScrollPhysics(),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      children: [
-                        // Custom Header
-                        _buildModernHeader(auth.currentUser!),
-                        
-                        // Content
-                        Padding(
-                          padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+                child: _isInitialized
+                    ? FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Sales Overview Cards
-                              _buildSalesOverview(app, auth.currentUser!.id!),
-                              SizedBox(height: 24),
+                              // Custom Header
+                              _buildModernHeader(auth.currentUser!),
+                              
+                              // Content
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Sales Overview Cards
+                                    _buildSalesOverview(app, auth.currentUser!.id!),
+                                    SizedBox(height: 24),
 
-                              // Quick Actions Grid
-                              _buildQuickActionsGrid(),
-                              SizedBox(height: 24),
+                                    // Quick Actions Grid
+                                    _buildQuickActionsGrid(),
+                                    SizedBox(height: 24),
 
-                              // Recent Activities & Alerts
-                              _buildRecentSection(app, auth.currentUser!.id!),
+                                    // Recent Activities & Alerts
+                                    _buildRecentSection(app, auth.currentUser!.id!),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      )
+                    : Column(
+                        children: [
+                          // Fallback content without animation
+                          _buildModernHeader(auth.currentUser!),
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildSalesOverview(app, auth.currentUser!.id!),
+                                SizedBox(height: 24),
+                                _buildQuickActionsGrid(),
+                                SizedBox(height: 24),
+                                _buildRecentSection(app, auth.currentUser!.id!),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
               ),
             );
           },
@@ -418,18 +449,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   ],
                 ),
                 SizedBox(height: 12),
-                FutureBuilder<double>(
-                  future: app.getTodaySales(userId),
-                  builder: (context, snapshot) {
-                    return Text(
-                      AppUtils.formatCurrency(snapshot.data ?? 0.0),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    );
-                  },
+                // Fixed: Remove FutureBuilder to prevent setState during build
+                Text(
+                  AppUtils.formatCurrency(_getTodaySalesStatic(app)),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -678,25 +705,26 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         ),
         SizedBox(height: 16),
         
-        // Low stock alerts
-        FutureBuilder<List>(
-          future: app.getLowStockProducts(userId),
-          builder: (context, snapshot) {
-            final lowStockProducts = snapshot.data ?? [];
-            
-            if (lowStockProducts.isEmpty) {
-              return _buildNoAlertsCard();
-            }
-
-            return _buildLowStockCard(lowStockProducts);
-          },
-        ),
+        // Low stock alerts - using static data to prevent setState during build
+        _buildLowStockAlertsStatic(app),
+        
         SizedBox(height: 16),
         
         // Recent sales
         _buildRecentSalesCard(app.sales.take(3).toList()),
       ],
     );
+  }
+
+  Widget _buildLowStockAlertsStatic(AppProvider app) {
+    // Filter low stock products from existing data to prevent setState during build
+    final lowStockProducts = app.products.where((p) => p.quantity <= p.lowStock).take(5).toList();
+    
+    if (lowStockProducts.isEmpty) {
+      return _buildNoAlertsCard();
+    }
+    
+    return _buildLowStockCard(lowStockProducts);
   }
 
   Widget _buildLowStockCard(List lowStockProducts) {
@@ -1081,6 +1109,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
+  double _getTodaySalesStatic(AppProvider app) {
+    // Calculate today's sales from existing sales data without async call
+    final today = DateTime.now();
+    final todaySales = app.sales.where((sale) => _isToday(sale.saleDate));
+    return todaySales.fold<double>(0.0, (sum, sale) => sum + sale.totalAmount);
+  }
+
   String _getGreeting() {
     final hour = DateTime.now().hour;
     if (hour < 12) return 'สวัสดีตอนเช้า';
@@ -1105,7 +1140,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   @override
   void dispose() {
-    _animationController.dispose();
+    if (_isInitialized) {
+      _animationController.dispose();
+    }
     super.dispose();
   }
 

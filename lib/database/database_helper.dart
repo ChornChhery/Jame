@@ -229,6 +229,19 @@ class DatabaseHelper {
 
   Future<int> deleteProduct(int id, int userId) async {
     try {
+      // First, delete all sale items associated with this product
+      await _mysqlDB.executeUpdateQuery(
+        'DELETE FROM sale_items WHERE product_id = ?',
+        [id]
+      );
+      
+      // Then, delete all inventory records associated with this product
+      await _mysqlDB.executeUpdateQuery(
+        'DELETE FROM inventories WHERE product_id = ?',
+        [id]
+      );
+      
+      // Finally, delete the product itself
       final success = await _mysqlDB.executeUpdateQuery(
         'DELETE FROM products WHERE id = ? AND user_id = ?',
         [id, userId]

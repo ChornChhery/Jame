@@ -24,9 +24,10 @@ class Product {
     this.category,
     this.unit = 'pcs',
     this.image,
-    this.createdAt,
-    this.updatedAt,
-  });
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
@@ -106,8 +107,8 @@ class Product {
       category: category ?? this.category,
       unit: unit ?? this.unit,
       image: image ?? this.image,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? DateTime.now(),
     );
   }
 
