@@ -351,6 +351,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   Widget _buildSliverTabBar() {
+    // Calculate the total product count
     final productCount = _filteredProducts.length;
     final lowStockCount = _filteredProducts
         .where((p) => p.quantity <= p.lowStock).length;
@@ -654,18 +655,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 // Action buttons
                 Column(
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddStockDialog(product),
-                      icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text('เติมสต็อก'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppConstants.primaryYellow,
-                        foregroundColor: AppConstants.primaryDarkBlue,
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    IconButton(
+                      onPressed: () => _addToCart(product),
+                      icon: const Icon(Icons.add_shopping_cart_rounded),
+                      color: AppConstants.primaryDarkBlue,
+                      tooltip: 'เพิ่มในตะกร้า',
                     ),
                     const SizedBox(height: 8),
                     PopupMenuButton<String>(
@@ -674,12 +668,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       onSelected: (value) => _handleProductAction(value, product),
                       itemBuilder: (context) => [
                         const PopupMenuItem(
-                          value: 'addToCart',
+                          value: 'addStock',
                           child: Row(
                             children: [
-                              Icon(Icons.add_shopping_cart_rounded),
+                              Icon(Icons.add_box_rounded),
                               SizedBox(width: 8),
-                              Text('เพิ่มในตะกร้า'),
+                              Text('เติมสต็อก'),
                             ],
                           ),
                         ),
@@ -816,21 +810,13 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
                 const Spacer(),
                 // Action button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
                     onPressed: () => _addToCart(product),
-                    icon: const Icon(Icons.add_shopping_cart_rounded, size: 16),
-                    label: const Text('เพิ่มในตะกร้า'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppConstants.primaryYellow,
-                      foregroundColor: AppConstants.primaryDarkBlue,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      textStyle: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    icon: const Icon(Icons.add_shopping_cart_rounded),
+                    color: AppConstants.primaryDarkBlue,
+                    tooltip: 'เพิ่มในตะกร้า',
                   ),
                 ),
               ],
@@ -997,18 +983,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 // Action buttons
                 Column(
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _showAddStockDialog(product),
-                      icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text('เติมสต็อก'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppConstants.primaryYellow,
-                        foregroundColor: AppConstants.primaryDarkBlue,
-                        textStyle: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    IconButton(
+                      onPressed: () => _addToCart(product),
+                      icon: const Icon(Icons.add_shopping_cart_rounded),
+                      color: AppConstants.primaryDarkBlue,
+                      tooltip: 'เพิ่มในตะกร้า',
                     ),
                     const SizedBox(height: 8),
                     PopupMenuButton<String>(
@@ -1017,12 +996,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       onSelected: (value) => _handleProductAction(value, product),
                       itemBuilder: (context) => [
                         const PopupMenuItem(
-                          value: 'addToCart',
+                          value: 'addStock',
                           child: Row(
                             children: [
-                              Icon(Icons.add_shopping_cart_rounded),
+                              Icon(Icons.add_box_rounded),
                               SizedBox(width: 8),
-                              Text('เพิ่มในตะกร้า'),
+                              Text('เติมสต็อก'),
                             ],
                           ),
                         ),
@@ -1184,6 +1163,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     switch (action) {
       case 'addToCart':
         _addToCart(product);
+        break;
+      case 'addStock':
+        _showAddStockDialog(product);
         break;
       case 'edit':
         _showEditProductDialog(product);
