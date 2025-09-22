@@ -1006,7 +1006,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           ),
                         ),
                         Text(
-                          AppUtils.formatDateTime(sale.saleDate),
+                          AppUtils.formatDateTimeThai(sale.saleDate),
                           style: TextStyle(
                             fontSize: 12,
                             color: AppConstants.textDarkGray,

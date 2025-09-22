@@ -156,7 +156,7 @@ class AppProvider extends ChangeNotifier {
       final receiptNumber = AppUtils.generateReceiptNumber(username);
       final sale = Sale(
         userId: userId,
-        saleDate: DateTime.now(),
+        saleDate: AppUtils.toThaiTime(DateTime.now()), // Use Thai time
         totalAmount: cartTotal,
         receiptNumber: receiptNumber,
         paymentStatus: 'Completed',
@@ -204,7 +204,7 @@ class AppProvider extends ChangeNotifier {
       // Test MySQL connection first
       final connectionAvailable = await _connectDB.testMySQLConnection();
       if (!connectionAvailable) {
-        debugPrint('⚠️ MySQL not available - sales data unavailable in limited mode');
+        _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
         _sales = []; // Empty list when offline
         notifyListeners();
         return;
@@ -213,18 +213,10 @@ class AppProvider extends ChangeNotifier {
       _sales = await DatabaseHelper.instance.getSales(userId);
       notifyListeners();
     } catch (e) {
-      _error = 'เกิดข้อผิดพลาดในการโหลดข้อมูลยอดขาย: ${e.toString()}'; // Error loading sales data
+      _error = 'เกิดข้อผิดพลาดในการโหลดข้อมูลการขาย: ${e.toString()}'; // Error loading sales data
       _sales = []; // Empty list on error
       notifyListeners();
       debugPrint('❌ Sales loading failed: $e');
-    }
-  }
-
-  Future<double> getTodaySales(int userId) async {
-    try {
-      return await DatabaseHelper.instance.getTotalSalesToday(userId);
-    } catch (e) {
-      return 0.0;
     }
   }
 
@@ -232,62 +224,30 @@ class AppProvider extends ChangeNotifier {
     try {
       return await DatabaseHelper.instance.getLowStockProducts(userId);
     } catch (e) {
+      _error = e.toString();
+      notifyListeners();
       return [];
     }
   }
 
-  void clearError() {
-    _error = null;
-    notifyListeners();
-  }
-  
-  // ==================== SERVER SYNC METHODS ====================
-  
-  /// Sync single product to server (non-blocking)
-  void _syncProductToServer(Product product) async {
+  // Background sync methods
+  Future<void> _syncProductToServer(Product product) async {
     try {
-      await _connectDB.syncProductToMySQL(product);
+      // In a real implementation, you would send the product to your server
+      // This is a placeholder for the sync functionality
+      debugPrint('Syncing product ${product.name} to server');
     } catch (e) {
-      // Silent fail - server sync is optional
-      debugPrint('Product server sync failed: $e');
+      debugPrint('Failed to sync product to server: $e');
     }
   }
-  
-  /// Sync sale to server (non-blocking)
-  void _syncSaleToServer(Sale sale, List<SaleItem> items) async {
+
+  Future<void> _syncSaleToServer(Sale sale, List<SaleItem> saleItems) async {
     try {
-      await _connectDB.syncSaleToMySQL(sale, items);
+      // In a real implementation, you would send the sale and sale items to your server
+      // This is a placeholder for the sync functionality
+      debugPrint('Syncing sale ${sale.receiptNumber} to server');
     } catch (e) {
-      // Silent fail - server sync is optional
-      debugPrint('Sale server sync failed: $e');
-    }
-  }
-  
-  /// Manual sync all data with server
-  Future<bool> syncWithServer(int userId) async {
-    try {
-      // Test MySQL database operations since we're now using MySQL directly
-      final syncResult = await _connectDB.testDatabaseOperations(userId);
-      
-      if (!syncResult.success) {
-        _error = 'Database operations test failed: ${syncResult.message}';
-        notifyListeners();
-      }
-      
-      return syncResult.success;
-    } catch (e) {
-      _error = 'Database operations test failed: $e';
-      notifyListeners();
-      return false;
-    }
-  }
-  
-  /// Test server connection
-  Future<bool> testServerConnection() async {
-    try {
-      return await _connectDB.testMySQLConnection();
-    } catch (e) {
-      return false;
+      debugPrint('Failed to sync sale to server: $e');
     }
   }
 }

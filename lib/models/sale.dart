@@ -1,5 +1,7 @@
 // FILE: lib/models/sale.dart
 import 'product.dart';
+import '../core/utils.dart';
+
 class Sale {
   final int? id;
   final int userId;
@@ -46,7 +48,7 @@ class Sale {
     return Sale(
       id: map['id'],
       userId: map['user_id'],
-      saleDate: DateTime.parse(_safeStringFromMap(map, 'sale_date')!),
+      saleDate: AppUtils.toThaiTime(DateTime.parse(_safeStringFromMap(map, 'sale_date')!)),
       totalAmount: map['total_amount']?.toDouble() ?? 0.0,
       paymentStatus: _safeStringFromMap(map, 'payment_status') ?? 'Completed',
       receiptNumber: _safeStringFromMap(map, 'receipt_number') ?? '',
@@ -92,7 +94,7 @@ class Sale {
     return Sale(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      saleDate: saleDate ?? this.saleDate,
+      saleDate: saleDate ?? AppUtils.toThaiTime(DateTime.now()),
       totalAmount: totalAmount ?? this.totalAmount,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       receiptNumber: receiptNumber ?? this.receiptNumber,

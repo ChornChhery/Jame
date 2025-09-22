@@ -397,8 +397,8 @@ class ConnectDB {
           user.currency,
           user.paymentQr ?? '',
           user.profileImage ?? '',
-          user.createdAt?.toUtc()?.toIso8601String(),
-          user.updatedAt?.toUtc()?.toIso8601String(),
+          user.createdAt != null ? user.createdAt!.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null, // Convert to MySQL compatible format
+          user.updatedAt != null ? user.updatedAt!.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null, // Convert to MySQL compatible format
         ],
       );
       
@@ -449,8 +449,8 @@ class ConnectDB {
           product.category ?? '',
           product.unit,
           product.image ?? '',
-          product.createdAt?.toUtc(), // Convert to UTC for MySQL
-          product.updatedAt?.toUtc(), // Convert to UTC for MySQL
+          product.createdAt != null ? product.createdAt!.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null, // Convert to MySQL compatible format
+          product.updatedAt != null ? product.updatedAt!.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null, // Convert to MySQL compatible format
         ],
       );
       
@@ -492,7 +492,7 @@ class ConnectDB {
         ''',
         [
           sale.userId,
-          sale.saleDate.toUtc(), // Convert to UTC for MySQL
+          sale.saleDate.toUtc() != null ? sale.saleDate.toUtc()!.toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null, // Convert to MySQL compatible format
           sale.totalAmount,
           sale.paymentStatus,
           sale.receiptNumber,

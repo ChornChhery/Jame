@@ -12,6 +12,7 @@ import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/sale.dart';
 import '../core/constants.dart';
+import '../core/utils.dart';
 
 class ReceiptScreen extends StatefulWidget {
   final Sale? sale;
@@ -254,7 +255,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
           ),
           const SizedBox(height: 4),
           Text(
-            DateFormat('dd/MM/yyyy HH:mm').format(_currentSale!.saleDate),
+            AppUtils.formatDateTimeThai(_currentSale!.saleDate),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -380,11 +381,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'วันที่: ${DateFormat('dd/MM/yyyy').format(_currentSale!.saleDate)}',
+                'วันที่: ${AppUtils.formatDateThai(_currentSale!.saleDate)}',
                 style: const TextStyle(fontSize: 12),
               ),
               Text(
-                'เวลา: ${DateFormat('HH:mm').format(_currentSale!.saleDate)}',
+                'เวลา: ${DateFormat('HH:mm', 'th_TH').format(AppUtils.toThaiTime(_currentSale!.saleDate))}',
                 style: const TextStyle(fontSize: 12),
               ),
             ],

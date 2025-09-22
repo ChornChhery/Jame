@@ -76,8 +76,13 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       // Filter sales for selected period
       final allSales = app.sales;
       final filteredSales = allSales.where((sale) {
-        return sale.saleDate.isAfter(_startDate) && 
-               sale.saleDate.isBefore(_endDate.add(Duration(days: 1)));
+        // Convert both dates to Thai time for comparison
+        final saleDateThai = AppUtils.toThaiTime(sale.saleDate);
+        final startDateThai = AppUtils.toThaiTime(_startDate);
+        final endDateThai = AppUtils.toThaiTime(_endDate.add(Duration(days: 1)));
+        
+        return saleDateThai.isAfter(startDateThai) && 
+               saleDateThai.isBefore(endDateThai);
       }).toList();
       
       // Calculate sales analytics
@@ -113,12 +118,15 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       // Calculate cost (assuming 70% profit margin for demo)
       totalCost += sale.totalAmount * 0.7;
       
+      // Convert sale date to Thai time for analysis
+      final saleDateThai = AppUtils.toThaiTime(sale.saleDate);
+      
       // Hourly stats for Thai business hours analysis
-      final hour = sale.saleDate.hour;
+      final hour = saleDateThai.hour;
       hourlyStats[hour.toString()] = (hourlyStats[hour.toString()] ?? 0) + 1;
       
       // Daily revenue for trend analysis
-      final dateKey = DateFormat('dd/MM').format(sale.saleDate);
+      final dateKey = DateFormat('dd/MM', 'th_TH').format(saleDateThai);
       dailyRevenue[dateKey] = (dailyRevenue[dateKey] ?? 0) + sale.totalAmount;
     }
     
@@ -204,116 +212,244 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           ),
         ),
       ),
-      actions: [
-        IconButton(
-          onPressed: _showDateRangePicker,
-          icon: const Icon(Icons.date_range, color: Colors.white),
-        ),
-        IconButton(
-          onPressed: _refreshData,
-          icon: const Icon(Icons.refresh, color: Colors.white),
-        ),
-      ],
     );
   }
 
   Widget _buildLoadingWidget() {
     return Container(
       height: 400,
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: AppConstants.primaryYellow),
-            SizedBox(height: 16),
-            Text(
-              'กำลังโหลดข้อมูลรายงาน...',
-              style: TextStyle(
-                color: AppConstants.textDarkGray,
-                fontSize: 16,
-              ),
-            ),
-          ],
+      child: Center(
+        child: CircularProgressIndicator(
+          color: AppConstants.primaryYellow,
         ),
       ),
     );
   }
 
   Widget _buildPeriodSelector() {
-    final periods = ['วันนี้', 'สัปดาห์นี้', 'เดือนนี้', 'ปีนี้', 'กำหนดเอง'];
-    
     return Container(
-      margin: const EdgeInsets.all(16),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: periods.map((period) {
-            final isSelected = _selectedPeriod == period;
-            return Container(
-              margin: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(period),
-                selected: isSelected,
-                onSelected: (selected) => _selectPeriod(period),
-                backgroundColor: Colors.white,
-                selectedColor: AppConstants.primaryYellow,
-                labelStyle: TextStyle(
-                  color: isSelected ? AppConstants.primaryDarkBlue : AppConstants.textDarkGray,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'เลือกช่วงเวลา',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                side: BorderSide(
-                  color: isSelected ? AppConstants.primaryYellow : Colors.grey.shade300,
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildPeriodButton('วันนี้', 'วันนี้'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildPeriodButton('สัปดาห์นี้', 'สัปดาห์นี้'),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildPeriodButton('เดือนนี้', 'เดือนนี้'),
+                    ),
+                  ],
                 ),
-              ),
-            );
-          }).toList(),
-        ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _selectStartDate,
+                        icon: Icon(Icons.calendar_today, size: 16),
+                        label: Text(
+                          AppUtils.formatDateThai(_startDate),
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text('ถึง', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _selectEndDate,
+                        icon: Icon(Icons.calendar_today, size: 16),
+                        label: Text(
+                          AppUtils.formatDateThai(_endDate),
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _buildPeriodButton(String period, String label) {
+    final isSelected = _selectedPeriod == period;
+    
+    return ElevatedButton(
+      onPressed: () => _selectPeriod(period),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isSelected ? AppConstants.primaryDarkBlue : Colors.white,
+        foregroundColor: isSelected ? Colors.white : AppConstants.primaryDarkBlue,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isSelected ? AppConstants.primaryDarkBlue : Colors.grey[300]!,
+          ),
+        ),
+      ),
+      child: Text(label, style: TextStyle(fontSize: 12)),
+    );
+  }
+
+  void _selectPeriod(String period) {
+    setState(() => _selectedPeriod = period);
+    
+    final now = DateTime.now();
+    switch (period) {
+      case 'วันนี้':
+        _startDate = DateTime(now.year, now.month, now.day);
+        _endDate = DateTime(now.year, now.month, now.day);
+        break;
+      case 'สัปดาห์นี้':
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        _startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        _endDate = DateTime(now.year, now.month, now.day);
+        break;
+      case 'เดือนนี้':
+        _startDate = DateTime(now.year, now.month, 1);
+        _endDate = DateTime(now.year, now.month, now.day);
+        break;
+    }
+    
+    _loadReportsData();
+  }
+
+  Future<void> _selectStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      locale: const Locale('th', 'TH'),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+        _selectedPeriod = ''; // Clear period selection
+      });
+      _loadReportsData();
+    }
+  }
+
+  Future<void> _selectEndDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      locale: const Locale('th', 'TH'),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
+        _selectedPeriod = ''; // Clear period selection
+      });
+      _loadReportsData();
+    }
+  }
+
   Widget _buildSummaryCards() {
+    final totalRevenue = _salesData['totalRevenue'] ?? 0.0;
+    final totalSales = _salesData['totalSales'] ?? 0;
+    final totalProfit = _salesData['totalProfit'] ?? 0.0;
+    final profitMargin = _salesData['profitMargin'] ?? 0.0;
+    
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
           Row(
             children: [
-              Expanded(child: _buildSummaryCard(
-                'รายได้รวม',
-                AppUtils.formatCurrency(_salesData['totalRevenue'] ?? 0),
-                Icons.attach_money,
-                AppConstants.successGreen,
-                'จากยอดขาย ${_salesData['totalSales'] ?? 0} รายการ',
-              )),
-              const SizedBox(width: 12),
-              Expanded(child: _buildSummaryCard(
-                'กำไรสุทธิ',
-                AppUtils.formatCurrency(_salesData['totalProfit'] ?? 0),
-                Icons.trending_up,
-                AppConstants.primaryYellow,
-                'อัตรากำไร ${(_salesData['profitMargin'] ?? 0).toStringAsFixed(1)}%',
-              )),
+              Expanded(
+                child: _buildSummaryCard(
+                  'รายได้ทั้งหมด',
+                  AppUtils.formatCurrency(totalRevenue),
+                  Icons.account_balance_wallet,
+                  Colors.blue,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildSummaryCard(
+                  'จำนวนการขาย',
+                  '$totalSales ครั้ง',
+                  Icons.shopping_cart,
+                  Colors.green,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildSummaryCard(
-                'ยอดขายเฉลี่ย',
-                AppUtils.formatCurrency(_salesData['averageSale'] ?? 0),
-                Icons.shopping_cart,
-                AppConstants.softBlue,
-                'ต่อรายการขาย',
-              )),
-              const SizedBox(width: 12),
-              Expanded(child: _buildSummaryCard(
-                'สินค้าที่ขาย',
-                '${_salesData['totalItems'] ?? 0} รายการ',
-                Icons.inventory_2,
-                AppConstants.accentOrange,
-                'รวมทุกประเภท',
-              )),
+              Expanded(
+                child: _buildSummaryCard(
+                  'กำไรสุทธิ',
+                  AppUtils.formatCurrency(totalProfit),
+                  Icons.trending_up,
+                  Colors.purple,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildSummaryCard(
+                  'อัตรากำไร',
+                  '${profitMargin.toStringAsFixed(1)}%',
+                  Icons.percent,
+                  Colors.orange,
+                ),
+              ),
             ],
           ),
         ],
@@ -321,16 +457,16 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color, String subtitle) {
+  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -348,37 +484,25 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              const Spacer(),
-              Icon(
-                Icons.trending_up,
-                color: Colors.green,
-                size: 16,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: AppConstants.primaryDarkBlue,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppConstants.textDarkGray,
-            ),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 10,
-              color: color,
-              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -388,42 +512,47 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
 
   Widget _buildTabSection() {
     return Container(
-      margin: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            labelColor: AppConstants.primaryDarkBlue,
-            unselectedLabelColor: AppConstants.textDarkGray,
-            indicatorColor: AppConstants.primaryYellow,
-            tabs: const [
-              Tab(text: 'แนวโน้มขาย'),
-              Tab(text: 'สินค้าขายดี'),
-              Tab(text: 'สต็อกต่ำ'),
-              Tab(text: 'รายการล่าสุด'),
-            ],
-          ),
-          SizedBox(
-            height: 400,
-            child: TabBarView(
-              controller: _tabController,
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
               children: [
-                _buildSalesTrendTab(),
-                _buildTopProductsTab(),
-                _buildLowStockTab(),
-                _buildRecentSalesTab(),
+                TabBar(
+                  controller: _tabController,
+                  labelColor: AppConstants.primaryDarkBlue,
+                  unselectedLabelColor: Colors.grey[600],
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                    color: AppConstants.primaryYellow.withOpacity(0.2),
+                  ),
+                  tabs: const [
+                    Tab(text: 'ยอดขาย'),
+                    Tab(text: 'สินค้ายอดนิยม'),
+                    Tab(text: 'สต็อกต่ำ'),
+                    Tab(text: 'วิเคราะห์'),
+                  ],
+                ),
+                Container(
+                  height: 400,
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildSalesTab(),
+                      _buildTopProductsTab(),
+                      _buildLowStockTab(),
+                      _buildAnalyticsTab(),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
@@ -432,165 +561,259 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildSalesTrendTab() {
-    final dailyRevenue = _salesData['dailyRevenue'] as Map<String, double>? ?? {};
-    final hourlyStats = _salesData['hourlyStats'] as Map<String, int>? ?? {};
-    
-    return Padding(
+  Widget _buildSalesTab() {
+    if (_recentSales.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.receipt_long, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'ยังไม่มีข้อมูลการขาย',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'แนวโน้มรายได้รายวัน',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppConstants.primaryDarkBlue,
+      itemCount: _recentSales.length,
+      itemBuilder: (context, index) {
+        final sale = _recentSales[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.receipt,
+                color: AppConstants.primaryDarkBlue,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              sale.receiptNumber,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppUtils.formatDateTimeThai(sale.saleDate), // Use Thai format
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${sale.items?.length ?? 0} รายการสินค้า',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+            trailing: Text(
+              AppUtils.formatCurrency(sale.totalAmount),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppConstants.primaryDarkBlue,
+              ),
             ),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            flex: 2,
-            child: dailyRevenue.isNotEmpty 
-                ? LineChart(_buildLineChartData(dailyRevenue))
-                : _buildEmptyChart('ไม่มีข้อมูลการขายในช่วงเวลานี้'),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'ช่วงเวลาการขาย (ชั่วโมงไทย)',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppConstants.primaryDarkBlue,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
-            flex: 1,
-            child: hourlyStats.isNotEmpty
-                ? BarChart(_buildBarChartData(hourlyStats))
-                : _buildEmptyChart('ไม่มีข้อมูลการขาย'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildTopProductsTab() {
-    return Padding(
+    if (_topProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'ยังไม่มีข้อมูลสินค้ายอดนิยม',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'สินค้าขายดีที่สุด',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.primaryDarkBlue,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'ท็อป ${_topProducts.length} อันดับ',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppConstants.textDarkGray,
-                ),
-              ),
-            ],
+      itemCount: _topProducts.length,
+      itemBuilder: (context, index) {
+        final product = _topProducts[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _topProducts.isNotEmpty
-                ? ListView.builder(
-                    itemCount: _topProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = _topProducts[index];
-                      final rank = index + 1;
-                      return _buildTopProductItem(product, rank);
-                    },
-                  )
-                : _buildEmptyState(
-                    'ยังไม่มีข้อมูลการขาย',
-                    'เริ่มขายสินค้าเพื่อดูสถิติสินค้าขายดี',
-                    Icons.star_outline,
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.inventory_2,
+                color: AppConstants.primaryDarkBlue,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              product.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'รหัส: ${product.code}',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${product.quantity} ${product.unit}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
+                ),
+                Text(
+                  AppUtils.formatCurrency(product.price),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildLowStockTab() {
-    return Padding(
+    if (_lowStockProducts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.check_circle, size: 48, color: Colors.green[400]),
+            const SizedBox(height: 16),
+            Text(
+              'สต็อกสินค้าเพียงพอ',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'สินค้าสต็อกต่ำ',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.primaryDarkBlue,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: _lowStockProducts.isNotEmpty 
-                      ? AppConstants.errorRed.withOpacity(0.1)
-                      : AppConstants.successGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${_lowStockProducts.length} รายการ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _lowStockProducts.isNotEmpty 
-                        ? AppConstants.errorRed
-                        : AppConstants.successGreen,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
+      itemCount: _lowStockProducts.length,
+      itemBuilder: (context, index) {
+        final product = _lowStockProducts[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.3)),
           ),
-          const SizedBox(height: 16),
-          Expanded(
-            child: _lowStockProducts.isNotEmpty
-                ? ListView.builder(
-                    itemCount: _lowStockProducts.length,
-                    itemBuilder: (context, index) {
-                      return _buildLowStockItem(_lowStockProducts[index]);
-                    },
-                  )
-                : _buildEmptyState(
-                    'สต็อกสินค้าเพียงพอ',
-                    'ทุกสินค้ามีจำนวนเหลือมากกว่าจุดเตือน',
-                    Icons.check_circle_outline,
-                  ),
+          child: ListTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.warning_amber,
+                color: Colors.orange[700] as Color,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              product.name,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'เหลือ ${product.quantity} ${product.unit} (จุดเตือน: ${product.lowStock})',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.orange[700] as Color,
+              ),
+            ),
+            trailing: Text(
+              AppUtils.formatCurrency(product.price),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.orange[700] as Color,
+              ),
+            ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildRecentSalesTab() {
-    return Padding(
+  Widget _buildAnalyticsTab() {
+    final hourlyStats = _salesData['hourlyStats'] as Map<String, int>? ?? {};
+    final dailyRevenue = _salesData['dailyRevenue'] as Map<String, double>? ?? {};
+    
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'รายการขายล่าสุด',
+          Text(
+            'วิเคราะห์ช่วงเวลาที่มียอดขายดี',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -598,479 +821,190 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             ),
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: _recentSales.isNotEmpty
-                ? ListView.builder(
-                    itemCount: _recentSales.length,
-                    itemBuilder: (context, index) {
-                      return _buildRecentSaleItem(_recentSales[index]);
-                    },
-                  )
-                : _buildEmptyState(
-                    'ยังไม่มีรายการขาย',
-                    'รายการขายของคุณจะปรากฏที่นี่',
-                    Icons.receipt_outlined,
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  LineChartData _buildLineChartData(Map<String, double> dailyRevenue) {
-    final spots = dailyRevenue.entries.map((entry) {
-      // Parse day/month format to get x coordinate
-      final parts = entry.key.split('/');
-      final day = double.parse(parts[0]);
-      return FlSpot(day, entry.value);
-    }).toList();
-    
-    spots.sort((a, b) => a.x.compareTo(b.x));
-    
-    return LineChartData(
-      lineBarsData: [
-        LineChartBarData(
-          spots: spots,
-          isCurved: true,
-          color: AppConstants.primaryYellow,
-          barWidth: 3,
-          dotData: FlDotData(show: true),
-          belowBarData: BarAreaData(
-            show: true,
-            color: AppConstants.primaryYellow.withOpacity(0.1),
-          ),
-        ),
-      ],
-      titlesData: FlTitlesData(
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 60,
-            getTitlesWidget: (value, meta) {
-              return Text(
-                AppUtils.formatCurrency(value),
-                style: const TextStyle(fontSize: 10),
-              );
-            },
-          ),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) {
-              return Text(
-                '${value.toInt()}',
-                style: const TextStyle(fontSize: 10),
-              );
-            },
-          ),
-        ),
-        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      ),
-      borderData: FlBorderData(show: true),
-    );
-  }
-
-  BarChartData _buildBarChartData(Map<String, int> hourlyStats) {
-    final barGroups = hourlyStats.entries.map((entry) {
-      final hour = int.parse(entry.key);
-      return BarChartGroupData(
-        x: hour,
-        barRods: [
-          BarChartRodData(
-            toY: entry.value.toDouble(),
-            color: _getHourBarColor(hour),
-            width: 12,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ],
-      );
-    }).toList();
-    
-    return BarChartData(
-      barGroups: barGroups,
-      titlesData: FlTitlesData(
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 30,
-            getTitlesWidget: (value, meta) {
-              return Text(
-                '${value.toInt()}',
-                style: const TextStyle(fontSize: 10),
-              );
-            },
-          ),
-        ),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) {
-              final hour = value.toInt();
-              return Text(
-                '${hour.toString().padLeft(2, '0')}:00',
-                style: const TextStyle(fontSize: 8),
-              );
-            },
-          ),
-        ),
-        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      ),
-      borderData: FlBorderData(show: true),
-    );
-  }
-
-  Color _getHourBarColor(int hour) {
-    // Thai business peak hours: 8-10 AM, 5-7 PM
-    if ((hour >= 8 && hour <= 10) || (hour >= 17 && hour <= 19)) {
-      return AppConstants.primaryYellow;
-    }
-    return AppConstants.softBlue;
-  }
-
-  Widget _buildEmptyChart(String message) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.bar_chart,
-            size: 48,
-            color: AppConstants.textDarkGray.withOpacity(0.5),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            message,
-            style: const TextStyle(
-              color: AppConstants.textDarkGray,
-              fontSize: 14,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopProductItem(Product product, int rank) {
-    final rankColors = [
-      AppConstants.primaryYellow, // Gold
-      Colors.grey.shade400,        // Silver
-      Colors.brown.shade400,       // Bronze
-    ];
-    final rankColor = rank <= 3 ? rankColors[rank - 1] : AppConstants.textDarkGray;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppConstants.lightGray,
-        borderRadius: BorderRadius.circular(8),
-        border: rank <= 3 ? Border.all(color: rankColor.withOpacity(0.3)) : null,
-      ),
-      child: Row(
-        children: [
           Container(
-            width: 32,
-            height: 32,
+            height: 200,
             decoration: BoxDecoration(
-              color: rankColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
             ),
-            child: Center(
-              child: Text(
-                '$rank',
-                style: TextStyle(
-                  color: rankColor,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: AppConstants.primaryDarkBlue,
-                  ),
-                ),
-                Text(
-                  'รหัส: ${product.code}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppConstants.textDarkGray,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                AppUtils.formatCurrency(product.price),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.successGreen,
-                ),
-              ),
-              Text(
-                'คงเหลือ: ${product.quantity} ${product.unit}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppConstants.textDarkGray,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLowStockItem(Product product) {
-    final stockPercentage = product.lowStock > 0 
-        ? (product.quantity / product.lowStock * 100).clamp(0, 100)
-        : 0.0;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppConstants.errorRed.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppConstants.errorRed.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: AppConstants.primaryDarkBlue,
-                      ),
+            child: hourlyStats.isEmpty
+                ? Center(
+                    child: Text(
+                      'ยังไม่มีข้อมูล',
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
-                    Text(
-                      'รหัส: ${product.code}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppConstants.textDarkGray,
+                  )
+                : BarChart(
+                    BarChartData(
+                      barTouchData: BarTouchData(
+                        touchTooltipData: BarTouchTooltipData(
+                          tooltipBgColor: Colors.grey[800]!,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              '${rod.toY.toInt()} รายการ',
+                              const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            );
+                          },
+                        ),
                       ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final hour = value.toInt();
+                              return Text(
+                                '$hour:00',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey[600],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      barGroups: hourlyStats.entries
+                          .map(
+                            (entry) => BarChartGroupData(
+                              x: int.parse(entry.key),
+                              barRods: [
+                                BarChartRodData(
+                                  toY: entry.value.toDouble(),
+                                  color: AppConstants.primaryDarkBlue,
+                                  width: 12,
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                              ],
+                            ),
+                          )
+                          .toList(),
+                      gridData: FlGridData(show: false),
                     ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppConstants.errorRed.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'เหลือ ${product.quantity} ${product.unit}',
-                  style: const TextStyle(
-                    color: AppConstants.errorRed,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
                   ),
-                ),
-              ),
-            ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: LinearProgressIndicator(
-                  value: stockPercentage / 100,
-                  backgroundColor: Colors.grey.shade200,
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    stockPercentage < 50 ? AppConstants.errorRed : AppConstants.primaryYellow,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${stockPercentage.toInt()}%',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: stockPercentage < 50 ? AppConstants.errorRed : AppConstants.primaryYellow,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentSaleItem(Sale sale) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppConstants.lightGray,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppConstants.successGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(
-                  Icons.receipt,
-                  color: AppConstants.successGreen,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      sale.receiptNumber,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: AppConstants.primaryDarkBlue,
-                      ),
-                    ),
-                    Text(
-                      AppUtils.formatDateTime(sale.saleDate),
-                      style: const TextStyle(
-                        fontSize: 11,
-                        color: AppConstants.textDarkGray,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                AppUtils.formatCurrency(sale.totalAmount),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppConstants.successGreen,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
           Text(
-            '${sale.items?.length ?? 0} รายการสินค้า',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppConstants.textDarkGray,
+            'วิเคราะห์ยอดขายในแต่ละวัน',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(String title, String subtitle, IconData icon) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: 64,
-            color: AppConstants.textDarkGray.withOpacity(0.5),
           ),
           const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppConstants.textDarkGray,
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppConstants.textDarkGray,
-            ),
-            textAlign: TextAlign.center,
+            child: dailyRevenue.isEmpty
+                ? Center(
+                    child: Text(
+                      'ยังไม่มีข้อมูล',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  )
+                : LineChart(
+                    LineChartData(
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          tooltipBgColor: Colors.grey[800]!,
+                          getTooltipItems: (touchedSpots) {
+                            return touchedSpots.map((touchedSpot) {
+                              return LineTooltipItem(
+                                '${AppUtils.formatCurrency(touchedSpot.y)}',
+                                const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            }).toList();
+                          },
+                        ),
+                      ),
+                      titlesData: FlTitlesData(
+                        show: true,
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (value, meta) {
+                              final dates = dailyRevenue.keys.toList();
+                              final index = value.toInt();
+                              if (index >= 0 && index < dates.length) {
+                                return Text(
+                                  dates[index],
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[600],
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      minX: 0,
+                      maxX: dailyRevenue.length.toDouble() - 1,
+                      minY: 0,
+                      maxY: dailyRevenue.values
+                              .reduce((a, b) => a > b ? a : b)
+                              .toDouble() *
+                          1.2,
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: dailyRevenue.entries
+                              .toList()
+                              .asMap()
+                              .entries
+                              .map((entry) => FlSpot(
+                                    entry.key.toDouble(),
+                                    entry.value.value, // Access the double value correctly
+                                  ))
+                              .toList(),
+                          isCurved: true,
+                          color: AppConstants.primaryDarkBlue,
+                          barWidth: 3,
+                          isStrokeCapRound: true,
+                          dotData: FlDotData(show: true),
+                          belowBarData: BarAreaData(show: true),
+                        ),
+                      ],
+                      gridData: FlGridData(show: false),
+                    ),
+                  ),
           ),
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  void _selectPeriod(String period) {
-    setState(() {
-      _selectedPeriod = period;
-    });
-    
-    final now = DateTime.now();
-    switch (period) {
-      case 'วันนี้':
-        _startDate = DateTime(now.year, now.month, now.day);
-        _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        break;
-      case 'สัปดาห์นี้':
-        final weekStart = now.subtract(Duration(days: now.weekday - 1));
-        _startDate = DateTime(weekStart.year, weekStart.month, weekStart.day);
-        _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        break;
-      case 'เดือนนี้':
-        _startDate = DateTime(now.year, now.month, 1);
-        _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        break;
-      case 'ปีนี้':
-        _startDate = DateTime(now.year, 1, 1);
-        _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-        break;
-      case 'กำหนดเอง':
-        _showDateRangePicker();
-        return;
-    }
-    
-    _loadReportsData();
-  }
-
-  void _showDateRangePicker() {
-    // Implementation for custom date range picker
-  }
-
-  void _refreshData() {
-    _loadReportsData();
   }
 
   void _showErrorMessage(String message) {

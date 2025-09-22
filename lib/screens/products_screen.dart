@@ -248,6 +248,10 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             Text('${AppUtils.formatCurrency(product.price)} | เหลือ ${product.quantity} ${product.unit}'),
             if (isLowStock)
               Text('สต็อกต่ำ!', style: TextStyle(color: AppConstants.errorRed, fontWeight: FontWeight.bold)),
+            // Display created date in Thai format
+            if (product.createdAt != null)
+              Text('สร้าง: ${AppUtils.formatDateTimeThai(product.createdAt!)}', 
+                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
           ],
         ),
         trailing: Row(

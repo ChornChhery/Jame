@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'providers/auth_provider.dart';
 import 'providers/app_provider.dart';
 import 'providers/settings_provider.dart';
@@ -12,6 +13,9 @@ import 'database/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize date formatting for Thai locale
+  initializeDateFormatting('th_TH', null);
   
   // Load environment variables
   try {

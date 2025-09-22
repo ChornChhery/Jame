@@ -1,4 +1,6 @@
 // FILE: lib/models/product.dart
+import '../core/utils.dart';
+
 class Product {
   final int? id;
   final int userId;
@@ -26,8 +28,8 @@ class Product {
     this.image,
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now();
+  })  : createdAt = createdAt ?? AppUtils.toThaiTime(DateTime.now()),
+        updatedAt = updatedAt ?? AppUtils.toThaiTime(DateTime.now());
 
   Map<String, dynamic> toMap() {
     return {
@@ -58,8 +60,8 @@ class Product {
       category: _safeStringFromMap(map, 'category'),
       unit: _safeStringFromMap(map, 'unit') ?? 'pcs',
       image: _safeStringFromMap(map, 'image'),
-      createdAt: map['created_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'created_at')!) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'updated_at')!) : null,
+      createdAt: map['created_at'] != null ? AppUtils.toThaiTime(DateTime.parse(_safeStringFromMap(map, 'created_at')!)) : null,
+      updatedAt: map['updated_at'] != null ? AppUtils.toThaiTime(DateTime.parse(_safeStringFromMap(map, 'updated_at')!)) : null,
     );
   }
   
@@ -107,8 +109,8 @@ class Product {
       category: category ?? this.category,
       unit: unit ?? this.unit,
       image: image ?? this.image,
-      createdAt: createdAt,
-      updatedAt: updatedAt ?? DateTime.now(),
+      createdAt: createdAt ?? AppUtils.toThaiTime(DateTime.now()),
+      updatedAt: updatedAt ?? AppUtils.toThaiTime(DateTime.now()),
     );
   }
 
