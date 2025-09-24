@@ -187,6 +187,33 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             ),
                             SizedBox(height: 16),
 
+                            // Remember Me checkbox
+                            Row(
+                              children: [
+                                Consumer<AuthProvider>(
+                                  builder: (context, auth, child) {
+                                    return Checkbox(
+                                      value: auth.rememberMe,
+                                      onChanged: (value) {
+                                        // Update the auth provider directly
+                                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                        authProvider.rememberMe = value ?? false;
+                                      },
+                                      activeColor: AppConstants.primaryDarkBlue,
+                                    );
+                                  },
+                                ),
+                                Text(
+                                  'จดจำฉันไว้ในระบบ',
+                                  style: TextStyle(
+                                    color: AppConstants.textDarkGray,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 8),
+
                             // Forgot Password link
                             Align(
                               alignment: Alignment.centerRight,
@@ -369,6 +396,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     final success = await auth.login(
       _emailController.text.trim(),
       _passwordController.text,
+      rememberMe: auth.rememberMe, // Pass the rememberMe value
     );
 
     if (success) {

@@ -1,6 +1,7 @@
 // FILE: lib/providers/auth_provider.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../database/database_helper.dart';
 import '../core/utils.dart';
@@ -10,14 +11,77 @@ class AuthProvider extends ChangeNotifier {
   User? _currentUser;
   bool _isAuthenticated = false;
   bool _isLoading = false;
+  bool _rememberMe = false;
   final ConnectDB _connectDB = ConnectDB(); // Add server connection
 
   User? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
+  bool get rememberMe => _rememberMe;
+  
+  set rememberMe(bool value) {
+    _rememberMe = value;
+    notifyListeners();
+  }
 
-  Future<bool> login(String email, String password) async {
+  AuthProvider() {
+    _loadSavedSession();
+  }
+
+  /// Load saved session from SharedPreferences
+  Future<void> _loadSavedSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _rememberMe = prefs.getBool('remember_me') ?? false;
+      
+      if (_rememberMe) {
+        final userId = prefs.getInt('user_id');
+        if (userId != null) {
+          final user = await DatabaseHelper.instance.getUser(userId);
+          if (user != null) {
+            _currentUser = user;
+            _isAuthenticated = true;
+            debugPrint('✅ Restored user session for: ${user.username}');
+          }
+        }
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error loading saved session: $e');
+    }
+  }
+
+  /// Save session to SharedPreferences
+  Future<void> _saveSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_rememberMe && _currentUser != null) {
+        await prefs.setBool('remember_me', true);
+        await prefs.setInt('user_id', _currentUser!.id!);
+      } else {
+        await prefs.setBool('remember_me', false);
+        await prefs.remove('user_id');
+      }
+    } catch (e) {
+      debugPrint('❌ Error saving session: $e');
+    }
+  }
+
+  /// Clear saved session
+  Future<void> _clearSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('remember_me', false);
+      await prefs.remove('user_id');
+    } catch (e) {
+      debugPrint('❌ Error clearing session: $e');
+    }
+  }
+
+  Future<bool> login(String email, String password, {bool rememberMe = false}) async {
     _isLoading = true;
+    _rememberMe = rememberMe;
     notifyListeners();
 
     try {
@@ -28,6 +92,11 @@ class AuthProvider extends ChangeNotifier {
       if (user != null && user.password == hashedPassword) {
         _currentUser = user;
         _isAuthenticated = true;
+        
+        // Save session if "Remember Me" is enabled
+        if (rememberMe) {
+          await _saveSession();
+        }
         
         debugPrint('✅ User login successful: ${user.username}');
         
@@ -113,6 +182,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _currentUser = null;
     _isAuthenticated = false;
+    _rememberMe = false;
+    await _clearSession();
     notifyListeners();
   }
 
@@ -123,6 +194,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await DatabaseHelper.instance.updateUser(updatedUser);
       _currentUser = updatedUser;
+      await _saveSession(); // Save updated user info
       _isLoading = false;
       notifyListeners();
       return true;
@@ -133,7 +205,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // ==================== MySQL CONNECTION TESTING ====================
+  // ==================== MYSQL CONNECTION TESTING ====================
   
   /// Test MySQL connection for debugging (non-blocking with caching)
   bool? _lastConnectionStatus;
