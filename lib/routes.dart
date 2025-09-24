@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'screens/auth_screens.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/cart_screen.dart';
@@ -30,6 +31,11 @@ class AppRoutes {
               return LoginScreen();
             },
           ),
+        );
+      
+      case '/forgot-password':
+        return MaterialPageRoute(
+          builder: (context) => ForgotPasswordScreen(),
         );
       
       case AppConstants.signupRoute:

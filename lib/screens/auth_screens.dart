@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
+import '../screens/forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -184,7 +185,31 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 return null;
                               },
                             ),
-                            SizedBox(height: 32),
+                            SizedBox(height: 16),
+
+                            // Forgot Password link
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, '/forgot-password');
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'ลืมรหัสผ่าน?',
+                                  style: TextStyle(
+                                    color: AppConstants.primaryDarkBlue,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 16),
 
                             // Login button
                             Consumer<AuthProvider>(
