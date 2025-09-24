@@ -162,6 +162,20 @@ class DatabaseHelper {
     }
   }
 
+  Future<int> updateUserPassword(int userId, String hashedPassword) async {
+    try {
+      final success = await _mysqlDB.executeUpdateQuery(
+        'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
+        [hashedPassword, userId]
+      );
+      
+      return success ? 1 : 0;
+    } catch (e) {
+      debugPrint('Update user password failed: $e');
+      return 0;
+    }
+  }
+
   // Product operations - Direct MySQL with parameterized queries
   Future<Product> createProduct(Product product) async {
     try {
