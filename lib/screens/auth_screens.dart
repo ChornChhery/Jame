@@ -196,9 +196,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 // Only validate Gmail format if the user has typed enough characters
                                 final lowercaseEmail = value.toLowerCase();
                                 if (!lowercaseEmail.endsWith('@gmail.com')) {
-                                  // Don't show error if user is still typing
-                                  if (!lowercaseEmail.contains('@')) return null;
-                                  
                                   // Check for common Gmail typing mistakes
                                   if (lowercaseEmail.contains('@gmail')) {
                                     // Check for common mistakes

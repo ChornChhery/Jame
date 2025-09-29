@@ -230,6 +230,184 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  // Advanced Analytics Methods
+
+  /// Get sales data grouped by hour for peak hour analysis
+  Future<Map<String, dynamic>> getSalesByHour(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getSalesByHour(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {'hourlyData': []};
+    }
+  }
+
+  /// Get sales data grouped by day for trend analysis
+  Future<Map<String, dynamic>> getSalesByDay(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getSalesByDay(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {'dailyData': []};
+    }
+  }
+
+  /// Get top selling products by revenue
+  Future<List<Map<String, dynamic>>> getTopSellingProducts(int userId, DateTime startDate, DateTime endDate, {int limit = 10}) async {
+    try {
+      return await DatabaseHelper.instance.getTopSellingProducts(userId, startDate, endDate, limit: limit);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
+  /// Get customer purchase history
+  Future<List<Map<String, dynamic>>> getCustomerPurchaseHistory(int userId, {int limit = 50}) async {
+    try {
+      return await DatabaseHelper.instance.getCustomerPurchaseHistory(userId, limit: limit);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
+  /// Get inventory movement data for stock analysis
+  Future<Map<String, dynamic>> getInventoryMovement(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getInventoryMovement(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {'inventoryData': []};
+    }
+  }
+
+  /// Get reorder suggestions based on sales velocity
+  Future<List<Map<String, dynamic>>> getReorderSuggestions(int userId) async {
+    try {
+      return await DatabaseHelper.instance.getReorderSuggestions(userId);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
+  /// Get sales trends and growth analysis
+  Future<Map<String, dynamic>> getSalesTrends(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      // Get current period data
+      final currentPeriodData = await DatabaseHelper.instance.getSalesByDay(userId, startDate, endDate);
+      
+      // Calculate previous period dates (same duration but one period back)
+      final duration = endDate.difference(startDate);
+      final previousStartDate = startDate.subtract(duration);
+      final previousEndDate = endDate.subtract(duration);
+      
+      // Get previous period data
+      final previousPeriodData = await DatabaseHelper.instance.getSalesByDay(userId, previousStartDate, previousEndDate);
+      
+      // Calculate growth
+      final currentRevenue = (currentPeriodData['dailyData'] as List)
+          .fold<double>(0.0, (sum, item) => sum + (item['total_revenue'] as double));
+      
+      final previousRevenue = (previousPeriodData['dailyData'] as List)
+          .fold<double>(0.0, (sum, item) => sum + (item['total_revenue'] as double));
+      
+      final growthRate = previousRevenue > 0 
+          ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
+          : 0.0;
+      
+      return {
+        'currentPeriodData': currentPeriodData,
+        'previousPeriodData': previousPeriodData,
+        'currentRevenue': currentRevenue,
+        'previousRevenue': previousRevenue,
+        'growthRate': growthRate,
+      };
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {
+        'currentPeriodData': {'dailyData': []},
+        'previousPeriodData': {'dailyData': []},
+        'currentRevenue': 0.0,
+        'previousRevenue': 0.0,
+        'growthRate': 0.0,
+      };
+    }
+  }
+
+  /// Get product performance analysis
+  Future<List<Map<String, dynamic>>> getProductPerformance(int userId, DateTime startDate, DateTime endDate, {int limit = 20}) async {
+    try {
+      return await DatabaseHelper.instance.getTopSellingProducts(userId, startDate, endDate, limit: limit);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
+  /// Get customer segmentation data
+  Future<Map<String, dynamic>> getCustomerSegmentation(int userId, {int limit = 100}) async {
+    try {
+      final customerData = await DatabaseHelper.instance.getCustomerPurchaseHistory(userId, limit: limit);
+      
+      // Segment customers by spending
+      double highValueThreshold = 5000; // High value customers spend more than this
+      double mediumValueThreshold = 1000; // Medium value customers spend more than this
+      
+      int highValueCount = 0;
+      int mediumValueCount = 0;
+      int lowValueCount = 0;
+      
+      double totalSpent = 0;
+      
+      for (var customer in customerData) {
+        final spent = customer['total_spent'] as double? ?? 0.0;
+        totalSpent += spent;
+        
+        if (spent >= highValueThreshold) {
+          highValueCount++;
+        } else if (spent >= mediumValueThreshold) {
+          mediumValueCount++;
+        } else {
+          lowValueCount++;
+        }
+      }
+      
+      return {
+        'segments': {
+          'highValue': highValueCount,
+          'mediumValue': mediumValueCount,
+          'lowValue': lowValueCount,
+        },
+        'totalCustomers': customerData.length,
+        'averageSpentPerCustomer': customerData.isNotEmpty ? totalSpent / customerData.length : 0.0,
+        'totalRevenue': totalSpent,
+      };
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {
+        'segments': {
+          'highValue': 0,
+          'mediumValue': 0,
+          'lowValue': 0,
+        },
+        'totalCustomers': 0,
+        'averageSpentPerCustomer': 0.0,
+        'totalRevenue': 0.0,
+      };
+    }
+  }
+
   // Background sync methods
   Future<void> _syncProductToServer(Product product) async {
     try {

@@ -340,6 +340,157 @@ class DatabaseHelper {
     }
   }
 
+  // Advanced Analytics Methods
+
+  /// Get sales data grouped by hour for peak hour analysis
+  Future<Map<String, dynamic>> getSalesByHour(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT HOUR(sale_date) as hour, COUNT(*) as transaction_count, 
+           SUM(total_amount) as total_revenue
+           FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           GROUP BY HOUR(sale_date)
+           ORDER BY hour''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      return {
+        'hourlyData': results,
+      };
+    } catch (e) {
+      debugPrint('Get sales by hour failed: $e');
+      return {'hourlyData': []};
+    }
+  }
+
+  /// Get sales data grouped by day for trend analysis
+  Future<Map<String, dynamic>> getSalesByDay(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT DATE(sale_date) as sale_day, COUNT(*) as transaction_count, 
+           SUM(total_amount) as total_revenue
+           FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           GROUP BY DATE(sale_date)
+           ORDER BY sale_day''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      return {
+        'dailyData': results,
+      };
+    } catch (e) {
+      debugPrint('Get sales by day failed: $e');
+      return {'dailyData': []};
+    }
+  }
+
+  /// Get top selling products by revenue
+  Future<List<Map<String, dynamic>>> getTopSellingProducts(int userId, DateTime startDate, DateTime endDate, {int limit = 10}) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT p.name, p.code, p.image, 
+           SUM(si.quantity) as total_quantity, 
+           SUM(si.total_price) as total_revenue,
+           COUNT(si.id) as sale_count
+           FROM sale_items si
+           JOIN sales s ON si.sale_id = s.id
+           JOIN products p ON si.product_id = p.id
+           WHERE s.user_id = ? AND s.sale_date >= ? AND s.sale_date <= ?
+           GROUP BY si.product_id, p.name, p.code, p.image
+           ORDER BY total_revenue DESC
+           LIMIT ?''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String(), limit]
+      );
+      
+      return results;
+    } catch (e) {
+      debugPrint('Get top selling products failed: $e');
+      return [];
+    }
+  }
+
+  /// Get customer purchase history
+  Future<List<Map<String, dynamic>>> getCustomerPurchaseHistory(int userId, {int limit = 50}) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT customer_name, customer_phone, 
+           COUNT(*) as purchase_count, 
+           SUM(total_amount) as total_spent,
+           MAX(sale_date) as last_purchase_date
+           FROM sales 
+           WHERE user_id = ? AND customer_name IS NOT NULL
+           GROUP BY customer_name, customer_phone
+           ORDER BY total_spent DESC
+           LIMIT ?''',
+        [userId, limit]
+      );
+      
+      return results;
+    } catch (e) {
+      debugPrint('Get customer purchase history failed: $e');
+      return [];
+    }
+  }
+
+  /// Get inventory movement data for stock analysis
+  Future<Map<String, dynamic>> getInventoryMovement(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT p.name, p.code, 
+           SUM(CASE WHEN i.change_type = 'SALE' THEN i.stock_before - i.stock_after ELSE 0 END) as sold_quantity,
+           SUM(CASE WHEN i.change_type = 'STOCK_IN' THEN i.stock_after - i.stock_before ELSE 0 END) as received_quantity,
+           MAX(i.created_at) as last_updated
+           FROM inventories i
+           JOIN products p ON i.product_id = p.id
+           WHERE i.user_id = ? AND i.created_at >= ? AND i.created_at <= ?
+           GROUP BY p.id, p.name, p.code
+           ORDER BY sold_quantity DESC''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      return {
+        'inventoryData': results,
+      };
+    } catch (e) {
+      debugPrint('Get inventory movement failed: $e');
+      return {'inventoryData': []};
+    }
+  }
+
+  /// Get reorder suggestions based on sales velocity
+  Future<List<Map<String, dynamic>>> getReorderSuggestions(int userId) async {
+    try {
+      // Get products with low stock that have high sales velocity
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT p.name, p.code, p.quantity, p.low_stock, p.unit,
+           COALESCE(sales_data.avg_daily_sales, 0) as avg_daily_sales,
+           CASE 
+             WHEN sales_data.avg_daily_sales > 0 THEN p.quantity / sales_data.avg_daily_sales
+             ELSE 999 
+           END as days_until_out_of_stock
+           FROM products p
+           LEFT JOIN (
+             SELECT si.product_id, 
+                    SUM(si.quantity) / 30.0 as avg_daily_sales
+             FROM sale_items si
+             JOIN sales s ON si.sale_id = s.id
+             WHERE s.user_id = ? AND s.sale_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+             GROUP BY si.product_id
+           ) sales_data ON p.id = sales_data.product_id
+           WHERE p.user_id = ? AND p.quantity <= p.low_stock * 1.5
+           ORDER BY days_until_out_of_stock ASC''',
+        [userId, userId]
+      );
+      
+      return results;
+    } catch (e) {
+      debugPrint('Get reorder suggestions failed: $e');
+      return [];
+    }
+  }
+
   Future<void> close() async {
     try {
       await _mysqlDB.close();

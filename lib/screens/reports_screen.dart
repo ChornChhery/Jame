@@ -31,16 +31,39 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   List<Product> _topProducts = [];
   List<Product> _lowStockProducts = [];
   List<Sale> _recentSales = [];
+  
+  // Advanced Analytics Data
+  List<Map<String, dynamic>> _topSellingProducts = [];
+  List<Map<String, dynamic>> _customerHistory = [];
+  List<Map<String, dynamic>> _reorderSuggestions = [];
+  Map<String, dynamic> _hourlySalesData = {};
+  Map<String, dynamic> _dailySalesData = {};
+  Map<String, dynamic> _inventoryMovement = {};
+  Map<String, dynamic> _salesTrends = {};
+  List<Map<String, dynamic>> _productPerformance = [];
+  Map<String, dynamic> _customerSegmentation = {};
 
   @override
   void initState() {
     super.initState();
-    _initializeControllers();
-    _loadReportsData();
+    // Initialize the TabController immediately but with a slight delay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      setState(() {
+        _tabController = TabController(length: 5, vsync: this);
+      });
+      _initializeControllers();
+      _loadReportsData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _animationController.dispose();
+    super.dispose();
   }
 
   void _initializeControllers() {
-    _tabController = TabController(length: 4, vsync: this);
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -58,6 +81,13 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
     
     _animationController.forward();
+  }
+
+  void _ensureTabController() {
+    if (_tabController == null || _tabController!.length != 5) {
+      _tabController?.dispose();
+      _tabController = TabController(length: 5, vsync: this);
+    }
   }
 
   Future<void> _loadReportsData() async {
@@ -97,10 +127,54 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       // Get recent sales
       _recentSales = filteredSales.take(10).toList();
       
+      // Load advanced analytics data
+      await _loadAdvancedAnalytics(auth.currentUser!.id!);
+      
     } catch (e) {
       _showErrorMessage('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}');
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadAdvancedAnalytics(int userId) async {
+    try {
+      final app = Provider.of<AppProvider>(context, listen: false);
+      
+      // Get top selling products
+      _topSellingProducts = await app.getTopSellingProducts(
+        userId, 
+        _startDate, 
+        _endDate,
+        limit: 10
+      );
+      
+      // Get customer purchase history
+      _customerHistory = await app.getCustomerPurchaseHistory(userId, limit: 20);
+      
+      // Get reorder suggestions
+      _reorderSuggestions = await app.getReorderSuggestions(userId);
+      
+      // Get hourly sales data
+      _hourlySalesData = await app.getSalesByHour(userId, _startDate, _endDate);
+      
+      // Get daily sales data
+      _dailySalesData = await app.getSalesByDay(userId, _startDate, _endDate);
+      
+      // Get inventory movement
+      _inventoryMovement = await app.getInventoryMovement(userId, _startDate, _endDate);
+      
+      // Get sales trends
+      _salesTrends = await app.getSalesTrends(userId, _startDate, _endDate);
+      
+      // Get product performance
+      _productPerformance = await app.getProductPerformance(userId, _startDate, _endDate, limit: 15);
+      
+      // Get customer segmentation
+      _customerSegmentation = await app.getCustomerSegmentation(userId, limit: 100);
+      
+    } catch (e) {
+      debugPrint('Error loading advanced analytics: $e');
     }
   }
 
@@ -404,6 +478,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     final totalSales = _salesData['totalSales'] ?? 0;
     final totalProfit = _salesData['totalProfit'] ?? 0.0;
     final profitMargin = _salesData['profitMargin'] ?? 0.0;
+    final totalItems = _salesData['totalItems'] ?? 0;
+    final averageSale = _salesData['averageSale'] ?? 0.0;
     
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -417,6 +493,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   AppUtils.formatCurrency(totalRevenue),
                   Icons.account_balance_wallet,
                   Colors.blue,
+                  subtitle: '${totalSales} รายการขาย',
                 ),
               ),
               const SizedBox(width: 16),
@@ -426,6 +503,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   '$totalSales ครั้ง',
                   Icons.shopping_cart,
                   Colors.green,
+                  subtitle: 'เฉลี่ย ${AppUtils.formatCurrency(averageSale)} ต่อรายการ',
                 ),
               ),
             ],
@@ -439,15 +517,17 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   AppUtils.formatCurrency(totalProfit),
                   Icons.trending_up,
                   Colors.purple,
+                  subtitle: '${profitMargin.toStringAsFixed(1)}% ของรายได้',
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildSummaryCard(
-                  'อัตรากำไร',
-                  '${profitMargin.toStringAsFixed(1)}%',
-                  Icons.percent,
+                  'จำนวนสินค้า',
+                  '$totalItems หน่วย',
+                  Icons.inventory,
                   Colors.orange,
+                  subtitle: 'เฉลี่ย ${(totalItems / totalSales).toStringAsFixed(1)} หน่วยต่อรายการ',
                 ),
               ),
             ],
@@ -457,7 +537,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
+  Widget _buildSummaryCard(String title, String value, IconData icon, Color color, {String? subtitle}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -505,6 +585,14 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               color: AppConstants.primaryDarkBlue,
             ),
           ),
+          if (subtitle != null)
+            Text(
+              subtitle,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
+              ),
+            ),
         ],
       ),
     );
@@ -534,11 +622,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     ),
                     color: AppConstants.primaryYellow.withOpacity(0.2),
                   ),
-                  tabs: const [
+                  tabs: [
                     Tab(text: 'ยอดขาย'),
                     Tab(text: 'สินค้ายอดนิยม'),
                     Tab(text: 'สต็อกต่ำ'),
                     Tab(text: 'วิเคราะห์'),
+                    Tab(text: 'แนะนำการสั่งซื้อ'), // New tab for reorder suggestions
                   ],
                 ),
                 Container(
@@ -550,6 +639,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       _buildTopProductsTab(),
                       _buildLowStockTab(),
                       _buildAnalyticsTab(),
+                      _buildReorderSuggestionsTab(), // New tab
                     ],
                   ),
                 ),
@@ -586,12 +676,17 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       itemCount: _recentSales.length,
       itemBuilder: (context, index) {
         final sale = _recentSales[index];
+        final itemCount = sale.items?.length ?? 0;
+        final isHighValue = sale.totalAmount > 1000; // High value sale threshold
+        
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: isHighValue ? Colors.green.withOpacity(0.1) : Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
+            border: Border.all(
+              color: isHighValue ? Colors.green.withOpacity(0.3) : Colors.grey[200]!,
+            ),
           ),
           child: ListTile(
             leading: Container(
@@ -602,15 +697,16 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                Icons.receipt,
-                color: AppConstants.primaryDarkBlue,
+                isHighValue ? Icons.star : Icons.receipt,
+                color: isHighValue ? Colors.green[700] : AppConstants.primaryDarkBlue,
                 size: 20,
               ),
             ),
             title: Text(
               sale.receiptNumber,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
+                color: isHighValue ? Colors.green[700] : Colors.black,
               ),
             ),
             subtitle: Column(
@@ -625,20 +721,43 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${sale.items?.length ?? 0} รายการสินค้า',
+                  '$itemCount รายการสินค้า',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
                   ),
                 ),
+                if (sale.customerName != null && sale.customerName!.isNotEmpty)
+                  Text(
+                    'ลูกค้า: ${sale.customerName}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
-            trailing: Text(
-              AppUtils.formatCurrency(sale.totalAmount),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppConstants.primaryDarkBlue,
-              ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  AppUtils.formatCurrency(sale.totalAmount),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isHighValue ? Colors.green[700] : AppConstants.primaryDarkBlue,
+                  ),
+                ),
+                if (isHighValue)
+                  Text(
+                    'มูลค่าสูง',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.green[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
             ),
           ),
         );
@@ -647,7 +766,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   }
 
   Widget _buildTopProductsTab() {
-    if (_topProducts.isEmpty) {
+    if (_topSellingProducts.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -668,9 +787,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _topProducts.length,
+      itemCount: _topSellingProducts.length,
       itemBuilder: (context, index) {
-        final product = _topProducts[index];
+        final product = _topSellingProducts[index];
+        final productName = product['name'] as String? ?? 'ไม่ระบุชื่อ';
+        final productCode = product['code'] as String? ?? '';
+        // Fix type casting issue - handle both int and double types
+        final totalQuantity = product['total_quantity'] is int 
+            ? product['total_quantity'] as int? ?? 0
+            : (product['total_quantity'] as double? ?? 0.0).toInt();
+        final totalRevenue = product['total_revenue'] as double? ?? 0.0;
+        // Fix type casting issue - handle both int and double types
+        final saleCount = product['sale_count'] is int 
+            ? product['sale_count'] as int? ?? 0
+            : (product['sale_count'] as double? ?? 0.0).toInt();
+        
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -693,31 +824,43 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               ),
             ),
             title: Text(
-              product.name,
+              productName,
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
               ),
             ),
-            subtitle: Text(
-              'รหัส: ${product.code}',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'รหัส: $productCode',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  '$saleCount ครั้งการขาย',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${product.quantity} ${product.unit}',
+                  '${AppUtils.formatCurrency(totalRevenue)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
                 Text(
-                  AppUtils.formatCurrency(product.price),
+                  '${totalQuantity} หน่วยขายได้',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -756,24 +899,31 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       itemCount: _lowStockProducts.length,
       itemBuilder: (context, index) {
         final product = _lowStockProducts[index];
+        final isCritical = product.quantity <= product.lowStock ~/ 2;
+        final stockPercentage = (product.quantity / product.lowStock) * 100;
+        
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: isCritical ? Colors.red.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange.withOpacity(0.3)),
+            border: Border.all(
+              color: isCritical ? Colors.red.withOpacity(0.3) : Colors.orange.withOpacity(0.3),
+            ),
           ),
           child: ListTile(
             leading: Container(
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
+                color: isCritical 
+                    ? Colors.red.withOpacity(0.2) 
+                    : Colors.orange.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
-                Icons.warning_amber,
-                color: Colors.orange[700] as Color,
+                isCritical ? Icons.error : Icons.warning_amber,
+                color: isCritical ? Colors.red[700] : Colors.orange[700],
                 size: 20,
               ),
             ),
@@ -783,19 +933,55 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 fontWeight: FontWeight.w600,
               ),
             ),
-            subtitle: Text(
-              'เหลือ ${product.quantity} ${product.unit} (จุดเตือน: ${product.lowStock})',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.orange[700] as Color,
-              ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'เหลือ ${product.quantity} ${product.unit} (จุดเตือน: ${product.lowStock})',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isCritical ? Colors.red[700] : Colors.orange[700],
+                  ),
+                ),
+                if (isCritical)
+                  Text(
+                    'ระดับวิกฤติ - ควรสั่งซื้อทันที',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.red[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  )
+                else if (stockPercentage < 50)
+                  Text(
+                    'ระดับต่ำ - ควรพิจารณาสั่งซื้อ',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
             ),
-            trailing: Text(
-              AppUtils.formatCurrency(product.price),
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.orange[700] as Color,
-              ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '${stockPercentage.toStringAsFixed(0)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isCritical ? Colors.red[700] : Colors.orange[700],
+                  ),
+                ),
+                Text(
+                  AppUtils.formatCurrency(product.price),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isCritical ? Colors.red[700] : Colors.orange[700],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -806,12 +992,63 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   Widget _buildAnalyticsTab() {
     final hourlyStats = _salesData['hourlyStats'] as Map<String, int>? ?? {};
     final dailyRevenue = _salesData['dailyRevenue'] as Map<String, double>? ?? {};
+    final growthRate = _salesTrends['growthRate'] as double? ?? 0.0;
+    final isGrowing = growthRate >= 0;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Growth Indicator
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isGrowing ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isGrowing ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isGrowing ? Icons.trending_up : Icons.trending_down,
+                  color: isGrowing ? Colors.green[700] : Colors.red[700],
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isGrowing 
+                            ? 'กำลังเติบโตอย่างดี' 
+                            : 'มีแนวโน้มลดลงเล็กน้อย',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: isGrowing ? Colors.green[700] : Colors.red[700],
+                        ),
+                      ),
+                      Text(
+                        isGrowing
+                            ? 'เพิ่มขึ้น ${growthRate.toStringAsFixed(1)}% เมื่อเทียบกับช่วงก่อน'
+                            : 'ลดลง ${growthRate.abs().toStringAsFixed(1)}% เมื่อเทียบกับช่วงก่อน',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isGrowing ? Colors.green[700] : Colors.red[700],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Peak Hours Analysis
           Text(
             'วิเคราะห์ช่วงเวลาที่มียอดขายดี',
             style: TextStyle(
@@ -882,7 +1119,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       barGroups: hourlyStats.entries
                           .map(
                             (entry) => BarChartGroupData(
-                              x: int.parse(entry.key),
+                              x: int.tryParse(entry.key) ?? 0,
                               barRods: [
                                 BarChartRodData(
                                   toY: entry.value.toDouble(),
@@ -899,6 +1136,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   ),
           ),
           const SizedBox(height: 24),
+          
+          // Daily Sales Trend
           Text(
             'วิเคราะห์ยอดขายในแต่ละวัน',
             style: TextStyle(
@@ -987,7 +1226,13 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                               .entries
                               .map((entry) => FlSpot(
                                     entry.key.toDouble(),
-                                    entry.value.value, // Access the double value correctly
+                                    (entry.value is num) 
+                                        ? (entry.value as num).toDouble() 
+                                        : (entry.value is String) 
+                                            ? double.tryParse(entry.value as String) ?? 0.0
+                                            : (entry.value is int) 
+                                                ? (entry.value as int).toDouble()
+                                                : 0.0
                                   ))
                               .toList(),
                           isCurved: true,
@@ -1002,9 +1247,483 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     ),
                   ),
           ),
+          const SizedBox(height: 24),
+          
+          // Customer Insights Section
+          Text(
+            'วิเคราะห์พฤติกรรมลูกค้า',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: _customerHistory.isEmpty
+                ? Center(
+                    child: Text(
+                      'ยังไม่มีข้อมูลลูกค้า',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: _customerHistory.length > 5 ? 5 : _customerHistory.length,
+                    itemBuilder: (context, index) {
+                      final customer = _customerHistory[index];
+                      // Fix type casting issue - handle both int and double types
+                      final purchaseCount = customer['purchase_count'] is int 
+                          ? customer['purchase_count'] as int? ?? 0
+                          : (customer['purchase_count'] as double? ?? 0.0).toInt();
+                      final totalSpent = customer['total_spent'] as double? ?? 0.0;
+                      // Handle both String and DateTime types for lastPurchaseDate
+                      final lastPurchaseDate = customer['last_purchase_date'] is DateTime
+                          ? (customer['last_purchase_date'] as DateTime).toIso8601String()
+                          : customer['last_purchase_date'] as String? ?? '';
+                      
+                      return ListTile(
+                        title: Text(
+                          customer['customer_name'] as String? ?? 'ไม่ระบุชื่อ',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${purchaseCount} ครั้ง • ${AppUtils.formatCurrency(totalSpent)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            if (lastPurchaseDate.isNotEmpty)
+                              _buildLastPurchaseDate(lastPurchaseDate),
+                          ],
+                        ),
+                        trailing: Text(
+                          'อันดับ ${index + 1}',
+                          style: TextStyle(
+                            color: AppConstants.primaryDarkBlue,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Inventory Movement Analysis
+          Text(
+            'วิเคราะห์การเคลื่อนไหวของสต็อก',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: _inventoryMovement['inventoryData'] == null || 
+                   (_inventoryMovement['inventoryData'] as List).isEmpty
+                ? Center(
+                    child: Text(
+                      'ยังไม่มีข้อมูลการเคลื่อนไหวของสต็อก',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: (_inventoryMovement['inventoryData'] as List).length > 5 
+                        ? 5 
+                        : (_inventoryMovement['inventoryData'] as List).length,
+                    itemBuilder: (context, index) {
+                      final item = (_inventoryMovement['inventoryData'] as List)[index];
+                      final productName = item['name'] as String? ?? 'ไม่ระบุชื่อ';
+                      // Fix type casting issue - handle both int and double types
+                      final soldQuantity = item['sold_quantity'] is int 
+                          ? item['sold_quantity'] as int? ?? 0
+                          : (item['sold_quantity'] as double? ?? 0.0).toInt();
+                      // Fix type casting issue - handle both int and double types
+                      final receivedQuantity = item['received_quantity'] is int 
+                          ? item['received_quantity'] as int? ?? 0
+                          : (item['received_quantity'] as double? ?? 0.0).toInt();
+                      
+                      return ListTile(
+                        title: Text(
+                          productName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ขาย: $soldQuantity หน่วย',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.red[700],
+                              ),
+                            ),
+                            Text(
+                              'รับเข้า: $receivedQuantity หน่วย',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              soldQuantity > receivedQuantity 
+                                  ? Icons.trending_down 
+                                  : Icons.trending_up,
+                              color: soldQuantity > receivedQuantity 
+                                  ? Colors.red 
+                                  : Colors.green,
+                              size: 16,
+                            ),
+                            Text(
+                              '${(soldQuantity - receivedQuantity).abs()}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: soldQuantity > receivedQuantity 
+                                    ? Colors.red 
+                                    : Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Customer Segmentation
+          Text(
+            'การแบ่งกลุ่มลูกค้า',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (_customerSegmentation.isEmpty || _customerSegmentation['segments'] == null)
+            Center(
+              child: Text(
+                'ยังไม่มีข้อมูลการแบ่งกลุ่มลูกค้า',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            )
+          else
+            Container(
+              height: 150,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 40,
+                  sections: [
+                    PieChartSectionData(
+                      color: Colors.green,
+                      value: ((_customerSegmentation['segments'] as Map)['highValue'] is num
+                          ? (_customerSegmentation['segments'] as Map)['highValue']?.toDouble()
+                          : (_customerSegmentation['segments'] as Map)['highValue'] is String
+                              ? double.tryParse((_customerSegmentation['segments'] as Map)['highValue'] as String) ?? 0
+                              : 0) ?? 0,
+                      title: 'ลูกค้ามูลค่าสูง',
+                      radius: 50,
+                      titleStyle: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    PieChartSectionData(
+                      color: Colors.blue,
+                      value: ((_customerSegmentation['segments'] as Map)['mediumValue'] is num
+                          ? (_customerSegmentation['segments'] as Map)['mediumValue']?.toDouble()
+                          : (_customerSegmentation['segments'] as Map)['mediumValue'] is String
+                              ? double.tryParse((_customerSegmentation['segments'] as Map)['mediumValue'] as String) ?? 0
+                              : 0) ?? 0,
+                      title: 'ลูกค้ามูลค่าปานกลาง',
+                      radius: 50,
+                      titleStyle: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    PieChartSectionData(
+                      color: Colors.orange,
+                      value: ((_customerSegmentation['segments'] as Map)['lowValue'] is num
+                          ? (_customerSegmentation['segments'] as Map)['lowValue']?.toDouble()
+                          : (_customerSegmentation['segments'] as Map)['lowValue'] is String
+                              ? double.tryParse((_customerSegmentation['segments'] as Map)['lowValue'] as String) ?? 0
+                              : 0) ?? 0,
+                      title: 'ลูกค้ามูลค่าต่ำ',
+                      radius: 50,
+                      titleStyle: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Widget _buildReorderSuggestionsTab() {
+    if (_reorderSuggestions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.shopping_cart, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'ไม่มีคำแนะนำการสั่งซื้อในขณะนี้',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _reorderSuggestions.length,
+      itemBuilder: (context, index) {
+        final product = _reorderSuggestions[index];
+        final productName = product['name'] as String? ?? 'ไม่ระบุชื่อ';
+        final productCode = product['code'] as String? ?? '';
+        // Fix type casting issue - handle both int and double types
+        final currentQuantity = product['quantity'] is int 
+            ? product['quantity'] as int? ?? 0
+            : (product['quantity'] as double? ?? 0.0).toInt();
+        // Fix type casting issue - handle both int and double types
+        final lowStockLevel = product['low_stock'] is int 
+            ? product['low_stock'] as int? ?? 0
+            : (product['low_stock'] as double? ?? 0.0).toInt();
+        final unit = product['unit'] as String? ?? 'หน่วย';
+        final avgDailySales = product['avg_daily_sales'] as double? ?? 0.0;
+        final daysUntilOutOfStock = product['days_until_out_of_stock'] as double? ?? 999.0;
+        
+        // Determine urgency level
+        Color urgencyColor = Colors.green;
+        String urgencyText = 'ปลอดภัย';
+        IconData urgencyIcon = Icons.check_circle;
+        
+        if (daysUntilOutOfStock <= 3) {
+          urgencyColor = Colors.red;
+          urgencyText = 'เร่งด่วน';
+          urgencyIcon = Icons.error;
+        } else if (daysUntilOutOfStock <= 7) {
+          urgencyColor = Colors.orange;
+          urgencyText = 'ควรสั่งซื้อ';
+          urgencyIcon = Icons.warning;
+        } else if (daysUntilOutOfStock <= 14) {
+          urgencyColor = Colors.blue;
+          urgencyText = 'ต้องเฝ้าระวัง';
+          urgencyIcon = Icons.info;
+        }
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey[200]!),
+          ),
+          child: ExpansionTile(
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: urgencyColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                urgencyIcon,
+                color: urgencyColor,
+                size: 20,
+              ),
+            ),
+            title: Text(
+              productName,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Text(
+              'รหัส: $productCode',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            trailing: Text(
+              urgencyText,
+              style: TextStyle(
+                color: urgencyColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoCard(
+                            'สต็อกปัจจุบัน',
+                            '$currentQuantity $unit',
+                            Icons.inventory,
+                            AppConstants.primaryDarkBlue,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildInfoCard(
+                            'จุดสั่งซื้อ',
+                            '$lowStockLevel $unit',
+                            Icons.warning,
+                            Colors.orange,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoCard(
+                            'ขาย/วัน',
+                            '${avgDailySales.toStringAsFixed(1)} $unit',
+                            Icons.trending_up,
+                            Colors.green,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildInfoCard(
+                            'หมดสต็อกใน',
+                            '${daysUntilOutOfStock.toStringAsFixed(0)} วัน',
+                            Icons.calendar_today,
+                            urgencyColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoCard(String title, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLastPurchaseDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return Text(
+        'ซื้อล่าสุด: ${AppUtils.formatDateThai(date)}',
+        style: TextStyle(
+          fontSize: 10,
+          color: Colors.grey[500],
+        ),
+      );
+    } catch (e) {
+      // Handle parsing error gracefully
+      return Text(
+        'ซื้อล่าสุด: ไม่สามารถแสดงวันที่ได้',
+        style: TextStyle(
+          fontSize: 10,
+          color: Colors.grey[500],
+        ),
+      );
+    }
   }
 
   void _showErrorMessage(String message) {
