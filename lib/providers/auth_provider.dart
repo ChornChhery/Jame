@@ -85,6 +85,30 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Check if email is a Gmail address
+      final lowercaseEmail = email.toLowerCase();
+      if (!lowercaseEmail.endsWith('@gmail.com')) {
+        // Check for common Gmail typing mistakes
+        if (lowercaseEmail.contains('@gmail')) {
+          // Check for common mistakes
+          if (lowercaseEmail.contains('gmali') || 
+              lowercaseEmail.contains('gmal') || 
+              lowercaseEmail.contains('gmail.')) {
+            debugPrint('❌ Login failed: Did you mean @gmail.com?');
+          }
+          // Check for .con instead of .com
+          else if (lowercaseEmail.endsWith('@gmail.con') || 
+                   lowercaseEmail.endsWith('@gmail.co') ||
+                   lowercaseEmail.endsWith('@gmail.cm')) {
+            debugPrint('❌ Login failed: Did you mean @gmail.com?');
+          }
+        }
+        debugPrint('❌ Login failed: Only Gmail accounts are allowed');
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
       // Direct MySQL authentication - no local fallback
       final hashedPassword = AppUtils.hashPassword(password);
       final user = await DatabaseHelper.instance.getUserByEmail(email);

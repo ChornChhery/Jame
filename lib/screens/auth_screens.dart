@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
               children: [
                 // Header Section with Background
                 Expanded(
-                  flex: 4,
+                  flex: 3,
                   child: Container(
                     width: double.infinity,
                     decoration: BoxDecoration(
@@ -74,8 +74,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           children: [
                             // Logo with modern design
                             Container(
-                              width: 100,
-                              height: 100,
+                              width: 80,
+                              height: 80,
                               decoration: BoxDecoration(
                                 color: AppConstants.primaryYellow,
                                 shape: BoxShape.circle,
@@ -89,23 +89,23 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               ),
                               child: Icon(
                                 Icons.store_rounded,
-                                size: 50,
+                                size: 40,
                                 color: AppConstants.primaryDarkBlue,
                               ),
                             ),
-                            SizedBox(height: 24),
+                            SizedBox(height: 16),
                             
                             // App Name
                             Text(
                               AppConstants.appName,
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 24,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 4),
                             Text(
                               AppConstants.loginTitle,
                               style: TextStyle(
@@ -123,21 +123,21 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
                 // Form Section
                 Expanded(
-                  flex: 6,
+                  flex: 7,
                   child: Padding(
-                    padding: EdgeInsets.all(32.0),
+                    padding: EdgeInsets.all(24.0),
                     child: FadeTransition(
                       opacity: _fadeAnimation,
                       child: Form(
                         key: _formKey,
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             // Welcome text
                             Text(
                               'ยินดีต้อนรับกลับ',
                               style: TextStyle(
-                                fontSize: 24,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                                 color: AppConstants.primaryDarkBlue,
                               ),
@@ -150,7 +150,38 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 fontWeight: FontWeight.w400,
                               ),
                             ),
-                            SizedBox(height: 40),
+                            SizedBox(height: 12),
+                            // Gmail requirement notice
+                            Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppConstants.primaryYellow.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppConstants.primaryYellow.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline,
+                                    color: AppConstants.primaryDarkBlue,
+                                    size: 14,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      'เฉพาะบัญชี Gmail เท่านั้น',
+                                      style: TextStyle(
+                                        color: AppConstants.primaryDarkBlue,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(height: 16),
 
                             // Email field with modern design
                             _buildModernTextField(
@@ -161,9 +192,37 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               validator: (value) {
                                 if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
                                 if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+                                
+                                // Only validate Gmail format if the user has typed enough characters
+                                final lowercaseEmail = value.toLowerCase();
+                                if (!lowercaseEmail.endsWith('@gmail.com')) {
+                                  // Don't show error if user is still typing
+                                  if (!lowercaseEmail.contains('@')) return null;
+                                  
+                                  // Check for common Gmail typing mistakes
+                                  if (lowercaseEmail.contains('@gmail')) {
+                                    // Check for common mistakes
+                                    if (lowercaseEmail.contains('gmali') || 
+                                        lowercaseEmail.contains('gmal') || 
+                                        lowercaseEmail.contains('gmail.')) {
+                                      return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                                    }
+                                    // Check for .con instead of .com
+                                    if (lowercaseEmail.endsWith('@gmail.con') || 
+                                        lowercaseEmail.endsWith('@gmail.co') ||
+                                        lowercaseEmail.endsWith('@gmail.cm')) {
+                                      return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                                    }
+                                  }
+                                  // Only show this error if user has completed typing the domain
+                                  if (lowercaseEmail.split('@').length > 1) {
+                                    return 'กรุณาใช้บัญชี Gmail เท่านั้น (@gmail.com)';
+                                  }
+                                }
                                 return null;
                               },
                             ),
+
                             SizedBox(height: 20),
 
                             // Password field
@@ -185,7 +244,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 return null;
                               },
                             ),
-                            SizedBox(height: 16),
+                            SizedBox(height: 12),
 
                             // Remember Me checkbox
                             Row(
@@ -236,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 ),
                               ),
                             ),
-                            SizedBox(height: 16),
+                            SizedBox(height: 12),
 
                             // Login button
                             Consumer<AuthProvider>(
@@ -275,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 );
                               },
                             ),
-                            SizedBox(height: 24),
+                            SizedBox(height: 16),
 
                             // Signup link
                             Row(
@@ -328,65 +387,136 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
+    int maxLines = 1,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      validator: validator,
-      style: TextStyle(
-        fontSize: 16,
-        color: AppConstants.primaryDarkBlue,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
-        suffixIcon: suffixIcon,
-        labelStyle: TextStyle(
-          color: AppConstants.textDarkGray,
-          fontSize: 14,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Colors.grey.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
+    // Special handling for email field to show helper text
+    bool isEmailField = label == AppConstants.email;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          validator: validator,
+          maxLines: maxLines,
+          style: TextStyle(
+            fontSize: 16,
             color: AppConstants.primaryDarkBlue,
-            width: 2,
+          ),
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
+            suffixIcon: suffixIcon,
+            labelStyle: TextStyle(
+              color: AppConstants.textDarkGray,
+              fontSize: 14,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: Colors.grey.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: AppConstants.primaryDarkBlue,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: AppConstants.errorRed,
+                width: 1,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: AppConstants.errorRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            // Add helper text for email field
+            suffix: isEmailField
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Text(
+                      '@gmail.com',
+                      style: TextStyle(
+                        color: AppConstants.textDarkGray.withOpacity(0.6),
+                        fontSize: 14,
+                      ),
+                    ),
+                  )
+                : null,
           ),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppConstants.errorRed,
-            width: 1,
+        // Add helper text below email field
+        if (isEmailField)
+          Padding(
+            padding: const EdgeInsets.only(top: 6.0, left: 4.0),
+            child: Text(
+              'ระบบรองรับเฉพาะบัญชี Gmail เท่านั้น',
+              style: TextStyle(
+                color: AppConstants.textDarkGray.withOpacity(0.7),
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppConstants.errorRed,
-            width: 2,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      ),
+      ],
     );
   }
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Check if email is a Gmail address before attempting login
+    final email = _emailController.text.trim();
+    final lowercaseEmail = email.toLowerCase();
+    
+    if (!lowercaseEmail.endsWith('@gmail.com')) {
+      String errorMessage = 'เฉพาะบัญชี Gmail เท่านั้นที่สามารถเข้าสู่ระบบได้';
+      
+      // Check for common Gmail typing mistakes
+      if (lowercaseEmail.contains('@gmail')) {
+        // Check for common mistakes
+        if (lowercaseEmail.contains('gmali') || 
+            lowercaseEmail.contains('gmal') || 
+            lowercaseEmail.contains('gmail.')) {
+          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+        }
+        // Check for .con instead of .com
+        else if (lowercaseEmail.endsWith('@gmail.con') || 
+                 lowercaseEmail.endsWith('@gmail.co') ||
+                 lowercaseEmail.endsWith('@gmail.cm')) {
+          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+        }
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
@@ -394,7 +524,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     auth.testServerConnectionBackground();
     
     final success = await auth.login(
-      _emailController.text.trim(),
+      email,
       _passwordController.text,
       rememberMe: auth.rememberMe, // Pass the rememberMe value
     );
@@ -402,15 +532,38 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     if (success) {
       Navigator.pushReplacementNamed(context, AppConstants.dashboardRoute);
     } else {
+      // Check if it's a Gmail restriction or other login issue
+      bool isGmail = lowercaseEmail.endsWith('@gmail.com');
+      
       // Check connection status after login attempt
       final serverConnected = await auth.testServerConnection();
       
+      String errorMessage = isGmail && serverConnected 
+          ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' // Email or password incorrect
+          : !isGmail 
+              ? 'เฉพาะบัญชี Gmail เท่านั้นที่สามารถเข้าสู่ระบบได้' // Only Gmail accounts can log in
+              : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'; // Cannot login, try again
+      
+      // Check for common Gmail typing mistakes
+      if (!isGmail && lowercaseEmail.contains('@gmail')) {
+        // Check for common mistakes
+        if (lowercaseEmail.contains('gmali') || 
+            lowercaseEmail.contains('gmal') || 
+            lowercaseEmail.contains('gmail.')) {
+          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+        }
+        // Check for .con instead of .com
+        else if (lowercaseEmail.endsWith('@gmail.con') || 
+                 lowercaseEmail.endsWith('@gmail.co') ||
+                 lowercaseEmail.endsWith('@gmail.cm')) {
+          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+        }
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(serverConnected 
-              ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' // Email or password incorrect
-              : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'), // Cannot login, try again
-          backgroundColor: serverConnected ? AppConstants.errorRed : Colors.orange,
+          content: Text(errorMessage),
+          backgroundColor: !isGmail ? Colors.orange : (serverConnected ? AppConstants.errorRed : Colors.orange),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: EdgeInsets.all(16),
@@ -715,6 +868,33 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           validator: (value) {
             if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
             if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+            
+            // Only validate Gmail format if the user has typed enough characters
+            final lowercaseEmail = value.toLowerCase();
+            if (!lowercaseEmail.endsWith('@gmail.com')) {
+              // Don't show error if user is still typing
+              if (!lowercaseEmail.contains('@')) return null;
+              
+              // Check for common Gmail typing mistakes
+              if (lowercaseEmail.contains('@gmail')) {
+                // Check for common mistakes
+                if (lowercaseEmail.contains('gmali') || 
+                    lowercaseEmail.contains('gmal') || 
+                    lowercaseEmail.contains('gmail.')) {
+                  return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                }
+                // Check for .con instead of .com
+                if (lowercaseEmail.endsWith('@gmail.con') || 
+                    lowercaseEmail.endsWith('@gmail.co') ||
+                    lowercaseEmail.endsWith('@gmail.cm')) {
+                  return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                }
+              }
+              // Only show this error if user has completed typing the domain
+              if (lowercaseEmail.split('@').length > 1) {
+                return 'กรุณาใช้บัญชี Gmail เท่านั้น (@gmail.com)';
+              }
+            }
             return null;
           },
         ),
@@ -756,6 +936,37 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
             if (value != _passwordController.text) return 'รหัสผ่านไม่ตรงกัน';
             return null;
           },
+        ),
+        SizedBox(height: 12),
+        // Gmail requirement notice
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppConstants.primaryYellow.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: AppConstants.primaryYellow.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: AppConstants.primaryDarkBlue,
+                size: 14,
+              ),
+              SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'เฉพาะบัญชี Gmail เท่านั้น',
+                  style: TextStyle(
+                    color: AppConstants.primaryDarkBlue,
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -880,60 +1091,94 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     String? Function(String?)? validator,
     int maxLines = 1,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      validator: validator,
-      maxLines: maxLines,
-      style: TextStyle(
-        fontSize: 16,
-        color: AppConstants.primaryDarkBlue,
-      ),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
-        suffixIcon: suffixIcon,
-        labelStyle: TextStyle(
-          color: AppConstants.textDarkGray,
-          fontSize: 14,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Colors.grey.withOpacity(0.1),
-            width: 1,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
+    // Special handling for email field to show helper text
+    bool isEmailField = label == AppConstants.email;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          obscureText: obscureText,
+          validator: validator,
+          maxLines: maxLines,
+          style: TextStyle(
+            fontSize: 16,
             color: AppConstants.primaryDarkBlue,
-            width: 2,
+          ),
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
+            suffixIcon: suffixIcon,
+            labelStyle: TextStyle(
+              color: AppConstants.textDarkGray,
+              fontSize: 14,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: Colors.grey.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: AppConstants.primaryDarkBlue,
+                width: 2,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: AppConstants.errorRed,
+                width: 1,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: AppConstants.errorRed,
+                width: 2,
+              ),
+            ),
+            contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            // Add helper text for email field
+            suffix: isEmailField
+                ? Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Text(
+                      '@gmail.com',
+                      style: TextStyle(
+                        color: AppConstants.textDarkGray.withOpacity(0.6),
+                        fontSize: 14,
+                      ),
+                    ),
+                  )
+                : null,
           ),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppConstants.errorRed,
-            width: 1,
+        // Add helper text below email field
+        if (isEmailField)
+          Padding(
+            padding: const EdgeInsets.only(top: 6.0, left: 4.0),
+            child: Text(
+              'ระบบรองรับเฉพาะบัญชี Gmail เท่านั้น',
+              style: TextStyle(
+                color: AppConstants.textDarkGray.withOpacity(0.7),
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
           ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: AppConstants.errorRed,
-            width: 2,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      ),
+      ],
     );
   }
 
