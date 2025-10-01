@@ -18,6 +18,31 @@ class ProductsScreen extends StatefulWidget {
   _ProductsScreenState createState() => _ProductsScreenState();
 }
 
+class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+
+  _SliverTabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Colors.white,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
+    return false;
+  }
+}
+
 class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStateMixin {
   late TabController _tabController;
   late AnimationController _fabAnimationController;
@@ -2290,4 +2315,46 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     );
   }
 
-  // Force analyzer to recognize these methods
+  // Capture image from camera for products
+  Future<void> _captureImage(BuildContext context, TextEditingController imageController) async {
+    final XFile? image = await AppUtils.captureImage();
+    if (image != null) {
+      // Save image to documents directory
+      final savedPath = await AppUtils.saveImageToDocuments(image);
+      if (savedPath != null) {
+        // Update the image controller with the saved path
+        imageController.text = savedPath;
+      } else {
+        // Show error if failed to save
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่สามารถบันทึกรูปภาพได้'),
+            backgroundColor: AppConstants.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  // Pick image from gallery for products
+  Future<void> _pickImageFromGallery(BuildContext context, TextEditingController imageController) async {
+    final XFile? image = await AppUtils.pickImageFromGallery();
+    if (image != null) {
+      // Save image to documents directory
+      final savedPath = await AppUtils.saveImageToDocuments(image);
+      if (savedPath != null) {
+        // Update the image controller with the saved path
+        imageController.text = savedPath;
+      } else {
+        // Show error if failed to save
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('ไม่สามารถบันทึกรูปภาพได้'),
+            backgroundColor: AppConstants.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+}
