@@ -945,6 +945,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 product.image!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
+                  // Log the error for debugging
+                  print('Image loading error: $error');
                   return Icon(
                     Icons.inventory_2_rounded,
                     color: AppConstants.primaryDarkBlue,
@@ -959,6 +961,10 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       strokeWidth: 2,
                     ),
                   );
+                },
+                // Add headers to handle WebP and other formats
+                headers: const {
+                  'Accept': 'image/*',
                 },
               ),
             )

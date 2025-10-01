@@ -64,11 +64,17 @@ class ProductDetailsDialog extends StatelessWidget {
                               product.image!,
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
+                                // Log the error for debugging
+                                print('Image loading error in dialog: $error');
                                 return Icon(
                                   Icons.inventory_2,
                                   color: AppConstants.primaryDarkBlue,
                                   size: 48,
                                 );
+                              },
+                              // Add headers to handle WebP and other formats
+                              headers: const {
+                                'Accept': 'image/*',
                               },
                             ),
                           )

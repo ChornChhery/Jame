@@ -706,11 +706,17 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                 product.image!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
+                  // Log the error for debugging
+                  print('Image loading error in scanner: $error');
                   return Icon(
                     Icons.inventory_2,
                     color: AppConstants.primaryDarkBlue,
                     size: 24,
                   );
+                },
+                // Add headers to handle WebP and other formats
+                headers: const {
+                  'Accept': 'image/*',
                 },
               ),
             )

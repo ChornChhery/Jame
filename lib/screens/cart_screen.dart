@@ -454,11 +454,17 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 product.image!,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
+                  // Log the error for debugging
+                  print('Image loading error in cart: $error');
                   return Icon(
                     Icons.inventory_2,
                     color: AppConstants.primaryDarkBlue,
                     size: 24,
                   );
+                },
+                // Add headers to handle WebP and other formats
+                headers: const {
+                  'Accept': 'image/*',
                 },
               ),
             )
