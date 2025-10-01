@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../providers/auth_provider.dart';
 import '../core/constants.dart';
+import '../core/utils.dart';
 import '../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -31,6 +34,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   // Payment Information Controllers
   final _promptPayController = TextEditingController();
   String _selectedCurrency = 'THB';
+  
+  // Profile image
+  XFile? _profileImage;
+  String? _profileImagePath;
 
   @override
   void initState() {
@@ -67,6 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       _shopEmailController.text = user.shopEmail ?? '';
       _promptPayController.text = user.paymentQr ?? '';
       _selectedCurrency = user.currency ?? 'THB';
+      _profileImagePath = user.profileImage;
     }
   }
 
@@ -78,6 +86,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     });
 
     try {
+      // Save image if selected
+      String? imagePath = _profileImagePath;
+      if (_profileImage != null) {
+        imagePath = await AppUtils.saveImageToDocuments(_profileImage!);
+        if (imagePath == null) {
+          _showErrorMessage('ไม่สามารถบันทึกรูปภาพได้');
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+      }
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final updatedUser = User(
         id: authProvider.currentUser?.id,
@@ -92,12 +113,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         shopEmail: _shopEmailController.text.trim(),
         currency: _selectedCurrency,
         paymentQr: _promptPayController.text.trim(),
+        profileImage: imagePath,
       );
 
       await authProvider.updateProfile(updatedUser);
       
       setState(() {
         _isEditing = false;
+        _profileImage = null; // Clear temporary image
+        _profileImagePath = imagePath; // Update with saved path
       });
 
       _showSuccessMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
@@ -192,6 +216,89 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         margin: const EdgeInsets.all(16),
       ),
     );
+  }
+
+  // Show image upload options
+  void _showImageUploadOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'เลือกวิธีอัปโหลดรูปภาพ',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.camera_alt_rounded, color: AppConstants.primaryDarkBlue),
+              ),
+              title: const Text('ถ่ายรูป'),
+              onTap: () {
+                Navigator.pop(context);
+                _captureImage();
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.photo_library_rounded, color: AppConstants.primaryDarkBlue),
+              ),
+              title: const Text('เลือกจากแกลเลอรี่'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImageFromGallery();
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Capture image from camera
+  Future<void> _captureImage() async {
+    final XFile? image = await AppUtils.captureImage();
+    if (image != null) {
+      setState(() {
+        _profileImage = image;
+      });
+    }
+  }
+
+  // Pick image from gallery
+  Future<void> _pickImageFromGallery() async {
+    final XFile? image = await AppUtils.pickImageFromGallery();
+    if (image != null) {
+      setState(() {
+        _profileImage = image;
+      });
+    }
   }
 
   @override
@@ -406,11 +513,37 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: CircleAvatar(
                   radius: 55,
                   backgroundColor: AppConstants.lightGray,
-                  child: Icon(
-                    Icons.person,
-                    size: 65,
-                    color: AppConstants.textDarkGray.withOpacity(0.5),
-                  ),
+                  // Display selected image or saved image or default icon
+                  child: _profileImage != null
+                    ? ClipOval(
+                        child: Image.file(
+                          File(_profileImage!.path),
+                          width: 110,
+                          height: 110,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : (_profileImagePath != null && _profileImagePath!.isNotEmpty)
+                      ? ClipOval(
+                          child: Image.file(
+                            File(_profileImagePath!),
+                            width: 110,
+                            height: 110,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.person,
+                                size: 65,
+                                color: AppConstants.textDarkGray.withOpacity(0.5),
+                              );
+                            },
+                          ),
+                        )
+                      : Icon(
+                          Icons.person,
+                          size: 65,
+                          color: AppConstants.textDarkGray.withOpacity(0.5),
+                        ),
                 ),
               ),
               if (_isEditing)
@@ -431,23 +564,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     ),
                     child: IconButton(
                       icon: const Icon(Icons.camera_alt, size: 20, color: AppConstants.primaryDarkBlue),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Row(
-                              children: [
-                                Icon(Icons.info, color: Colors.white),
-                                SizedBox(width: 12),
-                                Text('การอัพโหลดรูปภาพจะเพิ่มในอนาคต'),
-                              ],
-                            ),
-                            backgroundColor: Colors.blue,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            margin: const EdgeInsets.all(16),
-                          ),
-                        );
-                      },
+                      onPressed: _showImageUploadOptions,
                     ),
                   ),
                 ),

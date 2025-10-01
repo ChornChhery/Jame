@@ -1,8 +1,12 @@
 // FILE: lib/core/utils.dart
 import 'dart:math';
+import 'dart:io';
 import 'package:intl/intl.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/material.dart';
 
 class AppUtils {
   // Email validation regex
@@ -72,5 +76,56 @@ class AppUtils {
     final bytes = utf8.encode(password);
     final digest = sha256.convert(bytes);
     return digest.toString();
+  }
+
+  // Save image to app documents directory
+  static Future<String?> saveImageToDocuments(XFile imageFile, {String? fileName}) async {
+    try {
+      // Get the app documents directory
+      final directory = await getApplicationDocumentsDirectory();
+      final imagesDir = Directory('${directory.path}/images');
+      
+      // Create images directory if it doesn't exist
+      if (!await imagesDir.exists()) {
+        await imagesDir.create(recursive: true);
+      }
+      
+      // Generate unique filename if not provided
+      final name = fileName ?? 
+          'img_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}.jpg';
+      
+      // Copy image to documents directory
+      final newPath = '${imagesDir.path}/$name';
+      await imageFile.saveTo(newPath);
+      
+      return newPath;
+    } catch (e) {
+      debugPrint('Error saving image: $e');
+      return null;
+    }
+  }
+
+  // Pick image from gallery
+  static Future<XFile?> pickImageFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      return image;
+    } catch (e) {
+      debugPrint('Error picking image from gallery: $e');
+      return null;
+    }
+  }
+
+  // Capture image from camera
+  static Future<XFile?> captureImage() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: ImageSource.camera);
+      return image;
+    } catch (e) {
+      debugPrint('Error capturing image: $e');
+      return null;
+    }
   }
 }
