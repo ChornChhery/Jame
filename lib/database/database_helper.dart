@@ -543,18 +543,36 @@ class DatabaseHelper {
       );
       
       return results.map((map) {
+        // Safely extract string values from map, handling Blob types from MySQL
+        String? _safeString(dynamic value) {
+          if (value == null) return null;
+          
+          // Handle Blob type from MySQL
+          if (value is List<int>) {
+            return String.fromCharCodes(value);
+          }
+          
+          // Handle regular string
+          if (value is String) {
+            return value.isEmpty ? null : value;
+          }
+          
+          // Convert other types to string
+          return value.toString();
+        }
+        
         // Create a Product object from the joined data
         final product = Product(
           id: map['product_id'],
           userId: map['user_id'] ?? 0,
-          name: map['product_name'] ?? '',
+          name: _safeString(map['product_name']) ?? '',
           price: map['product_price']?.toDouble() ?? 0.0,
           quantity: map['product_quantity'] ?? 0,
           lowStock: map['low_stock'] ?? 0,
-          code: map['product_code'] ?? '',
-          category: map['category'],
-          unit: map['unit'] ?? 'หน่วย',
-          image: map['image'],
+          code: _safeString(map['product_code']) ?? '',
+          category: _safeString(map['category']),
+          unit: _safeString(map['unit']) ?? 'หน่วย',
+          image: _safeString(map['image']),
         );
         
         // Create a SaleItem with the product
@@ -571,6 +589,40 @@ class DatabaseHelper {
     } catch (e) {
       debugPrint('Get sale items with products failed: $e');
       return [];
+    }
+  }
+
+  /// Add inventory record for stock movement tracking
+  Future<bool> addInventoryRecord({
+    required int userId,
+    required int productId,
+    required String changeType, // 'SALE', 'STOCK_IN', 'ADJUSTMENT'
+    required int stockBefore,
+    required int stockAfter,
+    int? referenceId, // sale_id for sales, null for manual adjustments
+    String? notes,
+  }) async {
+    try {
+      final success = await _mysqlDB.executeUpdateQuery(
+        '''
+        INSERT INTO inventories (user_id, product_id, change_type, stock_before, stock_after, reference_id, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''',
+        [
+          userId,
+          productId,
+          changeType,
+          stockBefore,
+          stockAfter,
+          referenceId,
+          notes,
+        ]
+      );
+      
+      return success;
+    } catch (e) {
+      debugPrint('Add inventory record failed: $e');
+      return false;
     }
   }
 }

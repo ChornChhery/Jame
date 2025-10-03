@@ -166,13 +166,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       ),
       floatingActionButton: ScaleTransition(
         scale: _fabScaleAnimation,
-        child: FloatingActionButton.extended(
+        child: FloatingActionButton(
           onPressed: () => _showAddProductDialog(),
           backgroundColor: AppConstants.primaryYellow,
           foregroundColor: AppConstants.primaryDarkBlue,
-          elevation: 8,
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('เพิ่มสินค้า', style: TextStyle(fontWeight: FontWeight.w600)),
+          elevation: 5,
+          child: const Icon(Icons.add_rounded),
         ),
       ),
     );
@@ -521,7 +520,31 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       );
     }
     
-    return _isGridView ? _buildProductsGrid() : _buildProductsListView();
+    return _isGridView 
+      ? _buildLowStockGrid(lowStockProducts) 
+      : _buildLowStockListview(lowStockProducts);
+  }
+
+  Widget _buildLowStockListview(List<Product> lowStockProducts) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: lowStockProducts.length,
+      itemBuilder: (context, index) => _buildEnhancedProductCard(lowStockProducts[index]),
+    );
+  }
+
+  Widget _buildLowStockGrid(List<Product> lowStockProducts) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
+      itemCount: lowStockProducts.length,
+      itemBuilder: (context, index) => _buildProductGridCard(lowStockProducts[index]),
+    );
   }
 
   Widget _buildEnhancedProductCard(Product product) {
@@ -1297,6 +1320,17 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               const SizedBox(height: 20),
               Row(
                 children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showEditProductDialog(product);
+                      },
+                      icon: const Icon(Icons.edit_rounded),
+                      label: const Text('แก้ไขสินค้า'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(context),

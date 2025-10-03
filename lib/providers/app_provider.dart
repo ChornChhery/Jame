@@ -173,8 +173,21 @@ class AppProvider extends ChangeNotifier {
       for (var cartItem in _cartItems) {
         final productIndex = _products.indexWhere((p) => p.id == cartItem.product.id);
         if (productIndex != -1) {
+          final oldQuantity = _products[productIndex].quantity;
+          final newQuantity = oldQuantity - cartItem.quantity;
+          
+          // Add inventory record for the sale
+          await addInventoryRecord(
+            userId: userId,
+            productId: cartItem.product.id!,
+            changeType: 'SALE',
+            stockBefore: oldQuantity,
+            stockAfter: newQuantity,
+            notes: 'Sold ${cartItem.quantity} items of ${cartItem.product.name}',
+          );
+          
           final updatedProduct = _products[productIndex].copyWith(
-            quantity: _products[productIndex].quantity - cartItem.quantity,
+            quantity: newQuantity,
           );
           
           // Update in local list
@@ -284,6 +297,33 @@ class AppProvider extends ChangeNotifier {
       _error = e.toString();
       notifyListeners();
       return [];
+    }
+  }
+
+  /// Add inventory record for stock movement tracking
+  Future<bool> addInventoryRecord({
+    required int userId,
+    required int productId,
+    required String changeType,
+    required int stockBefore,
+    required int stockAfter,
+    int? referenceId,
+    String? notes,
+  }) async {
+    try {
+      return await DatabaseHelper.instance.addInventoryRecord(
+        userId: userId,
+        productId: productId,
+        changeType: changeType,
+        stockBefore: stockBefore,
+        stockAfter: stockAfter,
+        referenceId: referenceId,
+        notes: notes,
+      );
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 
