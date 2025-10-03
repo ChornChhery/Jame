@@ -10,6 +10,8 @@ import '../core/utils.dart';
 import '../widgets/add_edit_product_dialog.dart';
 import '../widgets/product_details_dialog.dart';
 import '../widgets/manual_sale_dialog.dart';
+import '../models/sale.dart';
+import '../database/database_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -705,13 +707,18 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         ),
         SizedBox(height: 16),
         
-        // Low stock alerts - using static data to prevent setState during build
+        // Recent sales (moved to top)
+        _buildRecentSalesCard(app.sales.take(3).toList()),
+        
+        SizedBox(height: 16),
+        
+        // Low stock alerts (moved to middle)
         _buildLowStockAlertsStatic(app),
         
         SizedBox(height: 16),
         
-        // Recent sales
-        _buildRecentSalesCard(app.sales.take(3).toList()),
+        // Top 5 products (moved to bottom)
+        _buildTopProductsCard(app, userId),
       ],
     );
   }
@@ -785,6 +792,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             ),
             child: Row(
               children: [
+                // Product image
                 Container(
                   width: 40,
                   height: 40,
@@ -792,11 +800,30 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     color: AppConstants.errorRed.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(
-                    Icons.inventory_2_outlined,
-                    color: AppConstants.errorRed,
-                    size: 20,
-                  ),
+                  child: product.image != null && product.image!.isNotEmpty
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.network(
+                            product.image!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Icon(
+                                Icons.inventory_2_outlined,
+                                color: AppConstants.errorRed,
+                                size: 20,
+                              );
+                            },
+                            // Add headers to handle WebP and other formats
+                            headers: const {
+                              'Accept': 'image/*',
+                            },
+                          ),
+                        )
+                      : Icon(
+                          Icons.inventory_2_outlined,
+                          color: AppConstants.errorRed,
+                          size: 20,
+                        ),
                 ),
                 SizedBox(width: 12),
                 Expanded(
@@ -854,6 +881,196 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTopProductsCard(AppProvider app, int userId) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DatabaseHelper.instance.getTopSellingProducts(
+        userId, 
+        DateTime.now().subtract(Duration(days: 30)), // Last 30 days
+        DateTime.now(),
+        limit: 5
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: double.infinity,
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: AppConstants.primaryDarkBlue,
+              ),
+            ),
+          );
+        }
+        
+        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
+          return Container(); // Return empty container if no data
+        }
+        
+        final topProducts = snapshot.data!;
+        
+        return Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.trending_up,
+                      color: AppConstants.primaryDarkBlue,
+                      size: 24,
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'สินค้ายอดนิยม (Top 5)',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppConstants.primaryDarkBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              ...topProducts.map((product) {
+                // Safely extract string values from map, handling Blob types from MySQL
+                String? _safeString(dynamic value) {
+                  if (value == null) return null;
+                  
+                  // Handle Blob type from MySQL
+                  if (value is List<int>) {
+                    return String.fromCharCodes(value);
+                  }
+                  
+                  // Handle regular string
+                  if (value is String) {
+                    return value.isEmpty ? null : value;
+                  }
+                  
+                  // Convert other types to string
+                  return value.toString();
+                }
+                
+                final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+                final productImage = _safeString(product['image']);
+                final totalRevenue = product['total_revenue'] is int 
+                    ? product['total_revenue'].toDouble() 
+                    : product['total_revenue'] as double? ?? 0.0;
+                final totalQuantity = product['total_quantity'] is double
+                    ? product['total_quantity'].toInt()
+                    : product['total_quantity'] as int? ?? 0;
+                
+                return Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Product image
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: productImage != null && productImage.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  productImage,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.inventory_2,
+                                      color: AppConstants.primaryDarkBlue,
+                                      size: 20,
+                                    );
+                                  },
+                                  // Add headers to handle WebP and other formats
+                                  headers: const {
+                                    'Accept': 'image/*',
+                                  },
+                                ),
+                              )
+                            : Icon(
+                                Icons.inventory_2,
+                                color: AppConstants.primaryDarkBlue,
+                                size: 20,
+                              ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              productName,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppConstants.primaryDarkBlue,
+                              ),
+                            ),
+                            Text(
+                              'ขายได้ $totalQuantity หน่วย',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppConstants.textDarkGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        AppUtils.formatCurrency(totalRevenue),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryDarkBlue,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -967,67 +1184,217 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               ),
             )
           else
-            ...sales.map((sale) => Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey.withOpacity(0.1),
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppConstants.successGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+            FutureBuilder<List<Sale>>(
+              future: _loadSalesWithItems(sales),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Container(
+                    height: 150,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppConstants.primaryDarkBlue,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.receipt_outlined,
-                      color: AppConstants.successGreen,
-                      size: 20,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          sale.receiptNumber,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppConstants.primaryDarkBlue,
-                          ),
-                        ),
-                        Text(
-                          AppUtils.formatDateTimeThai(sale.saleDate),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppConstants.textDarkGray,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    AppUtils.formatCurrency(sale.totalAmount),
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppConstants.successGreen,
-                    ),
-                  ),
-                ],
-              ),
-            )).toList(),
+                  );
+                }
+                
+                if (snapshot.hasError || !snapshot.hasData) {
+                  // Fallback to original implementation if there's an error
+                  return _buildRecentSalesFallback(sales);
+                }
+                
+                final salesWithItems = snapshot.data!;
+                return _buildRecentSalesWithImages(salesWithItems);
+              },
+            ),
         ],
       ),
+    );
+  }
+
+  Future<List<Sale>> _loadSalesWithItems(List sales) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final app = Provider.of<AppProvider>(context, listen: false);
+    
+    if (auth.currentUser?.id == null) {
+      return sales as List<Sale>;
+    }
+    
+    // Load sales with their items
+    final salesWithItems = <Sale>[];
+    for (var sale in sales as List<Sale>) {
+      try {
+        final items = await app.getSaleItemsWithProducts(sale.id!);
+        salesWithItems.add(sale.copyWith(items: items));
+      } catch (e) {
+        debugPrint('Error loading sale items: $e');
+        salesWithItems.add(sale);
+      }
+    }
+    
+    return salesWithItems;
+  }
+
+  Widget _buildRecentSalesWithImages(List<Sale> sales) {
+    return Column(
+      children: sales.map((sale) {
+        // Get the first product image if available
+        String? firstProductImage;
+        if (sale.items != null && sale.items!.isNotEmpty && sale.items!.first.product != null) {
+          firstProductImage = sale.items!.first.product!.image;
+        }
+        
+        final itemCount = sale.items?.length ?? 0;
+        final isHighValue = sale.totalAmount > 1000; // High value sale threshold
+        
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.grey.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppConstants.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: firstProductImage != null && firstProductImage.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.network(
+                          firstProductImage,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              isHighValue ? Icons.star : Icons.receipt,
+                              color: isHighValue ? Colors.green[700] : AppConstants.successGreen,
+                              size: 20,
+                            );
+                          },
+                          // Add headers to handle WebP and other formats
+                          headers: const {
+                            'Accept': 'image/*',
+                          },
+                        ),
+                      )
+                    : Icon(
+                        isHighValue ? Icons.star : Icons.receipt,
+                        color: isHighValue ? Colors.green[700] : AppConstants.successGreen,
+                        size: 20,
+                      ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sale.receiptNumber,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppConstants.primaryDarkBlue,
+                      ),
+                    ),
+                    Text(
+                      AppUtils.formatDateTimeThai(sale.saleDate),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppConstants.textDarkGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                AppUtils.formatCurrency(sale.totalAmount),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppConstants.successGreen,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildRecentSalesFallback(List sales) {
+    return Column(
+      children: sales.map((sale) {
+        final itemCount = sale.items?.length ?? 0;
+        final isHighValue = sale.totalAmount > 1000; // High value sale threshold
+        
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.grey.withOpacity(0.1),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppConstants.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isHighValue ? Icons.star : Icons.receipt,
+                  color: isHighValue ? Colors.green[700] : AppConstants.successGreen,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      sale.receiptNumber,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppConstants.primaryDarkBlue,
+                      ),
+                    ),
+                    Text(
+                      AppUtils.formatDateTimeThai(sale.saleDate),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppConstants.textDarkGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                AppUtils.formatCurrency(sale.totalAmount),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppConstants.successGreen,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -1824,7 +2191,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           itemBuilder: (context, index) {
             final product = lowStockProducts[index];
             final urgencyLevel = product.quantity == 0 ? 2 : 
-                               product.quantity <= (product.lowStock * 0.5) ? 1 : 0;
+                               product.quantity <= (product.lowStock * 00.5) ? 1 : 0;
             
             return Container(
               margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
