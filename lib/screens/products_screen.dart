@@ -1318,27 +1318,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
               ),
               const SizedBox(height: 20),
+              // Action buttons
               Row(
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _showEditProductDialog(product);
-                      },
-                      icon: const Icon(Icons.edit_rounded),
-                      label: const Text('แก้ไขสินค้า'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
-                      label: const Text('ปิด'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
@@ -1350,6 +1332,36 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryYellow,
                         foregroundColor: AppConstants.primaryDarkBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showEditProductDialog(product);
+                      },
+                      icon: const Icon(Icons.edit_rounded),
+                      label: const Text('แก้ไขสินค้า'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                      label: const Text('ปิด'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
