@@ -1197,8 +1197,10 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     
     Navigator.pop(context);
     
-    // Here you would typically add the product to a cart provider
-    // For now, we'll just show a success message
+    // Add the product to the cart using AppProvider
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    appProvider.addToCart(product, quantity: quantity);
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
