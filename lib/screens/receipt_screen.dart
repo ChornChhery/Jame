@@ -29,7 +29,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
   late Animation<Offset> _slideAnimation;
   
   Sale? _currentSale;
+  List<SaleItem> _saleItems = [];
   bool _isLoading = false;
+  bool _itemsLoaded = false;
 
   @override
   void initState() {
@@ -60,13 +62,45 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
 
   void _loadLatestSale() {
     if (widget.sale != null) {
-      _currentSale = widget.sale;
+      setState(() {
+        _currentSale = widget.sale;
+      });
+      _loadSaleItems();
     } else {
       // Get the latest sale from provider
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final app = Provider.of<AppProvider>(context, listen: false);
+        if (app.sales.isNotEmpty) {
+          setState(() {
+            _currentSale = app.sales.first; // Assuming sales are sorted by date desc
+          });
+          _loadSaleItems();
+        }
+      });
+    }
+  }
+
+  Future<void> _loadSaleItems() async {
+    if (_currentSale == null || _itemsLoaded) return;
+    
+    setState(() => _isLoading = true);
+    
+    try {
       final app = Provider.of<AppProvider>(context, listen: false);
-      if (app.sales.isNotEmpty) {
-        _currentSale = app.sales.first; // Assuming sales are sorted by date desc
-      }
+      final items = await app.getSaleItemsWithProducts(_currentSale!.id!);
+      setState(() {
+        _saleItems = items;
+        _itemsLoaded = true;
+        _isLoading = false;
+      });
+    } catch (e) {
+      debugPrint('Failed to load sale items: $e');
+      // Fallback to empty list
+      setState(() {
+        _saleItems = [];
+        _itemsLoaded = true;
+        _isLoading = false;
+      });
     }
   }
 
@@ -457,61 +491,61 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
           ),
           
           // Items list
-          Consumer<AppProvider>(
-            builder: (context, app, child) {
-              // For demo purposes, we'll use the last cart items
-              // In real implementation, you'd get sale items from the sale object
-              return Column(
-                children: app.cartItems.map((item) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.product.name,
-                              style: const TextStyle(fontSize: 11),
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else
+            Column(
+              children: _saleItems.map((item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.product?.name ?? 'ไม่พบชื่อสินค้า',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                          Text(
+                            'รหัส: ${item.product?.code ?? '-'}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[600],
                             ),
-                            Text(
-                              'รหัส: ${item.product.code}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      Expanded(
-                        child: Text(
-                          '${item.quantity}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 11),
-                        ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '${item.quantity}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 11),
                       ),
-                      Expanded(
-                        child: Text(
-                          '฿${NumberFormat('#,##0.00').format(item.product.price)}',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 11),
-                        ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '฿${NumberFormat('#,##0.00').format(item.unitPrice)}',
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontSize: 11),
                       ),
-                      Expanded(
-                        child: Text(
-                          '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
-                          textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 11),
-                        ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontSize: 11),
                       ),
-                    ],
-                  ),
-                )).toList(),
-              );
-            },
-          ),
+                    ),
+                  ],
+                ),
+              )).toList(),
+            ),
         ],
       ),
     );
@@ -731,7 +765,6 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
   Future<List<int>> _generatePDF() async {
     final pdf = pw.Document();
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final app = Provider.of<AppProvider>(context, listen: false);
     final user = auth.currentUser!;
 
     pdf.addPage(
@@ -808,11 +841,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                     ],
                   ),
-                  ...app.cartItems.map((item) => pw.TableRow(
+                  ..._saleItems.map((item) => pw.TableRow(
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text(item.product.name),
+                        child: pw.Text(item.product?.name ?? 'ไม่พบชื่อสินค้า'),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
@@ -820,7 +853,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
-                        child: pw.Text('฿${NumberFormat('#,##0.00').format(item.product.price)}'),
+                        child: pw.Text('฿${NumberFormat('#,##0.00').format(item.unitPrice)}'),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),

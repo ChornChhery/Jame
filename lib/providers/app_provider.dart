@@ -276,6 +276,17 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// Get sale items with product details for a specific sale
+  Future<List<SaleItem>> getSaleItemsWithProducts(int saleId) async {
+    try {
+      return await DatabaseHelper.instance.getSaleItemsWithProducts(saleId);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
   /// Get inventory movement data for stock analysis
   Future<Map<String, dynamic>> getInventoryMovement(int userId, DateTime startDate, DateTime endDate) async {
     try {

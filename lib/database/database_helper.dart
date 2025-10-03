@@ -529,4 +529,48 @@ class DatabaseHelper {
       return false;
     }
   }
+
+  /// Get sale items with product details for a specific sale
+  Future<List<SaleItem>> getSaleItemsWithProducts(int saleId) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT si.*, p.name as product_name, p.code as product_code, p.price as product_price,
+           p.quantity as product_quantity, p.low_stock, p.category, p.unit, p.image
+           FROM sale_items si
+           JOIN products p ON si.product_id = p.id
+           WHERE si.sale_id = ?''',
+        [saleId]
+      );
+      
+      return results.map((map) {
+        // Create a Product object from the joined data
+        final product = Product(
+          id: map['product_id'],
+          userId: map['user_id'] ?? 0,
+          name: map['product_name'] ?? '',
+          price: map['product_price']?.toDouble() ?? 0.0,
+          quantity: map['product_quantity'] ?? 0,
+          lowStock: map['low_stock'] ?? 0,
+          code: map['product_code'] ?? '',
+          category: map['category'],
+          unit: map['unit'] ?? 'หน่วย',
+          image: map['image'],
+        );
+        
+        // Create a SaleItem with the product
+        return SaleItem(
+          id: map['id'],
+          saleId: map['sale_id'],
+          productId: map['product_id'],
+          quantity: map['quantity'],
+          unitPrice: map['unit_price']?.toDouble() ?? 0.0,
+          totalPrice: map['total_price']?.toDouble() ?? 0.0,
+          product: product,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Get sale items with products failed: $e');
+      return [];
+    }
+  }
 }
