@@ -1,6 +1,7 @@
 // FILE: lib/screens/reports_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../core/constants.dart';
@@ -42,6 +43,18 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   Map<String, dynamic> _salesTrends = {};
   List<Map<String, dynamic>> _productPerformance = [];
   Map<String, dynamic> _customerSegmentation = {};
+  
+  // New data for different time periods
+  List<Map<String, dynamic>> _topSellingToday = [];
+  List<Map<String, dynamic>> _topSellingYesterday = [];
+  List<Map<String, dynamic>> _topSellingThisWeek = [];
+  List<Map<String, dynamic>> _topSellingThisMonth = [];
+  List<Map<String, dynamic>> _topSellingLastMonth = [];
+  List<Map<String, dynamic>> _topSellingThisYear = [];
+  List<Map<String, dynamic>> _topSellingLastYear = [];
+  
+  // Selected time period for top products tab - default to "วันนี้" (today)
+  String _selectedTopProductsPeriod = 'วันนี้';
 
   @override
   void initState() {
@@ -115,6 +128,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                saleDateThai.isBefore(endDateThai);
       }).toList();
       
+      // Load sale items with product details for the filtered sales
+      final salesWithItems = <Sale>[];
+      for (var sale in filteredSales) {
+        try {
+          final items = await app.getSaleItemsWithProducts(sale.id!);
+          salesWithItems.add(sale.copyWith(items: items));
+        } catch (e) {
+          debugPrint('Error loading sale items: $e');
+          salesWithItems.add(sale);
+        }
+      }
+      
+      // Update the recent sales with items
+      _recentSales = salesWithItems.take(10).toList();
+      
       // Calculate sales analytics
       _salesData = _calculateSalesAnalytics(filteredSales);
       
@@ -123,9 +151,6 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       
       // Get low stock products
       _lowStockProducts = await app.getLowStockProducts(auth.currentUser!.id!);
-      
-      // Get recent sales
-      _recentSales = filteredSales.take(10).toList();
       
       // Load advanced analytics data
       await _loadAdvancedAnalytics(auth.currentUser!.id!);
@@ -141,7 +166,70 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     try {
       final app = Provider.of<AppProvider>(context, listen: false);
       
-      // Get top selling products
+      // Get top selling products for different time periods
+      final now = DateTime.now();
+      
+      // Today
+      _topSellingToday = await app.getTopSellingProducts(
+        userId, 
+        DateTime(now.year, now.month, now.day),
+        DateTime(now.year, now.month, now.day, 23, 59, 59),
+        limit: 5
+      );
+      
+      // Yesterday
+      final yesterday = now.subtract(Duration(days: 1));
+      _topSellingYesterday = await app.getTopSellingProducts(
+        userId, 
+        DateTime(yesterday.year, yesterday.month, yesterday.day),
+        DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59),
+        limit: 5
+      );
+      
+      // This week
+      final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+      _topSellingThisWeek = await app.getTopSellingProducts(
+        userId, 
+        DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day),
+        DateTime(now.year, now.month, now.day, 23, 59, 59),
+        limit: 5
+      );
+      
+      // This month
+      _topSellingThisMonth = await app.getTopSellingProducts(
+        userId, 
+        DateTime(now.year, now.month, 1),
+        DateTime(now.year, now.month, now.day, 23, 59, 59),
+        limit: 5
+      );
+      
+      // Last month
+      final lastMonth = DateTime(now.year, now.month - 1, 1);
+      final lastMonthEnd = DateTime(now.year, now.month, 0); // Last day of last month
+      _topSellingLastMonth = await app.getTopSellingProducts(
+        userId, 
+        DateTime(lastMonth.year, lastMonth.month, 1),
+        DateTime(lastMonthEnd.year, lastMonthEnd.month, lastMonthEnd.day, 23, 59, 59),
+        limit: 5
+      );
+      
+      // This year
+      _topSellingThisYear = await app.getTopSellingProducts(
+        userId, 
+        DateTime(now.year, 1, 1),
+        DateTime(now.year, now.month, now.day, 23, 59, 59),
+        limit: 5
+      );
+      
+      // Last year
+      _topSellingLastYear = await app.getTopSellingProducts(
+        userId, 
+        DateTime(now.year - 1, 1, 1),
+        DateTime(now.year - 1, 12, 31, 23, 59, 59),
+        limit: 5
+      );
+      
+      // Get top selling products for current period
       _topSellingProducts = await app.getTopSellingProducts(
         userId, 
         _startDate, 
@@ -631,7 +719,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   ],
                 ),
                 Container(
-                  height: 400,
+                  height: 500, // Increased height to accommodate more content
                   child: TabBarView(
                     controller: _tabController,
                     children: [
@@ -679,6 +767,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         final itemCount = sale.items?.length ?? 0;
         final isHighValue = sale.totalAmount > 1000; // High value sale threshold
         
+        // Get the first product image if available
+        String? firstProductImage;
+        if (sale.items != null && sale.items!.isNotEmpty && sale.items!.first.product != null) {
+          firstProductImage = sale.items!.first.product!.image;
+        }
+        
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -696,11 +790,30 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 color: AppConstants.primaryDarkBlue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                isHighValue ? Icons.star : Icons.receipt,
-                color: isHighValue ? Colors.green[700] : AppConstants.primaryDarkBlue,
-                size: 20,
-              ),
+              child: firstProductImage != null && firstProductImage.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        firstProductImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            isHighValue ? Icons.star : Icons.receipt,
+                            color: isHighValue ? Colors.green[700] : AppConstants.primaryDarkBlue,
+                            size: 20,
+                          );
+                        },
+                        // Add headers to handle WebP and other formats
+                        headers: const {
+                          'Accept': 'image/*',
+                        },
+                      ),
+                    )
+                  : Icon(
+                      isHighValue ? Icons.star : Icons.receipt,
+                      color: isHighValue ? Colors.green[700] : AppConstants.primaryDarkBlue,
+                      size: 20,
+                    ),
             ),
             title: Text(
               sale.receiptNumber,
@@ -766,111 +879,252 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   }
 
   Widget _buildTopProductsTab() {
-    if (_topSellingProducts.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.inventory_2, size: 48, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'ยังไม่มีข้อมูลสินค้ายอดนิยม',
+    // Define time period options with Thai labels
+    final Map<String, List<Map<String, dynamic>>> timePeriods = {
+      'วันนี้': _topSellingToday,
+      'เมื่อวาน': _topSellingYesterday,
+      'สัปดาห์นี้': _topSellingThisWeek,
+      'เดือนนี้': _topSellingThisMonth,
+      'เดือนที่แล้ว': _topSellingLastMonth,
+      'ปีนี้': _topSellingThisYear,
+      'ปีที่แล้ว': _topSellingLastYear,
+    };
+    
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Time period filter dropdown
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Text(
+                  'แสดงสินค้ายอดนิยมตามช่วงเวลา:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: AppConstants.primaryDarkBlue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                DropdownButton<String>(
+                  value: _selectedTopProductsPeriod,
+                  items: timePeriods.keys.map((String period) {
+                    return DropdownMenuItem<String>(
+                      value: period,
+                      child: Text(
+                        period,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppConstants.primaryDarkBlue,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        _selectedTopProductsPeriod = newValue;
+                      });
+                    }
+                  },
+                  icon: Icon(Icons.arrow_drop_down, color: AppConstants.primaryDarkBlue),
+                  underline: Container(),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ],
+            ),
+          ),
+          
+          // Display selected period's top products
+          if (timePeriods[_selectedTopProductsPeriod]!.isNotEmpty)
+            _buildTopProductsSection('สินค้ายอดนิยม ($_selectedTopProductsPeriod)', timePeriods[_selectedTopProductsPeriod]!),
+          
+          if (timePeriods[_selectedTopProductsPeriod]!.isEmpty)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inventory_2, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'ยังไม่มีข้อมูลสินค้ายอดนิยม',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopProductsSection(String title, List<Map<String, dynamic>> products) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppConstants.primaryDarkBlue.withOpacity(0.05),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Text(
+              title,
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _topSellingProducts.length,
-      itemBuilder: (context, index) {
-        final product = _topSellingProducts[index];
-        final productName = product['name'] as String? ?? 'ไม่ระบุชื่อ';
-        final productCode = product['code'] as String? ?? '';
-        // Fix type casting issue - handle both int and double types
-        final totalQuantity = product['total_quantity'] is int 
-            ? product['total_quantity'] as int? ?? 0
-            : (product['total_quantity'] as double? ?? 0.0).toInt();
-        final totalRevenue = product['total_revenue'] as double? ?? 0.0;
-        // Fix type casting issue - handle both int and double types
-        final saleCount = product['sale_count'] is int 
-            ? product['sale_count'] as int? ?? 0
-            : (product['sale_count'] as double? ?? 0.0).toInt();
-        
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: ListTile(
-            leading: Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppConstants.primaryDarkBlue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.inventory_2,
+                fontWeight: FontWeight.bold,
                 color: AppConstants.primaryDarkBlue,
-                size: 20,
               ),
-            ),
-            title: Text(
-              productName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'รหัส: $productCode',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  '$saleCount ครั้งการขาย',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '${AppUtils.formatCurrency(totalRevenue)}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  '${totalQuantity} หน่วยขายได้',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
             ),
           ),
-        );
-      },
+          ListView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              
+              // Safely extract string values from map, handling Blob types from MySQL
+              String? _safeString(dynamic value) {
+                if (value == null) return null;
+                
+                // Handle Blob type from MySQL
+                if (value is List<int>) {
+                  return String.fromCharCodes(value);
+                }
+                
+                // Handle regular string
+                if (value is String) {
+                  return value.isEmpty ? null : value;
+                }
+                
+                // Convert other types to string
+                return value.toString();
+              }
+              
+              final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+              final productCode = _safeString(product['code']) ?? '-';
+              final productImage = _safeString(product['image']);
+              final totalRevenue = product['total_revenue'] is int 
+                  ? product['total_revenue'].toDouble() 
+                  : product['total_revenue'] as double? ?? 0.0;
+              final totalQuantity = product['total_quantity'] is double
+                  ? product['total_quantity'].toInt()
+                  : product['total_quantity'] as int? ?? 0;
+              final saleCount = product['sale_count'] is int 
+                  ? product['sale_count'] as int? ?? 0
+                  : (product['sale_count'] as double? ?? 0.0).toInt();
+              
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.grey.withOpacity(0.1),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // Product image
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: productImage != null && productImage.isNotEmpty
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                productImage,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.inventory_2,
+                                    color: AppConstants.primaryDarkBlue,
+                                    size: 20,
+                                  );
+                                },
+                                // Add headers to handle WebP and other formats
+                                headers: const {
+                                  'Accept': 'image/*',
+                                },
+                              ),
+                            )
+                          : Icon(
+                              Icons.inventory_2,
+                              color: AppConstants.primaryDarkBlue,
+                              size: 20,
+                            ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            productName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'รหัส: $productCode',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            '$saleCount ครั้งการขาย • ${totalQuantity} หน่วย',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${AppUtils.formatCurrency(totalRevenue)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -902,6 +1156,26 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         final isCritical = product.quantity <= product.lowStock ~/ 2;
         final stockPercentage = (product.quantity / product.lowStock) * 100;
         
+        // Safely extract string values from product, handling Blob types from MySQL
+        String? _safeString(dynamic value) {
+          if (value == null) return null;
+          
+          // Handle Blob type from MySQL
+          if (value is List<int>) {
+            return String.fromCharCodes(value);
+          }
+          
+          // Handle regular string
+          if (value is String) {
+            return value.isEmpty ? null : value;
+          }
+          
+          // Convert other types to string
+          return value.toString();
+        }
+        
+        final productImage = _safeString(product.image);
+        
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
@@ -921,11 +1195,30 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     : Colors.orange.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                isCritical ? Icons.error : Icons.warning_amber,
-                color: isCritical ? Colors.red[700] : Colors.orange[700],
-                size: 20,
-              ),
+              child: productImage != null && productImage.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        productImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            isCritical ? Icons.error : Icons.warning_amber,
+                            color: isCritical ? Colors.red[700] : Colors.orange[700],
+                            size: 20,
+                          );
+                        },
+                        // Add headers to handle WebP and other formats
+                        headers: const {
+                          'Accept': 'image/*',
+                        },
+                      ),
+                    )
+                  : Icon(
+                      isCritical ? Icons.error : Icons.warning_amber,
+                      color: isCritical ? Colors.red[700] : Colors.orange[700],
+                      size: 20,
+                    ),
             ),
             title: Text(
               product.name,
@@ -994,6 +1287,9 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     final dailyRevenue = _salesData['dailyRevenue'] as Map<String, double>? ?? {};
     final growthRate = _salesTrends['growthRate'] as double? ?? 0.0;
     final isGrowing = growthRate >= 0;
+    final totalRevenue = _salesData['totalRevenue'] ?? 0.0;
+    final totalCost = _salesData['totalCost'] ?? 0.0;
+    final totalProfit = _salesData['totalProfit'] ?? 0.0;
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -1045,6 +1341,27 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
               ],
             ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Profit/Loss Summary Chart
+          Text(
+            'ภาพรวมรายได้และกำไร',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: _buildProfitLossChart(totalRevenue, totalCost, totalProfit),
           ),
           const SizedBox(height: 24),
           
@@ -1246,6 +1563,27 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       gridData: FlGridData(show: false),
                     ),
                   ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Break-Even Analysis
+          Text(
+            'วิเคราะห์จุดคุ้มทุน (Break-Even Analysis)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppConstants.primaryDarkBlue,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            height: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: _buildBreakEvenChart(totalRevenue, totalCost, totalProfit),
           ),
           const SizedBox(height: 24),
           
@@ -1533,8 +1871,28 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       itemCount: _reorderSuggestions.length,
       itemBuilder: (context, index) {
         final product = _reorderSuggestions[index];
-        final productName = product['name'] as String? ?? 'ไม่ระบุชื่อ';
-        final productCode = product['code'] as String? ?? '';
+        
+        // Safely extract string values from map, handling Blob types from MySQL
+        String? _safeString(dynamic value) {
+          if (value == null) return null;
+          
+          // Handle Blob type from MySQL
+          if (value is List<int>) {
+            return String.fromCharCodes(value);
+          }
+          
+          // Handle regular string
+          if (value is String) {
+            return value.isEmpty ? null : value;
+          }
+          
+          // Convert other types to string
+          return value.toString();
+        }
+        
+        final productName = _safeString(product['name']) ?? 'ไม่ระบุชื่อ';
+        final productCode = _safeString(product['code']) ?? '';
+        final productImage = _safeString(product['image']);
         // Fix type casting issue - handle both int and double types
         final currentQuantity = product['quantity'] is int 
             ? product['quantity'] as int? ?? 0
@@ -1543,7 +1901,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         final lowStockLevel = product['low_stock'] is int 
             ? product['low_stock'] as int? ?? 0
             : (product['low_stock'] as double? ?? 0.0).toInt();
-        final unit = product['unit'] as String? ?? 'หน่วย';
+        final unit = _safeString(product['unit']) ?? 'หน่วย';
         final avgDailySales = product['avg_daily_sales'] as double? ?? 0.0;
         final daysUntilOutOfStock = product['days_until_out_of_stock'] as double? ?? 999.0;
         
@@ -1581,11 +1939,30 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 color: urgencyColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                urgencyIcon,
-                color: urgencyColor,
-                size: 20,
-              ),
+              child: productImage != null && productImage.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        productImage,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            urgencyIcon,
+                            color: urgencyColor,
+                            size: 20,
+                          );
+                        },
+                        // Add headers to handle WebP and other formats
+                        headers: const {
+                          'Accept': 'image/*',
+                        },
+                      ),
+                    )
+                  : Icon(
+                      urgencyIcon,
+                      color: urgencyColor,
+                      size: 20,
+                    ),
             ),
             title: Text(
               productName,
@@ -1724,6 +2101,174 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         ),
       );
     }
+  }
+
+  Widget _buildProfitLossChart(double totalRevenue, double totalCost, double totalProfit) {
+    // If no data, show empty state
+    if (totalRevenue == 0 && totalCost == 0 && totalProfit == 0) {
+      return Center(
+        child: Text(
+          'ยังไม่มีข้อมูลรายได้และกำไร',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      );
+    }
+    
+    return BarChart(
+      BarChartData(
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            tooltipBgColor: Colors.grey[800]!,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              String label = '';
+              switch (groupIndex) {
+                case 0:
+                  label = 'รายได้';
+                  break;
+                case 1:
+                  label = 'ต้นทุน';
+                  break;
+                case 2:
+                  label = 'กำไร';
+                  break;
+              }
+              return BarTooltipItem(
+                '$label\n${AppUtils.formatCurrency(rod.toY)}',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+          ),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                switch (value.toInt()) {
+                  case 0:
+                    return Text('รายได้', style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                  case 1:
+                    return Text('ต้นทุน', style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                  case 2:
+                    return Text('กำไร', style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                  default:
+                    return const Text('');
+                }
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  AppUtils.formatCurrency(value),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey[600],
+                  ),
+                );
+              },
+            ),
+          ),
+          topTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          rightTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+        ),
+        borderData: FlBorderData(show: true),
+        barGroups: [
+          BarChartGroupData(
+            x: 0,
+            barRods: [
+              BarChartRodData(
+                toY: totalRevenue,
+                color: Colors.green,
+                width: 20,
+                borderRadius: BorderRadius.zero,
+              ),
+            ],
+          ),
+          BarChartGroupData(
+            x: 1,
+            barRods: [
+              BarChartRodData(
+                toY: totalCost,
+                color: Colors.red,
+                width: 20,
+                borderRadius: BorderRadius.zero,
+              ),
+            ],
+          ),
+          BarChartGroupData(
+            x: 2,
+            barRods: [
+              BarChartRodData(
+                toY: totalProfit,
+                color: totalProfit >= 0 ? Colors.blue : Colors.orange,
+                width: 20,
+                borderRadius: BorderRadius.zero,
+              ),
+            ],
+          ),
+        ],
+        gridData: FlGridData(show: true),
+      ),
+    );
+  }
+
+  Widget _buildBreakEvenChart(double totalRevenue, double totalCost, double totalProfit) {
+    // If no data, show empty state
+    if (totalRevenue == 0 && totalCost == 0) {
+      return Center(
+        child: Text(
+          'ยังไม่มีข้อมูลสำหรับการวิเคราะห์จุดคุ้มทุน',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      );
+    }
+    
+    // Calculate break-even point (simplified)
+    final double breakEvenPoint = totalCost > 0 ? (totalCost / totalRevenue) * 100 : 0.0;
+    final double profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0.0;
+    
+    return PieChart(
+      PieChartData(
+        sectionsSpace: 2,
+        centerSpaceRadius: 40,
+        sections: [
+          PieChartSectionData(
+            color: Colors.red,
+            value: breakEvenPoint.toDouble(),
+            title: 'ต้นทุน\n${breakEvenPoint.toStringAsFixed(1)}%',
+            radius: 50,
+            titleStyle: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          PieChartSectionData(
+            color: Colors.green,
+            value: (100 - breakEvenPoint).toDouble(),
+            title: 'กำไร\n${profitMargin.toStringAsFixed(1)}%',
+            radius: 50,
+            titleStyle: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorMessage(String message) {

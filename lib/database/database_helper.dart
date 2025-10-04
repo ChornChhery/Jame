@@ -464,7 +464,7 @@ class DatabaseHelper {
     try {
       // Get products with low stock that have high sales velocity
       final results = await _mysqlDB.executeSelectQuery(
-        '''SELECT p.name, p.code, p.quantity, p.low_stock, p.unit,
+        '''SELECT p.name, p.code, p.image, p.quantity, p.low_stock, p.unit,
            COALESCE(sales_data.avg_daily_sales, 0) as avg_daily_sales,
            CASE 
              WHEN sales_data.avg_daily_sales > 0 THEN p.quantity / sales_data.avg_daily_sales
