@@ -11,6 +11,7 @@ import 'screens/receipt_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/products_screen.dart' as products;
 import 'screens/scanner_screen.dart';
+import 'screens/notifications_screen.dart';
 import 'providers/auth_provider.dart';
 import 'core/constants.dart';
 
@@ -123,6 +124,15 @@ class AppRoutes {
             context,
             () => ProfileScreen(),
             'โปรไฟล์',
+          ),
+        );
+      
+      case '/notifications':
+        return MaterialPageRoute(
+          builder: (context) => _buildProtectedRoute(
+            context,
+            () => NotificationsScreen(),
+            'การแจ้งเตือน',
           ),
         );
       

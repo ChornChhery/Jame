@@ -282,17 +282,63 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       },
                     ),
                     SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.notifications_outlined, color: Colors.white),
-                        onPressed: () {
-                          // Show notifications
-                        },
-                      ),
+                    // Notification icon with badges
+                    Consumer<AppProvider>(
+                      builder: (context, app, child) {
+                        // Count low stock products
+                        final lowStockCount = app.products
+                            .where((product) => product.quantity <= product.lowStock)
+                            .length;
+                        
+                        // Count cart items
+                        final cartItemCount = app.cartItemCount;
+                        
+                        return Stack(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: IconButton(
+                                icon: Icon(Icons.notifications_outlined, color: Colors.white),
+                                onPressed: () {
+                                  _showNotificationsDialog(context);
+                                },
+                              ),
+                            ),
+                            if (lowStockCount > 0 || cartItemCount > 0)
+                              Positioned(
+                                right: 0,
+                                top: 0,
+                                child: Container(
+                                  padding: EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: AppConstants.errorRed,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  constraints: BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    '${lowStockCount + cartItemCount}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     SizedBox(width: 8),
                     GestureDetector(
@@ -558,6 +604,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     final actions = [
       {
         'title': 'สแกนสินค้า',
+        'subtitle': 'สแกนบาร์โค้ดสินค้า',
         'icon': Icons.qr_code_scanner,
         'color': AppConstants.primaryYellow,
         'route': AppConstants.scannerRoute,
@@ -565,6 +612,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       },
       {
         'title': 'ขายด่วน',
+        'subtitle': 'ขายสินค้าทันที',
         'icon': Icons.point_of_sale,
         'color': Colors.purple,
         'isManualSale': true,
@@ -572,6 +620,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       },
       {
         'title': 'จัดการสินค้า',
+        'subtitle': 'เพิ่ม-แก้ไขสินค้า',
         'icon': Icons.inventory_2_outlined,
         'color': AppConstants.softBlue,
         'route': AppConstants.productsRoute,
@@ -579,6 +628,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       },
       {
         'title': 'ตะกร้าสินค้า',
+        'subtitle': 'จัดการคำสั่งซื้อ',
         'icon': Icons.shopping_cart_outlined,
         'color': AppConstants.accentOrange,
         'route': AppConstants.cartRoute,
@@ -586,6 +636,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       },
       {
         'title': 'รายงานขาย',
+        'subtitle': 'วิเคราะห์ยอดขาย',
         'icon': Icons.analytics_outlined,
         'color': AppConstants.successGreen,
         'route': AppConstants.reportsRoute,
@@ -605,29 +656,31 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ),
         ),
         SizedBox(height: 16),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.0,
-          ),
-          itemCount: actions.length,
-          itemBuilder: (context, index) {
-            final action = actions[index];
-            return _buildActionCard(
-              action['title'] as String,
-              action['icon'] as IconData,
-              action['gradient'] as List<Color>,
-              () {
-                if (action['isManualSale'] == true) {
-                  _showManualSaleDialog();
-                } else {
-                  Navigator.pushNamed(context, action['route'] as String);
-                }
-              },
+        Consumer<AppProvider>(
+          builder: (context, app, child) {
+            // Count cart items for the cart button badge
+            final cartItemCount = app.cartItemCount;
+            
+            return Column(
+              children: [
+                for (int i = 0; i < actions.length; i++) ...[
+                  if (i > 0) SizedBox(height: 12),
+                  _buildActionListItem(
+                    actions[i]['title'] as String,
+                    actions[i]['subtitle'] as String,
+                    actions[i]['icon'] as IconData,
+                    actions[i]['gradient'] as List<Color>,
+                    () {
+                      if (actions[i]['isManualSale'] == true) {
+                        _showManualSaleDialog();
+                      } else {
+                        Navigator.pushNamed(context, actions[i]['route'] as String);
+                      }
+                    },
+                    actions[i]['route'] == AppConstants.cartRoute ? cartItemCount : 0,
+                  ),
+                ],
+              ],
             );
           },
         ),
@@ -635,7 +688,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, List<Color> gradient, VoidCallback onTap) {
+  Widget _buildActionListItem(String title, String subtitle, IconData icon, List<Color> gradient, VoidCallback onTap, int badgeCount) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -643,12 +696,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           end: Alignment.bottomRight,
           colors: gradient,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: gradient[0].withOpacity(0.3),
-            blurRadius: 15,
-            offset: Offset(0, 8),
+            color: gradient[0].withOpacity(0.2),
+            blurRadius: 8,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -656,18 +709,18 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: EdgeInsets.all(16),
+            child: Row(
               children: [
+                // Icon container
                 Container(
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     icon,
@@ -675,15 +728,67 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     color: Colors.white,
                   ),
                 ),
-                SizedBox(height: 12),
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                SizedBox(width: 16),
+                
+                // Text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
+                ),
+                
+                // Badge for cart items
+                if (badgeCount > 0)
+                  Container(
+                    padding: EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppConstants.errorRed,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white,
+                        width: 2,
+                      ),
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    child: Text(
+                      '$badgeCount',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                
+                // Arrow icon
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white.withOpacity(0.7),
+                  size: 16,
                 ),
               ],
             ),
@@ -1398,6 +1503,408 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
+  void _showManualSaleDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ManualSaleDialog(
+          onSaleCompleted: () {
+            // Refresh data after sale completion
+            _loadData();
+          },
+        );
+      },
+    );
+  }
+
+  void _showNotificationsDialog(BuildContext context) {
+    final app = Provider.of<AppProvider>(context, listen: false);
+    
+    // Get low stock products
+    final lowStockProducts = app.products
+        .where((product) => product.quantity <= product.lowStock)
+        .toList();
+    
+    // Get cart items
+    final cartItems = app.cartItems.toList();
+    
+    // Get recent sales (today only)
+    final recentSales = app.sales
+        .where((sale) => _isToday(sale.saleDate))
+        .toList()
+      ..sort((a, b) => b.saleDate.compareTo(a.saleDate));
+    
+    final last5Sales = recentSales.take(5).toList();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.notifications, color: AppConstants.primaryDarkBlue),
+              SizedBox(width: 8),
+              Text('การแจ้งเตือน'),
+            ],
+          ),
+          content: Container(
+            width: MediaQuery.of(context).size.width * 0.8,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Low stock notifications
+                if (lowStockProducts.isNotEmpty) ...[
+                  Text(
+                    'แจ้งเตือนสินค้าใกล้หมด (${lowStockProducts.length})',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppConstants.primaryDarkBlue,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    constraints: BoxConstraints(maxHeight: 150),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: lowStockProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = lowStockProducts[index];
+                        return Container(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppConstants.errorRed.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: product.image != null && product.image!.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          product.image!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.inventory_2_outlined,
+                                              color: AppConstants.errorRed,
+                                              size: 20.0,
+                                            );
+                                          },
+                                          headers: const {
+                                            'Accept': 'image/*',
+                                          },
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.inventory_2_outlined,
+                                        color: AppConstants.errorRed,
+                                        size: 20.0,
+                                      ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product.name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      'เหลือ ${product.quantity} ${product.unit}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppConstants.textDarkGray,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppConstants.errorRed.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'น้อยกว่า ${product.lowStock}',
+                                  style: TextStyle(
+                                    color: AppConstants.errorRed,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
+                
+                // Cart items notifications
+                if (cartItems.isNotEmpty) ...[
+                  Text(
+                    'สินค้าในตะกร้า (${cartItems.length})',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppConstants.primaryDarkBlue,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    constraints: BoxConstraints(maxHeight: 150),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: cartItems.length,
+                      itemBuilder: (context, index) {
+                        final cartItem = cartItems[index];
+                        final product = cartItem.product;
+                        return Container(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppConstants.accentOrange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: product?.image != null && product!.image!.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          product.image!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.shopping_cart,
+                                              color: AppConstants.accentOrange,
+                                              size: 20.0,
+                                            );
+                                          },
+                                          headers: const {
+                                            'Accept': 'image/*',
+                                          },
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.shopping_cart,
+                                        color: AppConstants.accentOrange,
+                                        size: 20.0,
+                                      ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      product?.name ?? 'ไม่ระบุสินค้า',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${cartItem.quantity} ${product?.unit ?? 'หน่วย'} x ${AppUtils.formatCurrency(product?.price ?? 0)}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppConstants.textDarkGray,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                AppUtils.formatCurrency((product?.price ?? 0) * cartItem.quantity),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppConstants.accentOrange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                ],
+                
+                // Recent sales notifications
+                if (last5Sales.isNotEmpty) ...[
+                  Text(
+                    'การขายล่าสุด (${last5Sales.length})',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppConstants.primaryDarkBlue,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    constraints: BoxConstraints(maxHeight: 150),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: last5Sales.length,
+                      itemBuilder: (context, index) {
+                        final sale = last5Sales[index];
+                        // Get the first product image if available
+                        String? firstProductImage;
+                        if (sale.items != null && sale.items!.isNotEmpty && sale.items!.first.product != null) {
+                          firstProductImage = sale.items!.first.product!.image;
+                        }
+                        
+                        return Container(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppConstants.successGreen.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: firstProductImage != null && firstProductImage!.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          firstProductImage!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.receipt,
+                                              color: AppConstants.successGreen,
+                                              size: 20.0,
+                                            );
+                                          },
+                                          headers: const {
+                                            'Accept': 'image/*',
+                                          },
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.receipt,
+                                        color: AppConstants.successGreen,
+                                        size: 20.0,
+                                      ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      sale.receiptNumber,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      AppUtils.formatDateTimeThai(sale.saleDate),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppConstants.textDarkGray,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                AppUtils.formatCurrency(sale.totalAmount),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppConstants.successGreen,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ] else if (lowStockProducts.isEmpty && cartItems.isEmpty) ...[
+                  Center(
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline,
+                          size: 48,
+                          color: AppConstants.successGreen,
+                        ),
+                        SizedBox(height: 12),
+                        Text(
+                          'ไม่มีการแจ้งเตือน',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          'ไม่มีสินค้าใกล้หมดและยังไม่มีการขายวันนี้',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppConstants.textDarkGray,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/notifications');
+              },
+              child: Text('ดูการแจ้งเตือนทั้งหมด'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('ปิด'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildModernBottomNav() {
     final items = [
       {'icon': Icons.dashboard, 'label': 'แดชบอร์ด', 'route': null},
@@ -1455,7 +1962,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         size: 24,
                       ),
                       SizedBox(height: 4),
-                                            Text(
+                      Text(
                         item['label'] as String,
                         style: TextStyle(
                           color: isSelected 
@@ -1503,926 +2010,5 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     return date.year == now.year && 
            date.month == now.month && 
            date.day == now.day;
-  }
-
-  @override
-  void dispose() {
-    if (_isInitialized) {
-      _animationController.dispose();
-    }
-    super.dispose();
-  }
-
-  void _showManualSaleDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => ManualSaleDialog(
-        onSaleCompleted: () {
-          _loadData(); // Refresh dashboard data
-        },
-      ),
-    );
-  }
-}
-
-// ================================
-// PRODUCTS MANAGEMENT SCREEN
-// ================================
-
-class ProductsScreen extends StatefulWidget {
-  final Map<String, dynamic>? arguments;
-  
-  const ProductsScreen({Key? key, this.arguments}) : super(key: key);
-
-  @override
-  _ProductsScreenState createState() => _ProductsScreenState();
-}
-
-class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStateMixin {
-  late TabController _tabController;
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  
-  final _searchController = TextEditingController();
-  String _searchQuery = '';
-  String? _selectedCategory;
-  bool _isLoading = false;
-  List<Product> _filteredProducts = [];
-  
-  final List<String> _thaiCategories = [
-    'อาหารและเครื่องดื่ม',
-    'ของใช้ในบ้าน',
-    'เครื่องเขียน',
-    'ยาและอุปกรณ์การแพทย์',
-    'เสื้อผ้าและเครื่องแต่งกาย',
-    'อิเล็กทรอนิกส์',
-    'เครื่องใช้ในครัว',
-    'อื่นๆ'
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _initializeAnimations();
-    _loadProducts();
-    
-    // Add listener to search controller
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
-      _searchProducts();
-    });
-    
-    // Handle navigation arguments for scanner integration
-    if (widget.arguments != null) {
-      final args = widget.arguments!;
-      if (args['mode'] == 'add') {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showAddEditProductDialog(prefilledCode: args['code']);
-        });
-      } else if (args['mode'] == 'view' && args['product'] != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showProductDetailsDialog(args['product']);
-        });
-      }
-    }
-  }
-
-  void _initializeAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-    
-    _animationController.forward();
-  }
-
-  Future<void> _loadProducts() async {
-    setState(() => _isLoading = true);
-    
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final app = Provider.of<AppProvider>(context, listen: false);
-    
-    if (auth.currentUser?.id != null) {
-      await app.loadProducts(auth.currentUser!.id!);
-    }
-    
-    setState(() => _isLoading = false);
-    _searchProducts();
-  }
-
-  void _searchProducts() {
-    final app = Provider.of<AppProvider>(context, listen: false);
-    List<Product> products = app.products;
-
-    // Filter by search query
-    if (_searchQuery.isNotEmpty) {
-      products = products.where((product) {
-        return product.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               product.code.toLowerCase().contains(_searchQuery.toLowerCase());
-      }).toList();
-    }
-
-    // Filter by category
-    if (_selectedCategory != null) {
-      products = products.where((product) {
-        return product.category == _selectedCategory;
-      }).toList();
-    }
-
-    setState(() {
-      _filteredProducts = products;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(),
-            _buildSearchAndFilter(),
-            _buildTabBar(),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildProductsList(),
-                  _buildLowStockAlerts(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: _buildFAB(),
-    );
-  }
-
-  // Placeholder for the remaining methods
-  Widget _buildAppBar() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppConstants.primaryDarkBlue,
-            AppConstants.primaryDarkBlue.withOpacity(0.8),
-          ],
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'จัดการสินค้า',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Consumer<AppProvider>(
-                  builder: (context, app, child) {
-                    return Text(
-                      'ทั้งหมด ${app.products.length} รายการ',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          if (_isLoading)
-            const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSearchAndFilter() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        children: [
-          // Search bar
-          Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[300]!),
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'ค้นหาสินค้า...', // Search products...
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.clear, color: Colors.grey[600]),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchProducts();
-                        },
-                      )
-                    : null,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              ),
-              onChanged: (value) => _searchProducts(),
-            ),
-          ),
-          SizedBox(height: 12),
-          
-          // Filter chips
-          SizedBox(
-            height: 40,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _thaiCategories.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  return Padding(
-                    padding: EdgeInsets.only(left: 4, right: 8),
-                    child: FilterChip(
-                      label: Text('ทั้งหมด'), // All
-                      selected: _selectedCategory == null,
-                      onSelected: (selected) {
-                        setState(() {
-                          _selectedCategory = null;
-                        });
-                        _searchProducts();
-                      },
-                      backgroundColor: Colors.grey[200],
-                      selectedColor: AppConstants.primaryDarkBlue.withOpacity(0.2),
-                      checkmarkColor: AppConstants.primaryDarkBlue,
-                    ),
-                  );
-                }
-                
-                final category = _thaiCategories[index - 1];
-                return Padding(
-                  padding: EdgeInsets.only(right: 8),
-                  child: FilterChip(
-                    label: Text(category),
-                    selected: _selectedCategory == category,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedCategory = selected ? category : null;
-                      });
-                      _searchProducts();
-                    },
-                    backgroundColor: Colors.grey[200],
-                    selectedColor: AppConstants.primaryDarkBlue.withOpacity(0.2),
-                    checkmarkColor: AppConstants.primaryDarkBlue,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        indicator: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: AppConstants.primaryDarkBlue,
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.grey[600],
-        tabs: [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.inventory_2),
-                SizedBox(width: 8),
-                Text('รายการสินค้า'), // Product List
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.warning_amber),
-                SizedBox(width: 8),
-                Text('สต็อกต่ำ'), // Low Stock
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProductsList() {
-    return Consumer<AppProvider>(
-      builder: (context, app, child) {
-        if (_isLoading && app.products.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: CircularProgressIndicator(
-                color: AppConstants.primaryDarkBlue,
-              ),
-            ),
-          );
-        }
-
-        if (app.products.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.inventory_2,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'ยังไม่มีสินค้า',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'เริ่มต้นด้วยการเพิ่มสินค้าใหม่',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: _filteredProducts.length,
-          itemBuilder: (context, index) {
-            final product = _filteredProducts[index];
-            final isLowStock = product.quantity <= product.lowStock;
-            
-            return Container(
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isLowStock ? Colors.orange[300]! : Colors.grey[200]!,
-                  width: isLowStock ? 2 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ListTile(
-                contentPadding: EdgeInsets.all(16),
-                leading: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryDarkBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: product.image != null && product.image!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            product.image!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Log the error for debugging
-                              print('Image loading error in dashboard: $error');
-                              return Icon(
-                                Icons.inventory_2,
-                                color: AppConstants.primaryDarkBlue,
-                                size: 24,
-                              );
-                            },
-                            // Add headers to handle WebP and other formats
-                            headers: const {
-                              'Accept': 'image/*',
-                            },
-                          ),
-                        )
-                      : Icon(
-                          Icons.inventory_2,
-                          color: AppConstants.primaryDarkBlue,
-                          size: 24,
-                        ),
-                ),
-                title: Text(
-                  product.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (product.code != null && product.code!.isNotEmpty)
-                      Text(
-                        'รหัส: ${product.code}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            '฿${NumberFormat('#,##0.00').format(product.price)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppConstants.primaryDarkBlue,
-                              fontSize: 14,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isLowStock ? Colors.orange : Colors.green,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'คงเหลือ ${product.quantity}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                trailing: SizedBox(
-                  width: 90, // Further reduced trailing width
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Compact Add to Cart button
-                      GestureDetector(
-                        onTap: product.quantity > 0 ? () => _addToCart(product) : null,
-                        child: Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: product.quantity > 0 
-                                ? AppConstants.primaryDarkBlue.withOpacity(0.1)
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Icon(
-                            Icons.add_shopping_cart,
-                            color: product.quantity > 0 
-                                ? AppConstants.primaryDarkBlue 
-                                : Colors.grey[400],
-                            size: 14,
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      if (isLowStock)
-                        Icon(
-                          Icons.warning,
-                          color: Colors.orange,
-                          size: 14,
-                        ),
-                      if (isLowStock)
-                        SizedBox(width: 4),
-                      PopupMenuButton<String>(
-                        padding: EdgeInsets.zero,
-                        iconSize: 14,
-                        constraints: BoxConstraints(
-                          minWidth: 28,
-                          minHeight: 28,
-                        ),
-                        onSelected: (value) {
-                          switch (value) {
-                            case 'add_to_cart':
-                              _addToCart(product);
-                              break;
-                            case 'view':
-                              _showProductDetailsDialog(product);
-                              break;
-                            case 'edit':
-                              _showAddEditProductDialog(product: product);
-                              break;
-                            case 'delete':
-                              _showDeleteConfirmDialog(product);
-                              break;
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'add_to_cart',
-                            height: 35,
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_shopping_cart, size: 14, color: AppConstants.primaryDarkBlue),
-                                SizedBox(width: 4),
-                                Expanded(child: Text('เพิ่มในตะกร้า', style: TextStyle(color: AppConstants.primaryDarkBlue, fontSize: 11))),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'view',
-                            height: 35,
-                            child: Row(
-                              children: [
-                                Icon(Icons.visibility, size: 14),
-                                SizedBox(width: 4),
-                                Expanded(child: Text('ดูรายละเอียด', style: TextStyle(fontSize: 11))),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'edit',
-                            height: 35,
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit, size: 14),
-                                SizedBox(width: 4),
-                                Expanded(child: Text('แก้ไข', style: TextStyle(fontSize: 11))),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            height: 35,
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, size: 14, color: Colors.red),
-                                SizedBox(width: 4),
-                                Expanded(child: Text('ลบ', style: TextStyle(color: Colors.red, fontSize: 11))),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                onTap: () => _showProductDetailsDialog(product),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildLowStockAlerts() {
-    return Consumer<AppProvider>(
-      builder: (context, app, child) {
-        final lowStockProducts = app.products
-            .where((product) => product.quantity <= product.lowStock)
-            .toList();
-
-        if (lowStockProducts.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    size: 64,
-                    color: Colors.green[400],
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'สต็อกปกติ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.green[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'ไม่มีสินค้าที่มีสต็อกต่ำ',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: lowStockProducts.length,
-          itemBuilder: (context, index) {
-            final product = lowStockProducts[index];
-            final urgencyLevel = product.quantity == 0 ? 2 : 
-                               product.quantity <= (product.lowStock * 00.5) ? 1 : 0;
-            
-            return Container(
-              margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: urgencyLevel == 2 ? Colors.red :
-                         urgencyLevel == 1 ? Colors.orange : Colors.amber,
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ListTile(
-                contentPadding: EdgeInsets.all(16),
-                leading: Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: (urgencyLevel == 2 ? Colors.red :
-                           urgencyLevel == 1 ? Colors.orange : Colors.amber)
-                           .withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    urgencyLevel == 2 ? Icons.error :
-                    urgencyLevel == 1 ? Icons.warning : Icons.info,
-                    color: urgencyLevel == 2 ? Colors.red :
-                           urgencyLevel == 1 ? Colors.orange : Colors.amber,
-                    size: 24,
-                  ),
-                ),
-                title: Text(
-                  product.name,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      urgencyLevel == 2 ? 'หมด! ต้องเติมสต็อกด่วน' :
-                      urgencyLevel == 1 ? 'สต็อกต่ำมาก! ควรเติมสต็อก' :
-                      'สต็อกต่ำ แนะนำให้เติมสต็อก',
-                      style: TextStyle(
-                        color: urgencyLevel == 2 ? Colors.red :
-                               urgencyLevel == 1 ? Colors.orange : Colors.amber[700],
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          'คงเหลือ: ${product.quantity}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Text(
-                          'ขั้นต่ำ: ${product.lowStock}',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                trailing: ElevatedButton(
-                  onPressed: () => _showAddEditProductDialog(product: product),
-                  child: Text('เติมสต็อก'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppConstants.primaryDarkBlue,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    minimumSize: Size(0, 32),
-                  ),
-                ),
-                onTap: () => _showProductDetailsDialog(product),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildFAB() {
-    return FloatingActionButton.extended(
-      onPressed: () => _showAddEditProductDialog(),
-      backgroundColor: AppConstants.primaryDarkBlue,
-      foregroundColor: Colors.white,
-      icon: Icon(Icons.add),
-      label: Text('เพิ่มสินค้า'),
-    );
-  }
-
-  void _showAddEditProductDialog({Product? product, String? prefilledCode}) {
-    showDialog(
-      context: context,
-      builder: (context) => AddEditProductDialog(
-        product: product,
-        prefilledCode: prefilledCode,
-        onSaved: () {
-          _loadProducts();
-        },
-      ),
-    );
-  }
-
-  void _showProductDetailsDialog(Product product) {
-    showDialog(
-      context: context,
-      builder: (context) => ProductDetailsDialog(
-        product: product,
-        onEdit: () {
-          Navigator.pop(context);
-          _showAddEditProductDialog(product: product);
-        },
-        onDelete: () {
-          Navigator.pop(context);
-          _showDeleteConfirmDialog(product);
-        },
-      ),
-    );
-  }
-
-  void _showDeleteConfirmDialog(Product product) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('ยืนยันการลบ'),
-        content: Text('คุณต้องการลบสินค้า "${product.name}" หรือไม่?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                final appProvider = Provider.of<AppProvider>(context, listen: false);
-                
-                await appProvider.deleteProduct(
-                  product.id!,
-                  authProvider.currentUser!.id!,
-                );
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('ลบสินค้าเรียบร้อยแล้ว'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                
-                _loadProducts();
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('เกิดข้อผิดพลาด: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: Text('ลบ'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _addToCart(Product product) {
-    if (product.quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('สินค้านี้หมดสต็อกแล้ว'),
-          backgroundColor: AppConstants.errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: EdgeInsets.all(16),
-        ),
-      );
-      return;
-    }
-
-    final appProvider = Provider.of<AppProvider>(context, listen: false);
-    appProvider.addToCart(product, quantity: 1);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
-        backgroundColor: AppConstants.successGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.all(16),
-        action: SnackBarAction(
-          label: 'ดูตะกร้า',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.pushNamed(context, AppConstants.cartRoute);
-          },
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _animationController.dispose();
-    _searchController.dispose();
-    super.dispose();
   }
 }
