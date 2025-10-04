@@ -34,6 +34,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     });
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Listen for changes in the AppProvider and refresh data when sales data changes
+    final app = Provider.of<AppProvider>(context, listen: true);
+    // The Consumer2 in the build method will automatically rebuild when app data changes
+  }
+
   void _initializeAnimations() {
     try {
       _animationController = AnimationController(
@@ -1503,20 +1511,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
-  void _showManualSaleDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return ManualSaleDialog(
-          onSaleCompleted: () {
-            // Refresh data after sale completion
-            _loadData();
-          },
-        );
-      },
-    );
-  }
-
   void _showNotificationsDialog(BuildContext context) {
     final app = Provider.of<AppProvider>(context, listen: false);
     
@@ -1983,9 +1977,23 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     );
   }
 
+  void _showManualSaleDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ManualSaleDialog(
+          onSaleCompleted: () {
+            // Refresh data after sale completion
+            _loadData();
+          },
+        );
+      },
+    );
+  }
+
   double _getTodaySalesStatic(AppProvider app) {
     // Calculate today's sales from existing sales data without async call
-    final today = DateTime.now();
+    final today = AppUtils.toThaiTime(DateTime.now());
     final todaySales = app.sales.where((sale) => _isToday(sale.saleDate));
     return todaySales.fold<double>(0.0, (sum, sale) => sum + sale.totalAmount);
   }
@@ -2006,9 +2014,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && 
-           date.month == now.month && 
-           date.day == now.day;
+    final now = AppUtils.toThaiTime(DateTime.now());
+    final thaiDate = AppUtils.toThaiTime(date);
+    return thaiDate.year == now.year && 
+           thaiDate.month == now.month && 
+           thaiDate.day == now.day;
   }
 }
