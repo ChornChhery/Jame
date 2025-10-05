@@ -1241,9 +1241,13 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               ),
             ),
             const SizedBox(width: 12),
-            Text(
-              'เพิ่ม ${product.name} จำนวน $quantity ${product.unit} ในตะกร้าแล้ว',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            Expanded(
+              child: Text(
+                'เพิ่ม ${product.name} จำนวน $quantity ${product.unit} ในตะกร้าแล้ว',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -1263,7 +1267,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       ),
       builder: (context) => Container(
         padding: const EdgeInsets.all(20),
-        child: SingleChildScrollView(  // Make the content scrollable
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

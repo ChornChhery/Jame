@@ -24,6 +24,16 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   late Animation<Offset> _slideAnimation;
   int _selectedNavIndex = 0;
   bool _isInitialized = false;
+  
+  // Add mounted check for older Flutter versions
+  bool get _mounted {
+    try {
+      return mounted;
+    } catch (e) {
+      // Fallback for older Flutter versions
+      return true;
+    }
+  }
 
   @override
   void initState() {
@@ -55,7 +65,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
       );
       _isInitialized = true;
-      _animationController.forward();
+      
+      // Only forward animation if widget is still mounted
+      if (_mounted) {
+        _animationController.forward().catchError((error) {
+          debugPrint('Animation forward error: $error');
+        });
+      }
     } catch (e) {
       debugPrint('Animation initialization failed: $e');
       _isInitialized = false;
@@ -63,58 +79,72 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   Future<void> _loadData() async {
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    final app = Provider.of<AppProvider>(context, listen: false);
+    // Check if widget is still mounted before accessing context
+    if (!_mounted) return;
     
-    if (auth.currentUser != null && auth.currentUser!.id != null) {
-      // Start background connection test (non-blocking)
-      auth.testServerConnectionBackground();
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final app = Provider.of<AppProvider>(context, listen: false);
       
-      try {
-        // Load data immediately without waiting for connection test
-        await app.loadProducts(auth.currentUser!.id!);
-        await app.loadSales(auth.currentUser!.id!);
+      if (auth.currentUser != null && auth.currentUser!.id != null) {
+        // Start background connection test (non-blocking)
+        auth.testServerConnectionBackground();
         
-        // Check connection status after data loading
-        final connectionAvailable = await auth.testServerConnection();
-        if (!connectionAvailable && mounted) {
-          // Show warning only if connection is down
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.warning_amber, color: Colors.white),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text('⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ แอปทำงานในโหมดจำกัด'), // Cannot connect to server, working in limited mode
-                  ),
-                ],
+        try {
+          // Load data immediately without waiting for connection test
+          await app.loadProducts(auth.currentUser!.id!);
+          await app.loadSales(auth.currentUser!.id!);
+          
+          // Check connection status after data loading
+          final connectionAvailable = await auth.testServerConnection();
+          // Check if widget is still mounted before showing snackbar
+          if (!connectionAvailable && _mounted) {
+            // Show warning only if connection is down
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.warning_amber, color: Colors.white),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text('⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ แอปทำงานในโหมดจำกัด'), // Cannot connect to server, working in limited mode
+                    ),
+                  ],
+                ),
+                backgroundColor: Colors.orange[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: EdgeInsets.all(16),
+                duration: Duration(seconds: 3),
               ),
-              backgroundColor: Colors.orange[600],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              margin: EdgeInsets.all(16),
-              duration: Duration(seconds: 3),
-            ),
-          );
+            );
+          }
+          
+          // Force a rebuild to update the UI with new data
+          if (_mounted) {
+            setState(() {});
+          }
+        } catch (e) {
+          // Handle data loading errors gracefully
+          debugPrint('⚠️ Data loading failed: $e');
+          // Check if widget is still mounted before showing snackbar
+          if (_mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), // Data loading failed, please try again
+                backgroundColor: AppConstants.errorRed,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: EdgeInsets.all(16),
+              ),
+            );
+          }
         }
-      } catch (e) {
-        // Handle data loading errors gracefully
-        debugPrint('⚠️ Data loading failed: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), // Data loading failed, please try again
-              backgroundColor: AppConstants.errorRed,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              margin: EdgeInsets.all(16),
-            ),
-          );
-        }
+      } else {
+        debugPrint('⚠️ Cannot load data: User or User ID is null');
       }
-    } else {
-      debugPrint('⚠️ Cannot load data: User or User ID is null');
+    } catch (e) {
+      debugPrint('⚠️ Unexpected error in _loadData: $e');
     }
   }
 
@@ -506,13 +536,41 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ),
                 SizedBox(height: 12),
                 // Fixed: Remove FutureBuilder to prevent setState during build
-                Text(
-                  AppUtils.formatCurrency(_getTodaySalesStatic(app)),
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
+                FutureBuilder<double>(
+                  future: _getTodaySales(userId), // Use async method to get real-time data
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Text(
+                        '฿0.00',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    }
+                    
+                    if (snapshot.hasError) {
+                      return Text(
+                        '฿0.00',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    }
+                    
+                    final todaySales = snapshot.data ?? 0.0;
+                    return Text(
+                      AppUtils.formatCurrency(todaySales),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -533,11 +591,17 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             ),
             SizedBox(width: 12),
             Expanded(
-              child: _buildStatCard(
-                'ขายแล้ววันนี้',
-                '${app.sales.where((s) => _isToday(s.saleDate)).length}',
-                Icons.receipt_outlined,
-                AppConstants.accentOrange,
+              child: FutureBuilder<int>(
+                future: _getTodaySalesCount(userId), // Use async method for real-time count
+                builder: (context, snapshot) {
+                  final salesCount = snapshot.data ?? 0;
+                  return _buildStatCard(
+                    'ขายแล้ววันนี้',
+                    '$salesCount',
+                    Icons.receipt_outlined,
+                    AppConstants.accentOrange,
+                  );
+                },
               ),
             ),
             SizedBox(width: 12),
@@ -1978,22 +2042,48 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   void _showManualSaleDialog() {
+    // Check if widget is still mounted before showing dialog
+    if (!_mounted) return;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return ManualSaleDialog(
           onSaleCompleted: () {
             // Refresh data after sale completion
-            _loadData();
+            _loadData().then((_) {
+              // Force UI update after data refresh
+              if (_mounted) {
+                setState(() {});
+              }
+            }).catchError((error) {
+              debugPrint('Error refreshing data after sale: $error');
+            });
           },
         );
       },
     );
   }
 
+  @override
+  void dispose() {
+    // Properly dispose animation controller to prevent ticker errors
+    try {
+      if (_isInitialized && _animationController.isAnimating) {
+        _animationController.stop();
+      }
+      if (_isInitialized) {
+        _animationController.dispose();
+      }
+    } catch (e) {
+      debugPrint('Error disposing animation controller: $e');
+    }
+    super.dispose();
+  }
+
   double _getTodaySalesStatic(AppProvider app) {
     // Calculate today's sales from existing sales data without async call
-    final today = AppUtils.toThaiTime(DateTime.now());
+    final today = DateTime.now();
     final todaySales = app.sales.where((sale) => _isToday(sale.saleDate));
     return todaySales.fold<double>(0.0, (sum, sale) => sum + sale.totalAmount);
   }
@@ -2014,10 +2104,32 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   bool _isToday(DateTime date) {
-    final now = AppUtils.toThaiTime(DateTime.now());
+    final now = DateTime.now();
     final thaiDate = AppUtils.toThaiTime(date);
     return thaiDate.year == now.year && 
            thaiDate.month == now.month && 
            thaiDate.day == now.day;
   }
+  
+  // Add async method to get today's sales for real-time data
+  Future<double> _getTodaySales(int userId) async {
+    try {
+      return await DatabaseHelper.instance.getTotalSalesToday(userId);
+    } catch (e) {
+      debugPrint('Error getting today sales: $e');
+      return 0.0;
+    }
+  }
+  
+  // Add async method to get today's sales count for real-time data
+  Future<int> _getTodaySalesCount(int userId) async {
+    try {
+      final sales = await DatabaseHelper.instance.getSalesToday(userId);
+      return sales.length;
+    } catch (e) {
+      debugPrint('Error getting today sales count: $e');
+      return 0;
+    }
+  }
+
 }
