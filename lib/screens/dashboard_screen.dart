@@ -94,6 +94,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           // Load data immediately without waiting for connection test
           await app.loadProducts(auth.currentUser!.id!);
           await app.loadSales(auth.currentUser!.id!);
+          await app.loadCartItems(auth.currentUser!.id!); // Load cart items
           
           // Check connection status after data loading
           final connectionAvailable = await auth.testServerConnection();

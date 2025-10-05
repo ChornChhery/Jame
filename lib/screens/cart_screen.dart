@@ -322,10 +322,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                         children: [
                           IconButton(
                             onPressed: cartItem.quantity > 1
-                                ? () => app.updateCartItemQuantity(
-                                    cartItem.product.id!,
-                                    cartItem.quantity - 1,
-                                  )
+                                ? () => _updateCartItemQuantity(app, cartItem, cartItem.quantity - 1)
                                 : null,
                             icon: const Icon(Icons.remove),
                             constraints: const BoxConstraints(
@@ -356,10 +353,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                           ),
                           IconButton(
                             onPressed: cartItem.quantity < cartItem.product.quantity
-                                ? () => app.updateCartItemQuantity(
-                                    cartItem.product.id!,
-                                    cartItem.quantity + 1,
-                                  )
+                                ? () => _updateCartItemQuantity(app, cartItem, cartItem.quantity + 1)
                                 : null,
                             icon: const Icon(Icons.add),
                             constraints: const BoxConstraints(
@@ -407,25 +401,23 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                     margin: const EdgeInsets.only(top: 12),
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                      color: Colors.orange[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange[200]!),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          Icons.warning_amber,
+                          Icons.warning_amber_rounded,
                           color: Colors.orange[700],
                           size: 16,
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'จำนวนสินค้าในสต็อกไม่เพียงพอ (เหลือ ${cartItem.product.quantity} ${cartItem.product.unit})',
-                            style: TextStyle(
-                              color: Colors.orange[700],
-                              fontSize: 12,
-                            ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'สต็อกไม่เพียงพอ',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -436,6 +428,99 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
           ),
         );
       },
+    );
+  }
+
+  void _updateCartItemQuantity(AppProvider app, CartItem cartItem, int newQuantity) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    if (auth.currentUser?.id != null) {
+      app.updateCartItemQuantityWithPersistence(auth.currentUser!.id!, cartItem.product.id!, newQuantity);
+    } else {
+      app.updateCartItemQuantity(cartItem.product.id!, newQuantity);
+    }
+  }
+
+  void _showRemoveItemDialog(AppProvider app, CartItem cartItem) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ลบออกจากตะกร้า'),
+        content: Text('คุณต้องการลบ \"${cartItem.product.name}\" ออกจากตะกร้าหรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (auth.currentUser?.id != null) {
+                app.removeFromCartWithPersistence(auth.currentUser!.id!, cartItem.product.id!);
+              } else {
+                app.removeFromCart(cartItem.product.id!);
+              }
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('ลบ ${cartItem.product.name} ออกจากตะกร้าแล้ว'),
+                  backgroundColor: AppConstants.successGreen,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('ลบ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearCartDialog(AppProvider app) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ล้างตะกร้าสินค้า'),
+        content: const Text('คุณต้องการล้างสินค้าทั้งหมดในตะกร้าหรือไม่?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (auth.currentUser?.id != null) {
+                app.clearCartWithPersistence(auth.currentUser!.id!);
+              } else {
+                app.clearCart();
+              }
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text('ล้างสินค้าในตะกร้าแล้ว'),
+                  backgroundColor: AppConstants.successGreen,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('ล้างตะกร้า'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -638,76 +723,6 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
 
   void _proceedToPayment() {
     Navigator.pushNamed(context, AppConstants.paymentRoute);
-  }
-
-  void _showRemoveItemDialog(AppProvider app, CartItem cartItem) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ลบออกจากตะกร้า'),
-        content: Text('คุณต้องการลบ \"${cartItem.product.name}\" ออกจากตะกร้าหรือไม่?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              app.removeFromCart(cartItem.product.id!);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('ลบ ${cartItem.product.name} ออกจากตะกร้าแล้ว'),
-                  backgroundColor: AppConstants.successGreen,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('ลบ'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showClearCartDialog(AppProvider app) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ล้างตะกร้าสินค้า'),
-        content: const Text('คุณต้องการลบสินค้าทั้งหมดออกจากตะกร้าหรือไม่?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              app.clearCart();
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('ล้างตะกร้าสินค้าแล้ว'),
-                  backgroundColor: AppConstants.successGreen,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('ล้างทั้งหมด'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override

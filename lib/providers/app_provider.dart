@@ -24,6 +24,27 @@ class AppProvider extends ChangeNotifier {
   double get cartTotal => _cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
   int get cartItemCount => _cartItems.fold(0, (sum, item) => sum + item.quantity);
 
+  // Load cart items for a specific user
+  Future<void> loadCartItems(int userId) async {
+    try {
+      // Test MySQL connection first
+      final connectionAvailable = await _connectDB.testMySQLConnection();
+      if (!connectionAvailable) {
+        _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
+        _cartItems = []; // Empty list when offline
+        notifyListeners();
+        return;
+      }
+      
+      _cartItems = await DatabaseHelper.instance.getCartItems(userId);
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _cartItems = []; // Empty list on error
+      notifyListeners();
+    }
+  }
+
   // Product operations with graceful MySQL failure handling
   Future<void> loadProducts(int userId) async {
     _isLoading = true;
@@ -36,20 +57,19 @@ class AppProvider extends ChangeNotifier {
       if (!connectionAvailable) {
         _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
         _products = []; // Empty list when offline
-        _isLoading = false;
         notifyListeners();
         return;
       }
       
       _products = await DatabaseHelper.instance.getProducts(userId);
-      _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'เกิดข้อผิดพลาดในการโหลดข้อมูลสินค้า: ${e.toString()}'; // Error loading product data
+      _error = e.toString();
       _products = []; // Empty list on error
+      notifyListeners();
+    } finally {
       _isLoading = false;
       notifyListeners();
-      debugPrint('❌ Product loading failed: $e');
     }
   }
 
@@ -148,6 +168,76 @@ class AppProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Persistent cart operations
+  Future<void> saveCartItemToDatabase(int userId, CartItem cartItem) async {
+    try {
+      await DatabaseHelper.instance.saveCartItem(userId, cartItem);
+    } catch (e) {
+      debugPrint('Failed to save cart item to database: $e');
+    }
+  }
+
+  Future<void> removeCartItemFromDatabase(int userId, int productId) async {
+    try {
+      await DatabaseHelper.instance.removeCartItem(userId, productId);
+    } catch (e) {
+      debugPrint('Failed to remove cart item from database: $e');
+    }
+  }
+
+  Future<void> clearCartInDatabase(int userId) async {
+    try {
+      await DatabaseHelper.instance.clearCartItems(userId);
+    } catch (e) {
+      debugPrint('Failed to clear cart items in database: $e');
+    }
+  }
+
+  // Enhanced cart operations with database persistence
+  void addToCartWithPersistence(int userId, Product product, {int quantity = 1}) {
+    final existingIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
+    CartItem cartItem;
+    
+    if (existingIndex != -1) {
+      // Fix: Always update quantity when adding same product
+      _cartItems[existingIndex].quantity += quantity;
+      cartItem = _cartItems[existingIndex];
+    } else {
+      cartItem = CartItem(product: product, quantity: quantity);
+      _cartItems.add(cartItem);
+    }
+    
+    // Save to database
+    saveCartItemToDatabase(userId, cartItem);
+    notifyListeners();
+  }
+
+  void updateCartItemQuantityWithPersistence(int userId, int productId, int quantity) {
+    final index = _cartItems.indexWhere((item) => item.product.id == productId);
+    if (index != -1) {
+      if (quantity <= 0) {
+        _cartItems.removeAt(index);
+        removeCartItemFromDatabase(userId, productId);
+      } else {
+        _cartItems[index].quantity = quantity;
+        saveCartItemToDatabase(userId, _cartItems[index]);
+      }
+      notifyListeners();
+    }
+  }
+
+  void removeFromCartWithPersistence(int userId, int productId) {
+    _cartItems.removeWhere((item) => item.product.id == productId);
+    removeCartItemFromDatabase(userId, productId);
+    notifyListeners();
+  }
+
+  void clearCartWithPersistence(int userId) {
+    _cartItems.clear();
+    clearCartInDatabase(userId);
+    notifyListeners();
+  }
+
   // Sale operations
   Future<bool> completeSale(int userId, String username, {String paymentMethod = 'QR'}) async {
     if (_cartItems.isEmpty) return false;
@@ -201,7 +291,7 @@ class AppProvider extends ChangeNotifier {
       // Sync sale to server in background
       _syncSaleToServer(sale, saleItems);
 
-      clearCart();
+      clearCartWithPersistence(userId); // Clear cart with persistence
       await loadSales(userId);
       notifyListeners();
       return true;

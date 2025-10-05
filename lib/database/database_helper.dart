@@ -592,6 +592,118 @@ class DatabaseHelper {
     }
   }
 
+  /// Get cart items for a specific user
+  Future<List<CartItem>> getCartItems(int userId) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT ci.*, p.user_id as product_user_id, p.name as product_name, p.price as product_price,
+           p.quantity as product_quantity, p.low_stock, p.code as product_code, p.category, 
+           p.unit as product_unit, p.image as product_image
+           FROM cart_items ci
+           JOIN products p ON ci.product_id = p.id
+           WHERE ci.user_id = ?''',
+        [userId]
+      );
+      
+      return results.map((map) {
+        // Safely extract string values from map, handling Blob types from MySQL
+        String? _safeString(dynamic value) {
+          if (value == null) return null;
+          
+          // Handle Blob type from MySQL
+          if (value is List<int>) {
+            return String.fromCharCodes(value);
+          }
+          
+          // Handle regular string
+          if (value is String) {
+            return value.isEmpty ? null : value;
+          }
+          
+          // Convert other types to string
+          return value.toString();
+        }
+        
+        // Create a Product object from the joined data
+        final product = Product(
+          id: map['product_id'],
+          userId: map['product_user_id'] ?? 0,
+          name: _safeString(map['product_name']) ?? '',
+          price: map['product_price']?.toDouble() ?? 0.0,
+          quantity: map['product_quantity'] ?? 0,
+          lowStock: map['low_stock'] ?? 0,
+          code: _safeString(map['product_code']) ?? '',
+          category: _safeString(map['category']),
+          unit: _safeString(map['product_unit']) ?? 'หน่วย',
+          image: _safeString(map['product_image']),
+        );
+        
+        // Create a CartItem with the product
+        return CartItem(
+          product: product,
+          quantity: map['quantity'] ?? 1,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Get cart items failed: $e');
+      return [];
+    }
+  }
+
+  /// Add or update cart item for a specific user
+  Future<bool> saveCartItem(int userId, CartItem cartItem) async {
+    try {
+      final result = await _mysqlDB.executeUpdateQuery(
+        '''
+        INSERT INTO cart_items (user_id, product_id, quantity)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        quantity=VALUES(quantity), updated_at=NOW()
+        ''',
+        [
+          userId,
+          cartItem.product.id,
+          cartItem.quantity,
+        ]
+      );
+      
+      return result;
+    } catch (e) {
+      debugPrint('Save cart item failed: $e');
+      return false;
+    }
+  }
+
+  /// Remove cart item for a specific user
+  Future<bool> removeCartItem(int userId, int productId) async {
+    try {
+      final result = await _mysqlDB.executeUpdateQuery(
+        'DELETE FROM cart_items WHERE user_id = ? AND product_id = ?',
+        [userId, productId]
+      );
+      
+      return result;
+    } catch (e) {
+      debugPrint('Remove cart item failed: $e');
+      return false;
+    }
+  }
+
+  /// Clear all cart items for a specific user
+  Future<bool> clearCartItems(int userId) async {
+    try {
+      final result = await _mysqlDB.executeUpdateQuery(
+        'DELETE FROM cart_items WHERE user_id = ?',
+        [userId]
+      );
+      
+      return result;
+    } catch (e) {
+      debugPrint('Clear cart items failed: $e');
+      return false;
+    }
+  }
+
   /// Add inventory record for stock movement tracking
   Future<bool> addInventoryRecord({
     required int userId,

@@ -707,7 +707,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   child: Column(
                     children: [
                       IconButton(
-                        onPressed: () => _addToCart(product),
+                        onPressed: () => _showAddToCartDialog(product),
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 24), // Increased from 20 to 24
                         color: AppConstants.primaryDarkBlue,
                         tooltip: 'เพิ่มในตะกร้า',
@@ -888,7 +888,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        onPressed: () => _addToCart(product),
+                        onPressed: () => _showAddToCartDialog(product),
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
                         color: AppConstants.primaryDarkBlue,
                         tooltip: 'เพิ่มในตะกร้า',
@@ -1088,7 +1088,46 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   void _addToCart(Product product) {
-    _showAddToCartDialog(product);
+    if (product.quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('สินค้านี้หมดสต็อกแล้ว'),
+          backgroundColor: AppConstants.errorRed,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (authProvider.currentUser?.id != null) {
+      // Use persistent cart operations
+      appProvider.addToCartWithPersistence(authProvider.currentUser!.id!, product, quantity: 1);
+    } else {
+      // Fallback to in-memory operations
+      appProvider.addToCart(product, quantity: 1);
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
+        backgroundColor: AppConstants.successGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16),
+        action: SnackBarAction(
+          label: 'ดูตะกร้า',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.pushNamed(context, AppConstants.cartRoute);
+          },
+        ),
+      ),
+    );
   }
 
   void _showAddToCartDialog(Product product) {
@@ -1329,7 +1368,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     child: ElevatedButton.icon(
                       onPressed: () {
                         Navigator.pop(context);
-                        _addToCart(product);
+                        _showAddToCartDialog(product);
                       },
                       icon: const Icon(Icons.add_shopping_cart_rounded),
                       label: const Text('เพิ่มในตะกร้า'),

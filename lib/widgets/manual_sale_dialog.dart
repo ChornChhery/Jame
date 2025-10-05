@@ -516,9 +516,15 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final app = Provider.of<AppProvider>(context, listen: false);
       
-      // Add to cart temporarily
-      app.clearCart(); // Clear existing cart
-      app.addToCart(_selectedProduct!, quantity: quantity);
+      if (auth.currentUser?.id != null) {
+        // Add to cart with persistence
+        app.clearCartWithPersistence(auth.currentUser!.id!); // Clear existing cart
+        app.addToCartWithPersistence(auth.currentUser!.id!, _selectedProduct!, quantity: quantity);
+      } else {
+        // Fallback to in-memory operations
+        app.clearCart(); // Clear existing cart
+        app.addToCart(_selectedProduct!, quantity: quantity);
+      }
       
       // Complete the sale
       final success = await app.completeSale(

@@ -515,6 +515,23 @@ class ConnectDB {
           ) ENGINE=InnoDB;
         ''',
         
+        // Cart items table
+        '''
+          CREATE TABLE IF NOT EXISTS cart_items (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            user_id INT NOT NULL,
+            product_id INT NOT NULL,
+            quantity INT NOT NULL DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+            UNIQUE KEY unique_cart_item_per_user (user_id, product_id),
+            INDEX idx_cart_items_user_id (user_id),
+            INDEX idx_cart_items_product_id (product_id)
+          ) ENGINE=InnoDB;
+        ''',
+        
         // Inventories table
         '''
           CREATE TABLE IF NOT EXISTS inventories (
