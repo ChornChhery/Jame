@@ -333,6 +333,16 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Sale>> getSalesByDateRange(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getSalesByDateRange(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
   // Advanced Analytics Methods
 
   /// Get sales data grouped by hour for peak hour analysis

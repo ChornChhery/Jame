@@ -112,9 +112,25 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       
       if (auth.currentUser?.id == null) return;
       
-      // Load products and sales for selected period directly from database
+      // Load existing data from AppProvider
+      await app.loadSales(auth.currentUser!.id!);
       await app.loadProducts(auth.currentUser!.id!);
-      final filteredSales = await app.getSalesByDateRange(auth.currentUser!.id!, _startDate, _endDate);
+      
+      // Filter sales for selected period
+      final allSales = app.sales;
+      final filteredSales = allSales.where((sale) {
+        // Convert both dates to Thai time for comparison
+        final saleDateThai = AppUtils.toThaiTime(sale.saleDate);
+        final startDateThai = AppUtils.toThaiTime(_startDate);
+        final endDateThai = AppUtils.toThaiTime(_endDate.add(Duration(days: 1)));
+        
+        // Fixed the date comparison logic
+        // Include sales from start date 00:00:00 to end date 23:59:59
+        final isAfterStart = saleDateThai.isAtSameMomentAs(startDateThai) || saleDateThai.isAfter(startDateThai);
+        final isBeforeEnd = saleDateThai.isAtSameMomentAs(endDateThai) || saleDateThai.isBefore(endDateThai);
+        
+        return isAfterStart && isBeforeEnd;
+      }).toList();
       
       // Load sale items with product details for the filtered sales
       final salesWithItems = <Sale>[];
@@ -158,7 +174,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       _topSellingProducts = await app.getTopSellingProducts(
         userId, 
         _startDate, 
-        _endDate, 
+        _endDate.add(Duration(days: 1)), // Include the end date
         limit: 10
       );
       
@@ -169,19 +185,19 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       _reorderSuggestions = await app.getReorderSuggestions(userId);
       
       // Get hourly sales data for the current selected period
-      _hourlySalesData = await app.getSalesByHour(userId, _startDate, _endDate);
+      _hourlySalesData = await app.getSalesByHour(userId, _startDate, _endDate.add(Duration(days: 1)));
       
       // Get daily sales data for the current selected period
-      _dailySalesData = await app.getSalesByDay(userId, _startDate, _endDate);
+      _dailySalesData = await app.getSalesByDay(userId, _startDate, _endDate.add(Duration(days: 1)));
       
       // Get inventory movement for the current selected period
-      _inventoryMovement = await app.getInventoryMovement(userId, _startDate, _endDate);
+      _inventoryMovement = await app.getInventoryMovement(userId, _startDate, _endDate.add(Duration(days: 1)));
       
       // Get sales trends for the current selected period
-      _salesTrends = await app.getSalesTrends(userId, _startDate, _endDate);
+      _salesTrends = await app.getSalesTrends(userId, _startDate, _endDate.add(Duration(days: 1)));
       
       // Get product performance for the current selected period
-      _productPerformance = await app.getProductPerformance(userId, _startDate, _endDate, limit: 15);
+      _productPerformance = await app.getProductPerformance(userId, _startDate, _endDate.add(Duration(days: 1)), limit: 15);
       
       // Get customer segmentation (no date filtering available in this method)
       _customerSegmentation = await app.getCustomerSegmentation(userId, limit: 100);
@@ -438,14 +454,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         break;
       case 'สัปดาห์นี้':
         final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final endOfWeek = startOfWeek.add(Duration(days: 6));
         _startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        _endDate = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+        _endDate = DateTime(now.year, now.month, now.day);
         break;
       case 'เดือนนี้':
-        final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
         _startDate = DateTime(now.year, now.month, 1);
-        _endDate = DateTime(lastDayOfMonth.year, lastDayOfMonth.month, lastDayOfMonth.day);
+        _endDate = DateTime(now.year, now.month, now.day);
         break;
     }
     

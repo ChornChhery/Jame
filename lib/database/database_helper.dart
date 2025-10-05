@@ -317,6 +317,30 @@ class DatabaseHelper {
     }
   }
 
+  Future<List<Sale>> getSalesByDateRange(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      // Convert to Thai time for consistent comparison
+      final startThai = AppUtils.toThaiTime(startDate);
+      final endThai = AppUtils.toThaiTime(endDate);
+      
+      // Include sales from start date 00:00:00 to end date 23:59:59
+      final startOfDay = DateTime(startThai.year, startThai.month, startThai.day);
+      final endOfDay = DateTime(endThai.year, endThai.month, endThai.day, 23, 59, 59);
+      
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT * FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           ORDER BY sale_date DESC''',
+        [userId, startOfDay.toIso8601String(), endOfDay.toIso8601String()]
+      );
+      
+      return results.map((map) => Sale.fromMap(map)).toList();
+    } catch (e) {
+      debugPrint('Get sales by date range failed: $e');
+      return [];
+    }
+  }
+
   Future<double> getTotalSalesToday(int userId) async {
     try {
       final sales = await getSalesToday(userId);
