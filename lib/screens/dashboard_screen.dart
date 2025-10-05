@@ -684,14 +684,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         'gradient': [AppConstants.primaryYellow, AppConstants.primaryYellow.withOpacity(0.7)],
       },
       {
-        'title': 'ขายด่วน',
-        'subtitle': 'ขายสินค้าทันที',
-        'icon': Icons.point_of_sale,
-        'color': Colors.purple,
-        'isManualSale': true,
-        'gradient': [Colors.purple, Colors.purple.withOpacity(0.7)],
-      },
-      {
         'title': 'จัดการสินค้า',
         'subtitle': 'เพิ่ม-แก้ไขสินค้า',
         'icon': Icons.inventory_2_outlined,
