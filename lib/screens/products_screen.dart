@@ -1261,9 +1261,17 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     
     Navigator.pop(context);
     
-    // Add the product to the cart using AppProvider
+    // Add the product to the cart using AppProvider with persistence
     final appProvider = Provider.of<AppProvider>(context, listen: false);
-    appProvider.addToCart(product, quantity: quantity);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    if (authProvider.currentUser?.id != null) {
+      // Use persistent cart operations
+      appProvider.addToCartWithPersistence(authProvider.currentUser!.id!, product, quantity: quantity);
+    } else {
+      // Fallback to in-memory operations
+      appProvider.addToCart(product, quantity: quantity);
+    }
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
