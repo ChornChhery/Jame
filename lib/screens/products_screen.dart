@@ -39,7 +39,8 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(_SliverTabBarDelegate oldDelegate) {
-    return false;
+    // Always rebuild to ensure counts are updated
+    return true;
   }
 }
 
@@ -386,7 +387,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   Widget _buildSliverTabBar() {
-    final productCount = _filteredProducts.length;
+    // Use filtered products for tab counts instead of all products
+    final allProductCount = _filteredProducts.length;
     final lowStockCount = _filteredProducts
         .where((p) => p.quantity <= p.lowStock).length;
     
@@ -407,7 +409,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 children: [
                   const Icon(Icons.inventory_2_rounded),
                   const SizedBox(width: 8),
-                  Text('สินค้าทั้งหมด ($productCount)'),
+                  Text('สินค้าทั้งหมด ($allProductCount)'),
                 ],
               ),
             ),
