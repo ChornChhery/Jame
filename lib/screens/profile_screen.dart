@@ -39,6 +39,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   // Profile image
   XFile? _profileImage;
   String? _profileImagePath;
+  final _imageUrlController = TextEditingController(); // New controller for image URL
+  bool _useImageUrl = false; // Flag to indicate if using URL instead of file
 
   @override
   void initState() {
@@ -58,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     _shopPhoneController.addListener(_onFieldChanged);
     _shopEmailController.addListener(_onFieldChanged);
     _promptPayController.addListener(_onFieldChanged);
+    _imageUrlController.addListener(_onFieldChanged); // Add listener for image URL
   }
 
   void _onFieldChanged() {
@@ -77,6 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     _shopPhoneController.dispose();
     _shopEmailController.dispose();
     _promptPayController.dispose();
+    _imageUrlController.dispose(); // Dispose the new controller
     super.dispose();
   }
 
@@ -95,6 +99,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       _promptPayController.text = user.paymentQr ?? '';
       _selectedCurrency = user.currency ?? 'THB';
       _profileImagePath = user.profileImage;
+      
+      // If the profile image is a URL, set the URL controller and flag
+      if (_profileImagePath != null && _profileImagePath!.startsWith('http')) {
+        _imageUrlController.text = _profileImagePath!;
+        _useImageUrl = true;
+      }
     }
   }
 
@@ -107,9 +117,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     setState(() => _isLoading = true);
 
     try {
-      // Save image if selected
       String? imagePath = _profileImagePath;
-      if (_profileImage != null) {
+      
+      // If using image URL, use that instead
+      if (_useImageUrl && _imageUrlController.text.isNotEmpty) {
+        imagePath = _imageUrlController.text.trim();
+      } 
+      // If local image is selected, save it
+      else if (_profileImage != null) {
         imagePath = await AppUtils.saveImageToDocuments(_profileImage!);
         if (imagePath == null) {
           _showErrorMessage('ไม่สามารถบันทึกรูปภาพได้');
@@ -132,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         shopEmail: _shopEmailController.text.trim(),
         currency: _selectedCurrency,
         paymentQr: _promptPayController.text.trim(),
-        profileImage: imagePath,
+        profileImage: imagePath, // This will be either URL or local path
       );
 
       await authProvider.updateProfile(updatedUser);
@@ -143,6 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           _hasUnsavedChanges = false;
           _profileImage = null;
           _profileImagePath = imagePath;
+          _useImageUrl = false;
         });
 
         _showSuccessMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
@@ -354,6 +370,45 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Add option to clear image
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  setState(() {
+                    _profileImage = null;
+                    _profileImagePath = null;
+                    _imageUrlController.clear();
+                    _useImageUrl = false;
+                    _hasUnsavedChanges = true;
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[50],
+                  foregroundColor: Colors.red[700],
+                  padding: const EdgeInsets.all(16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.delete_outline, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'ลบรูปโปรไฟล์',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -765,28 +820,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   child: CircleAvatar(
                     radius: 60,
                     backgroundColor: AppConstants.lightGray,
-                    child: _profileImage != null
-                        ? ClipOval(
-                            child: Image.file(
-                              File(_profileImage!.path),
-                              width: 120,
-                              height: 120,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : (_profileImagePath != null && _profileImagePath!.isNotEmpty)
-                            ? ClipOval(
-                                child: Image.file(
-                                  File(_profileImagePath!),
-                                  width: 120,
-                                  height: 120,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildDefaultAvatar();
-                                  },
-                                ),
-                              )
-                            : _buildDefaultAvatar(),
+                    child: _getDisplayImage(),
                   ),
                 ),
               ),
@@ -893,10 +927,135 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            // Add URL input option
+            _buildImageUrlOption(),
           ],
         ],
       ),
     );
+  }
+
+  Widget _buildImageUrlOption() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Checkbox(
+              value: _useImageUrl,
+              onChanged: (value) {
+                setState(() {
+                  _useImageUrl = value ?? false;
+                  if (!(_useImageUrl)) {
+                    _imageUrlController.clear();
+                  }
+                });
+              },
+              activeColor: AppConstants.primaryDarkBlue,
+            ),
+            const Text(
+              'ใช้ลิงก์รูปภาพ',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        if (_useImageUrl)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            child: TextFormField(
+              controller: _imageUrlController,
+              decoration: InputDecoration(
+                labelText: 'ลิงก์รูปภาพ',
+                hintText: 'https://example.com/image.jpg',
+                prefixIcon: const Icon(Icons.link, size: 20),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(
+                    color: AppConstants.primaryDarkBlue,
+                    width: 2,
+                  ),
+                ),
+              ),
+              keyboardType: TextInputType.url,
+              onChanged: (value) {
+                setState(() {
+                  _hasUnsavedChanges = true;
+                });
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _getDisplayImage() {
+    // If using image URL and it's not empty, display the network image
+    if (_useImageUrl && _imageUrlController.text.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          _imageUrlController.text,
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _buildDefaultAvatar();
+          },
+        ),
+      );
+    }
+    
+    // If local image is selected, display it
+    if (_profileImage != null) {
+      return ClipOval(
+        child: Image.file(
+          File(_profileImage!.path),
+          width: 120,
+          height: 120,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+    
+    // If there's a saved image path, display it
+    if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
+      // Check if it's a URL or local path
+      if (_profileImagePath!.startsWith('http')) {
+        return ClipOval(
+          child: Image.network(
+            _profileImagePath!,
+            width: 120,
+            height: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildDefaultAvatar();
+            },
+          ),
+        );
+      } else {
+        // Local file path
+        return ClipOval(
+          child: Image.file(
+            File(_profileImagePath!),
+            width: 120,
+            height: 120,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildDefaultAvatar();
+            },
+          ),
+        );
+      }
+    }
+    
+    // Default avatar
+    return _buildDefaultAvatar();
   }
 
   Widget _buildDefaultAvatar() {
