@@ -6,6 +6,7 @@ import '../models/product.dart';
 import '../models/sale.dart';
 import '../core/constants.dart';
 import '../core/connectdb.dart';
+import '../core/utils.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -298,7 +299,7 @@ class DatabaseHelper {
 
   Future<List<Sale>> getSalesToday(int userId) async {
     try {
-      final today = DateTime.now();
+      final today = AppUtils.toThaiTime(DateTime.now());
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = DateTime(today.year, today.month, today.day, 23, 59, 59);
       

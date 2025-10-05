@@ -94,7 +94,7 @@ class Sale {
     return Sale(
       id: id ?? this.id,
       userId: userId ?? this.userId,
-      saleDate: saleDate ?? AppUtils.toThaiTime(DateTime.now()),
+      saleDate: saleDate ?? this.saleDate,
       totalAmount: totalAmount ?? this.totalAmount,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       receiptNumber: receiptNumber ?? this.receiptNumber,
