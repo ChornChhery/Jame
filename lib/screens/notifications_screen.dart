@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
 import '../models/product.dart';
+import '../models/sale.dart';
 
 class NotificationsScreen extends StatefulWidget {
   @override
@@ -13,11 +14,42 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  // Add time filter for sales
+  String _selectedSalesFilter = 'today'; // today, yesterday, week, month
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+  }
+
+  // Helper method to filter sales based on selected filter
+  List<Sale> _filterSales(List<Sale> sales, String filter) {
+    final now = AppUtils.toThaiTime(DateTime.now());
+    
+    switch (filter) {
+      case 'today':
+        return sales.where((sale) => _isSameDay(sale.saleDate, now)).toList();
+      case 'yesterday':
+        final yesterday = now.subtract(Duration(days: 1));
+        return sales.where((sale) => _isSameDay(sale.saleDate, yesterday)).toList();
+      case 'week':
+        final weekAgo = now.subtract(Duration(days: 7));
+        return sales.where((sale) => sale.saleDate.isAfter(weekAgo)).toList();
+      case 'month':
+        final monthAgo = DateTime(now.year, now.month - 1, now.day);
+        return sales.where((sale) => sale.saleDate.isAfter(monthAgo)).toList();
+      default:
+        return sales.where((sale) => _isSameDay(sale.saleDate, now)).toList();
+    }
+  }
+
+  bool _isSameDay(DateTime date1, DateTime date2) {
+    final thaiDate1 = AppUtils.toThaiTime(date1);
+    final thaiDate2 = AppUtils.toThaiTime(date2);
+    return thaiDate1.year == thaiDate2.year && 
+           thaiDate1.month == thaiDate2.month && 
+           thaiDate1.day == thaiDate2.day;
   }
 
   @override
@@ -44,10 +76,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
           // Get cart items
           final cartItems = app.cartItems.toList();
           
-          // Get recent sales (today only)
-          final recentSales = app.sales
-              .where((sale) => _isToday(sale.saleDate))
-              .toList()
+          // Get all sales and apply filter
+          final filteredSales = _filterSales(app.sales, _selectedSalesFilter)
             ..sort((a, b) => b.saleDate.compareTo(a.saleDate));
           
           return Column(
@@ -157,7 +187,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                               maxLines: 1,
                             ),
                           ),
-                          if (recentSales.isNotEmpty)
+                          if (filteredSales.isNotEmpty)
                             Container(
                               margin: EdgeInsets.only(left: 4),
                               padding: EdgeInsets.all(2),
@@ -170,7 +200,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                                 minHeight: 16,
                               ),
                               child: Text(
-                                '${recentSales.length}',
+                                '${filteredSales.length}',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -185,6 +215,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                   ],
                 ),
               ),
+              // Add filter dropdown for sales tab
+              if (_tabController.index == 2) // Recent Sales tab
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Text('กรองตาม: ', style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray)),
+                      SizedBox(width: 8),
+                      DropdownButton<String>(
+                        value: _selectedSalesFilter,
+                        items: [
+                          DropdownMenuItem(value: 'today', child: Text('วันนี้')),
+                          DropdownMenuItem(value: 'yesterday', child: Text('เมื่อวาน')),
+                          DropdownMenuItem(value: 'week', child: Text('7 วันที่แล้ว')),
+                          DropdownMenuItem(value: 'month', child: Text('30 วันที่แล้ว')),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedSalesFilter = value!;
+                          });
+                        },
+                        icon: Icon(Icons.arrow_drop_down, color: AppConstants.primaryDarkBlue),
+                        underline: Container(),
+                      ),
+                    ],
+                  ),
+                ),
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
@@ -196,7 +253,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                     _buildCartItemsTab(cartItems),
                     
                     // Recent Sales Tab
-                    _buildRecentSalesTab(recentSales),
+                    _buildRecentSalesTab(filteredSales),
                   ],
                 ),
               ),
@@ -407,115 +464,146 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
       );
     }
 
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemCount: cartItems.length,
-      itemBuilder: (context, index) {
-        final cartItem = cartItems[index];
-        final product = cartItem.product;
-        
-        return Container(
-          margin: EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: Offset(0, 2),
+    return Column(
+      children: [
+        // Add button to go to cart page
+        Container(
+          padding: EdgeInsets.all(16),
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/cart');
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_shopping_cart, color: Colors.white),
+                SizedBox(width: 8),
+                Text('ไปยังหน้าตะกร้าสินค้า'),
+              ],
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppConstants.primaryDarkBlue,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
+            ),
           ),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(16),
-            leading: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: AppConstants.accentOrange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: product?.image != null && product!.image!.isNotEmpty
-                  ? ClipRRect(
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            itemCount: cartItems.length,
+            itemBuilder: (context, index) {
+              final cartItem = cartItems[index];
+              final product = cartItem.product;
+              
+              return Container(
+                margin: EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: EdgeInsets.all(16),
+                  leading: Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppConstants.accentOrange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        product.image!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(
+                    ),
+                    child: product?.image != null && product!.image!.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              product.image!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Icon(
+                                  Icons.shopping_cart,
+                                  color: AppConstants.accentOrange,
+                                  size: 24,
+                                );
+                              },
+                              headers: const {
+                                'Accept': 'image/*',
+                              },
+                            ),
+                          )
+                        : Icon(
                             Icons.shopping_cart,
                             color: AppConstants.accentOrange,
                             size: 24,
-                          );
-                        },
-                        headers: const {
-                          'Accept': 'image/*',
-                        },
-                      ),
-                    )
-                  : Icon(
-                      Icons.shopping_cart,
-                      color: AppConstants.accentOrange,
-                      size: 24,
+                          ),
+                  ),
+                  title: Text(
+                    product?.name ?? 'ไม่ระบุสินค้า',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
-            ),
-            title: Text(
-              product?.name ?? 'ไม่ระบุสินค้า',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${cartItem.quantity} ${product?.unit ?? 'หน่วย'}',
-                  style: TextStyle(
-                    color: AppConstants.textDarkGray,
-                    fontSize: 12,
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${cartItem.quantity} ${product?.unit ?? 'หน่วย'}',
+                        style: TextStyle(
+                          color: AppConstants.textDarkGray,
+                          fontSize: 12,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'ราคาต่อหน่วย: ${AppUtils.formatCurrency(product?.price ?? 0)}',
+                        style: TextStyle(
+                          color: AppConstants.textDarkGray,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        AppUtils.formatCurrency((product?.price ?? 0) * cartItem.quantity),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.accentOrange,
+                          fontSize: 16,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'รวม ${cartItem.quantity} หน่วย',
+                        style: TextStyle(
+                          color: AppConstants.textDarkGray.withOpacity(0.6),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 4),
-                Text(
-                  'ราคาต่อหน่วย: ${AppUtils.formatCurrency(product?.price ?? 0)}',
-                  style: TextStyle(
-                    color: AppConstants.textDarkGray,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  AppUtils.formatCurrency((product?.price ?? 0) * cartItem.quantity),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: AppConstants.accentOrange,
-                    fontSize: 16,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'รวม ${cartItem.quantity} หน่วย',
-                  style: TextStyle(
-                    color: AppConstants.textDarkGray.withOpacity(0.6),
-                    fontSize: 10,
-                  ),
-                ),
-              ],
-            ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
-  Widget _buildRecentSalesTab(List sales) {
+  Widget _buildRecentSalesTab(List<Sale> sales) {
     if (sales.isEmpty) {
       return Center(
         child: Column(
@@ -548,6 +636,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
       );
     }
 
+    // Load sales with items and product details
+    return FutureBuilder<List<Sale>>(
+      future: _loadSalesWithItems(sales),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: AppConstants.primaryDarkBlue,
+            ),
+          );
+        }
+        
+        if (snapshot.hasError || !snapshot.hasData) {
+          // Fallback to original implementation if there's an error
+          return _buildRecentSalesFallback(sales);
+        }
+        
+        final salesWithItems = snapshot.data!;
+        return _buildRecentSalesWithImages(salesWithItems);
+      },
+    );
+  }
+
+  Future<List<Sale>> _loadSalesWithItems(List<Sale> sales) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final app = Provider.of<AppProvider>(context, listen: false);
+    
+    if (auth.currentUser?.id == null) {
+      return sales;
+    }
+    
+    // Load sales with their items
+    final salesWithItems = <Sale>[];
+    for (var sale in sales) {
+      try {
+        final items = await app.getSaleItemsWithProducts(sale.id!);
+        salesWithItems.add(sale.copyWith(items: items));
+      } catch (e) {
+        debugPrint('Error loading sale items: $e');
+        salesWithItems.add(sale);
+      }
+    }
+    
+    return salesWithItems;
+  }
+
+  Widget _buildRecentSalesWithImages(List<Sale> sales) {
     return ListView.builder(
       padding: EdgeInsets.all(16),
       itemCount: sales.length,
@@ -676,11 +811,117 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
     );
   }
 
+  Widget _buildRecentSalesFallback(List<Sale> sales) {
+    return ListView.builder(
+      padding: EdgeInsets.all(16),
+      itemCount: sales.length,
+      itemBuilder: (context, index) {
+        final sale = sales[index];
+        final itemCount = sale.items?.length ?? 0;
+        final isHighValue = sale.totalAmount > 1000;
+        
+        return Container(
+          margin: EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isHighValue ? AppConstants.successGreen.withOpacity(0.5) : Colors.grey[200]!,
+              width: isHighValue ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 4,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.all(16),
+            leading: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppConstants.successGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isHighValue ? Icons.star : Icons.receipt,
+                color: isHighValue ? Colors.green[700] : AppConstants.successGreen,
+                size: 24,
+              ),
+            ),
+            title: Text(
+              sale.receiptNumber,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppUtils.formatDateTimeThai(sale.saleDate),
+                  style: TextStyle(
+                    color: AppConstants.textDarkGray,
+                    fontSize: 12,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '$itemCount รายการสินค้า',
+                  style: TextStyle(
+                    color: AppConstants.textDarkGray,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  AppUtils.formatCurrency(sale.totalAmount),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: isHighValue ? Colors.green[700] : AppConstants.successGreen,
+                    fontSize: 16,
+                  ),
+                ),
+                if (isHighValue)
+                  Container(
+                    margin: EdgeInsets.only(top: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppConstants.successGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'ยอดขายสูง',
+                      style: TextStyle(
+                        color: AppConstants.successGreen,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   bool _isToday(DateTime date) {
-    final now = DateTime.now();
-    return date.year == now.year && 
-           date.month == now.month && 
-           date.day == now.day;
+    final now = AppUtils.toThaiTime(DateTime.now());
+    final thaiDate = AppUtils.toThaiTime(date);
+    return thaiDate.year == now.year && 
+           thaiDate.month == now.month && 
+           thaiDate.day == now.day;
   }
 
   @override
