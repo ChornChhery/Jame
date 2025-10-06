@@ -1,6 +1,7 @@
 // FILE: lib/screens/reports_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../core/constants.dart';
@@ -1562,9 +1563,9 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   Widget _buildReorderSuggestionsTab() {
     if (_reorderSuggestions.isEmpty) {
       return _buildEmptyState(
-        Icons.shopping_cart_outlined,
-        'ไม่มีคำแนะนำในขณะนี้',
-        'สินค้าทั้งหมดมีสต็อกเพียงพอ',
+        Icons.check_circle_outline,
+        'ไม่มีสินค้าที่ต้องสั่งซื้อ',
+        'สินค้าทั้งหมดมีสต็อกเพียงพอในขณะนี้',
         color: Colors.green,
       );
     }
@@ -1590,16 +1591,16 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         final daysUntilOutOfStock = (product['days_until_out_of_stock'] as double?) ?? 999.0;
         
         Color urgencyColor = Colors.green;
-        String urgencyText = 'ปลอดภัย';
+        String urgencyText = 'สต็อกเพียงพอ';
         IconData urgencyIcon = Icons.check_circle;
         
         if (daysUntilOutOfStock <= 3) {
           urgencyColor = Colors.red;
-          urgencyText = 'เร่งด่วน';
+          urgencyText = 'สั่งซื้อทันที';
           urgencyIcon = Icons.error;
         } else if (daysUntilOutOfStock <= 7) {
           urgencyColor = Colors.orange;
-          urgencyText = 'ควรสั่งซื้อ';
+          urgencyText = 'สั่งซื้อเร็วๆ นี้';
           urgencyIcon = Icons.warning;
         }
         
