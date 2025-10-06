@@ -755,7 +755,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       TextButton.icon(
                         onPressed: () => _printReceipt(sale),
                         icon: const Icon(Icons.print, size: 16),
-                        label: const Text('พิมพ์'),
+                        label: const Text('พรินต์'),
                       ),
                       const SizedBox(width: 8),
                       TextButton.icon(
@@ -926,7 +926,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                 Navigator.of(context).pop();
                 _printReceipt(sale);
               },
-              child: const Text('พิมพ์'),
+              child: const Text('พรินต์'),
             ),
             TextButton(
               onPressed: () {
@@ -975,7 +975,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถพิมพ์ใบเสร็จได้: ${e.toString()}'),
+            content: Text('ไม่สามารถพรินต์ใบเสร็จได้: ${e.toString()}'),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),

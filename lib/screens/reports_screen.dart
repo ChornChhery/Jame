@@ -1524,23 +1524,35 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           _buildSectionHeader('กราฟวิเคราะห์', Icons.bar_chart),
           const SizedBox(height: 12),
           
-          // Revenue chart
+          // Daily Sales Trend Chart (Improved from Hourly)
           _buildChartCard(
-            'ภาพรวมรายได้และกำไร',
+            'แนวโน้มยอดขายรายวัน',
             200,
-            _buildProfitLossChart(
-              _salesData['totalRevenue'] ?? 0.0,
-              _salesData['totalCost'] ?? 0.0,
-              _salesData['totalProfit'] ?? 0.0,
-            ),
+            _buildDailySalesTrendChart(),
           ),
           const SizedBox(height: 16),
           
-          // Hourly sales chart
+          // Revenue vs Profit Chart (Improved Profit/Loss Chart)
           _buildChartCard(
-            'ยอดขายตามชั่วโมง',
+            'รายได้ vs กำไร',
             200,
-            _buildHourlyChart(),
+            _buildRevenueProfitChart(),
+          ),
+          const SizedBox(height: 16),
+          
+          // Product Category Performance Chart
+          _buildChartCard(
+            'ประสิทธิภาพตามหมวดหมู่สินค้า',
+            200,
+            _buildCategoryPerformanceChart(),
+          ),
+          const SizedBox(height: 16),
+          
+          // Customer Segmentation Chart
+          _buildChartCard(
+            'การแบ่งกลุ่มลูกค้า',
+            200,
+            _buildCustomerSegmentationChart(),
           ),
         ],
       ),
@@ -1881,6 +1893,367 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             ],
           );
         }).toList(),
+      ),
+    );
+  }
+
+  // New chart implementations
+  Widget _buildDailySalesTrendChart() {
+    final dailyData = _dailySalesData['dailyData'] as List? ?? [];
+    
+    if (dailyData.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Sort by date and take last 7 days
+    final sortedData = List.from(dailyData)..sort((a, b) {
+      // Handle both String and DateTime types for sale_day
+      DateTime dateA, dateB;
+      
+      if (a['sale_day'] is DateTime) {
+        dateA = a['sale_day'] as DateTime;
+      } else if (a['sale_day'] is String) {
+        dateA = DateTime.parse(a['sale_day'] as String);
+      } else {
+        // Fallback for other types
+        dateA = DateTime.now();
+      }
+      
+      if (b['sale_day'] is DateTime) {
+        dateB = b['sale_day'] as DateTime;
+      } else if (b['sale_day'] is String) {
+        dateB = DateTime.parse(b['sale_day'] as String);
+      } else {
+        // Fallback for other types
+        dateB = DateTime.now();
+      }
+      
+      return dateA.compareTo(dateB);
+    });
+    
+    final recentData = sortedData.length > 7 
+        ? sortedData.sublist(sortedData.length - 7) 
+        : sortedData;
+    
+    final List<FlSpot> spots = [];
+    for (int i = 0; i < recentData.length; i++) {
+      final revenue = (recentData[i]['total_revenue'] as double?) ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), revenue));
+    }
+    
+    if (spots.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    return LineChart(
+      LineChartData(
+        lineBarsData: [
+          LineChartBarData(
+            spots: spots,
+            isCurved: true,
+            color: AppConstants.primaryDarkBlue,
+            barWidth: 3,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppConstants.primaryDarkBlue.withOpacity(0.2),
+            ),
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 4,
+                  color: AppConstants.primaryDarkBlue,
+                  strokeWidth: 2,
+                  strokeColor: Colors.white,
+                );
+              },
+            ),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() < recentData.length) {
+                  // Handle both String and DateTime types for sale_day
+                  DateTime date;
+                  final saleDay = recentData[value.toInt()]['sale_day'];
+                  
+                  if (saleDay is DateTime) {
+                    date = saleDay;
+                  } else if (saleDay is String) {
+                    date = DateTime.parse(saleDay);
+                  } else {
+                    // Fallback for other types
+                    date = DateTime.now();
+                  }
+                  
+                  return Text(
+                    DateFormat('dd/MM', 'th_TH').format(date),
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  );
+                }
+                return const Text('');
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  AppUtils.formatCurrency(value),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 50,
+            ),
+          ),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey[300]!)),
+        gridData: FlGridData(
+          show: true,
+          horizontalInterval: (spots.map((e) => e.y).reduce((a, b) => a > b ? a : b) / 5),
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey[200]!,
+              strokeWidth: 1,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRevenueProfitChart() {
+    final totalRevenue = _salesData['totalRevenue'] ?? 0.0;
+    final totalProfit = _salesData['totalProfit'] ?? 0.0;
+    
+    if (totalRevenue == 0) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: totalRevenue * 1.2,
+        barTouchData: BarTouchData(enabled: true),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                const titles = ['รายได้', 'กำไร'];
+                return Text(
+                  titles[value.toInt()],
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  AppUtils.formatCurrency(value),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 50,
+            ),
+          ),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(show: true),
+        barGroups: [
+          BarChartGroupData(
+            x: 0,
+            barRods: [
+              BarChartRodData(
+                toY: totalRevenue,
+                color: AppConstants.primaryDarkBlue,
+                width: 40,
+                borderRadius: BorderRadius.zero,
+              ),
+            ],
+          ),
+          BarChartGroupData(
+            x: 1,
+            barRods: [
+              BarChartRodData(
+                toY: totalProfit,
+                color: Colors.green,
+                width: 40,
+                borderRadius: BorderRadius.zero,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryPerformanceChart() {
+    // Group products by category and sum their revenue
+    final Map<String, double> categoryRevenue = {};
+    
+    for (var product in _topSellingProducts) {
+      String? category = product['category'] as String?;
+      if (category == null || category.isEmpty) {
+        category = 'ไม่ระบุหมวดหมู่';
+      }
+      
+      final revenue = (product['total_revenue'] as num?)?.toDouble() ?? 0.0;
+      categoryRevenue[category] = (categoryRevenue[category] ?? 0.0) + revenue;
+    }
+    
+    if (categoryRevenue.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Sort categories by revenue and take top 5
+    final sortedCategories = categoryRevenue.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    final topCategories = sortedCategories.length > 5 
+        ? sortedCategories.sublist(0, 5) 
+        : sortedCategories;
+    
+    return PieChart(
+      PieChartData(
+        sections: List.generate(topCategories.length, (index) {
+          final category = topCategories[index];
+          final percentage = (category.value / categoryRevenue.values.reduce((a, b) => a + b)) * 100;
+          
+          // Generate colors for each category
+          final colors = [
+            AppConstants.primaryDarkBlue,
+            AppConstants.primaryYellow,
+            AppConstants.accentOrange,
+            AppConstants.successGreen,
+            AppConstants.softBlue,
+          ];
+          
+          return PieChartSectionData(
+            value: category.value,
+            title: '${percentage.toStringAsFixed(1)}%',
+            radius: 50,
+            color: colors[index % colors.length],
+            titleStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        }),
+        sectionsSpace: 2,
+        centerSpaceRadius: 40,
+      ),
+    );
+  }
+
+  Widget _buildCustomerSegmentationChart() {
+    final segments = _customerSegmentation['segments'] as Map<String, dynamic>? ?? {};
+    
+    final highValue = segments['highValue'] as int? ?? 0;
+    final mediumValue = segments['mediumValue'] as int? ?? 0;
+    final lowValue = segments['lowValue'] as int? ?? 0;
+    
+    final totalCustomers = highValue + mediumValue + lowValue;
+    
+    if (totalCustomers == 0) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูลลูกค้า', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: totalCustomers.toDouble() * 1.2,
+        barTouchData: BarTouchData(enabled: true),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                const titles = ['สูง', 'กลาง', 'ต่ำ'];
+                return Text(
+                  titles[value.toInt()],
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toInt().toString(),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 30,
+            ),
+          ),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(show: true),
+        barGroups: [
+          BarChartGroupData(
+            x: 0,
+            barRods: [
+              BarChartRodData(
+                toY: highValue.toDouble(),
+                color: Colors.green,
+                width: 30,
+              ),
+            ],
+          ),
+          BarChartGroupData(
+            x: 1,
+            barRods: [
+              BarChartRodData(
+                toY: mediumValue.toDouble(),
+                color: AppConstants.primaryYellow,
+                width: 30,
+              ),
+            ],
+          ),
+          BarChartGroupData(
+            x: 2,
+            barRods: [
+              BarChartRodData(
+                toY: lowValue.toDouble(),
+                color: Colors.grey,
+                width: 30,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
