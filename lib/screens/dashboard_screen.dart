@@ -707,6 +707,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         'route': AppConstants.reportsRoute,
         'gradient': [AppConstants.successGreen, AppConstants.successGreen.withOpacity(0.7)],
       },
+      {
+        'title': 'ประวัติการชำระเงิน',
+        'subtitle': 'ดูรายการขายทั้งหมด',
+        'icon': Icons.history,
+        'color': AppConstants.primaryDarkBlue,
+        'route': AppConstants.paymentHistoryRoute,
+        'gradient': [AppConstants.primaryDarkBlue, AppConstants.primaryDarkBlue.withOpacity(0.7)],
+      },
     ];
 
     return Column(

@@ -616,10 +616,32 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     final totalProfit = _salesData['totalProfit'] ?? 0.0;
     final profitMargin = _salesData['profitMargin'] ?? 0.0;
     
+    // Add a link to payment history at the top
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
         children: [
+          // Link to payment history
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 16),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, AppConstants.paymentHistoryRoute);
+              },
+              icon: const Icon(Icons.history, size: 20),
+              label: const Text('ดูประวัติการชำระเงินทั้งหมด'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppConstants.primaryDarkBlue,
+                elevation: 2,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
           Row(
             children: [
               Expanded(

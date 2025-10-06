@@ -12,6 +12,7 @@ import 'screens/reports_screen.dart';
 import 'screens/products_screen.dart' as products;
 import 'screens/scanner_screen.dart';
 import 'screens/notifications_screen.dart';
+import 'screens/payment_history_screen.dart' as payment_history;
 import 'providers/auth_provider.dart';
 import 'core/constants.dart';
 
@@ -124,6 +125,15 @@ class AppRoutes {
             context,
             () => ProfileScreen(),
             'โปรไฟล์',
+          ),
+        );
+      
+      case AppConstants.paymentHistoryRoute:
+        return MaterialPageRoute(
+          builder: (context) => _buildProtectedRoute(
+            context,
+            () => payment_history.PaymentHistoryScreen(),
+            'ประวัติการชำระเงิน',
           ),
         );
       

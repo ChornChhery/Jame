@@ -47,6 +47,7 @@ class AppConstants {
   static const String receiptRoute = '/receipt';
   static const String reportsRoute = '/reports';
   static const String profileRoute = '/profile';
+  static const String paymentHistoryRoute = '/payment-history';
   
   // Database
   static const String dbName = 'jame.db';
