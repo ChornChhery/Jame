@@ -2,8 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../providers/auth_provider.dart';
-import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
@@ -12,6 +10,8 @@ import '../widgets/product_details_dialog.dart';
 import '../widgets/manual_sale_dialog.dart';
 import '../models/sale.dart';
 import '../database/database_helper.dart';
+import '../providers/auth_provider.dart';
+import '../providers/app_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -24,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   late Animation<Offset> _slideAnimation;
   int _selectedNavIndex = 0;
   bool _isInitialized = false;
+  String _topProductsSort = 'price'; // Add this for top products sorting
   
   // Add mounted check for older Flutter versions
   bool get _mounted {
@@ -33,6 +34,41 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       // Fallback for older Flutter versions
       return true;
     }
+  }
+
+  // Helper method to sort top products list
+  void _sortTopProductsList(List<Map<String, dynamic>> list, String sortOption) {
+    list.sort((a, b) {
+      if (sortOption == 'quantity') {
+        final quantityA = a['total_quantity'] is double
+            ? a['total_quantity'].toInt()
+            : a['total_quantity'] as int? ?? 0;
+        final quantityB = b['total_quantity'] is double
+            ? b['total_quantity'].toInt()
+            : b['total_quantity'] as int? ?? 0;
+        return quantityB.compareTo(quantityA);
+      } else { // price (default)
+        // Sort by revenue/quantity ratio as an approximation
+        final quantityA = a['total_quantity'] is double
+            ? a['total_quantity'].toInt()
+            : a['total_quantity'] as int? ?? 1;
+        final quantityB = b['total_quantity'] is double
+            ? b['total_quantity'].toInt()
+            : b['total_quantity'] as int? ?? 1;
+            
+        final revenueA = a['total_revenue'] is int 
+            ? a['total_revenue'].toDouble() 
+            : a['total_revenue'] as double? ?? 0.0;
+        final revenueB = b['total_revenue'] is int 
+            ? b['total_revenue'].toDouble() 
+            : b['total_revenue'] as double? ?? 0.0;
+            
+        final priceA = revenueA / quantityA;
+        final priceB = revenueB / quantityB;
+        
+        return priceB.compareTo(priceA);
+      }
+    });
   }
 
   @override
@@ -903,7 +939,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   Widget _buildLowStockAlertsStatic(AppProvider app) {
     // Filter low stock products from existing data to prevent setState during build
-    final lowStockProducts = app.products.where((p) => p.quantity <= p.lowStock).take(5).toList();
+    final lowStockProducts = app.products.where((p) => p.quantity <= p.lowStock).toList();
     
     if (lowStockProducts.isEmpty) {
       return _buildNoAlertsCard();
@@ -955,10 +991,24 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     color: AppConstants.errorRed,
                   ),
                 ),
+                Spacer(),
+                if (lowStockProducts.length > 5)
+                  TextButton(
+                    onPressed: () {
+                      _showAllLowStockProducts(lowStockProducts.cast<Product>());
+                    },
+                    child: Text(
+                      'ดูทั้งหมด',
+                      style: TextStyle(
+                        color: AppConstants.errorRed,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
-          ...lowStockProducts.take(3).map((product) => Container(
+          ...lowStockProducts.take(5).map((product) => Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               border: Border(
@@ -1044,19 +1094,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               ],
             ),
           )).toList(),
-          if (lowStockProducts.length > 3)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'และอีก ${lowStockProducts.length - 3} รายการ',
-                style: TextStyle(
-                  color: AppConstants.textDarkGray,
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
         ],
       ),
     );
@@ -1100,6 +1137,21 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         
         final topProducts = snapshot.data!;
         
+        // Sort products based on current sort option
+        List<Map<String, dynamic>> sortedProducts = List.from(topProducts);
+        _sortTopProductsList(sortedProducts, _topProductsSort);
+        
+        // Take only first 5 products for display
+        final displayProducts = sortedProducts.take(5).toList();
+        
+        // Update the title based on current sort option
+        String titleText;
+        if (_topProductsSort == 'quantity') {
+          titleText = 'สินค้ายอดนิยม (Top 5 ตามจำนวนขาย)';
+        } else {
+          titleText = 'สินค้ายอดนิยม (Top 5 ตามราคาขาย)';
+        }
+        
         return Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -1126,18 +1178,53 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       size: 24,
                     ),
                     SizedBox(width: 12),
-                    Text(
-                      'สินค้ายอดนิยม (Top 5)',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppConstants.primaryDarkBlue,
+                    Expanded(
+                      child: Text(
+                        titleText,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryDarkBlue,
+                        ),
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      icon: Icon(Icons.sort, size: 20, color: AppConstants.primaryDarkBlue),
+                      onSelected: (String sortOption) {
+                        setState(() {
+                          _topProductsSort = sortOption;
+                        });
+                      },
+                      itemBuilder: (BuildContext context) {
+                        return [
+                          PopupMenuItem<String>(
+                            value: 'quantity',
+                            child: Text('เรียงตามจำนวนขาย'),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'price',
+                            child: Text('เรียงตามราคาขาย'),
+                          ),
+                        ];
+                      },
+                    ),
+                    SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        _showAllTopProducts(topProducts);
+                      },
+                      child: Text(
+                        'ดูทั้งหมด',
+                        style: TextStyle(
+                          color: AppConstants.primaryDarkBlue,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-              ...topProducts.map((product) {
+              ...displayProducts.map((product) {
                 // Safely extract string values from map, handling Blob types from MySQL
                 String? _safeString(dynamic value) {
                   if (value == null) return null;
@@ -1247,6 +1334,209 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               }).toList(),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  void _showAllTopProducts(List<Map<String, dynamic>> topProducts) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String currentSort = _topProductsSort; // Use the same sort option as the main screen
+        List<Map<String, dynamic>> currentList = List.from(topProducts);
+        
+        // Initial sort based on current sort option
+        _sortTopProductsList(currentList, currentSort);
+        
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.trending_up, color: AppConstants.primaryDarkBlue),
+                  SizedBox(width: 8),
+                  Text('สินค้ายอดนิยม'),
+                ],
+              ),
+              content: Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                constraints: BoxConstraints(maxHeight: 500),
+                child: Column(
+                  children: [
+                    // Sorting options
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              currentSort = 'quantity';
+                              // Sort by quantity
+                              _sortTopProductsList(currentList, currentSort);
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: currentSort == 'quantity' 
+                                ? AppConstants.primaryDarkBlue 
+                                : Colors.grey[300],
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          child: Text(
+                            'ตามจำนวนขาย',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: currentSort == 'quantity' ? Colors.white : Colors.black,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              currentSort = 'price';
+                              // Sort by price (revenue/quantity ratio)
+                              _sortTopProductsList(currentList, currentSort);
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: currentSort == 'price' 
+                                ? AppConstants.primaryDarkBlue 
+                                : Colors.grey[300],
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          child: Text(
+                            'ตามราคาขาย',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: currentSort == 'price' ? Colors.white : Colors.black,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    // Product list
+                    Expanded(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: currentList.length,
+                        itemBuilder: (context, index) {
+                          final product = currentList[index];
+                          
+                          // Safely extract string values from map, handling Blob types from MySQL
+                          String? _safeString(dynamic value) {
+                            if (value == null) return null;
+                            
+                            // Handle Blob type from MySQL
+                            if (value is List<int>) {
+                              return String.fromCharCodes(value);
+                            }
+                            
+                            // Handle regular string
+                            if (value is String) {
+                              return value.isEmpty ? null : value;
+                            }
+                            
+                            // Convert other types to string
+                            return value.toString();
+                          }
+                          
+                          final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+                          final productImage = _safeString(product['image']);
+                          final totalRevenue = product['total_revenue'] is int 
+                              ? product['total_revenue'].toDouble() 
+                              : product['total_revenue'] as double? ?? 0.0;
+                          final totalQuantity = product['total_quantity'] is double
+                              ? product['total_quantity'].toInt()
+                              : product['total_quantity'] as int? ?? 0;
+                          
+                          return Container(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Colors.grey.withOpacity(0.2),
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: productImage != null && productImage.isNotEmpty
+                                      ? ClipRRect(
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Image.network(
+                                            productImage,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Icon(
+                                                Icons.inventory_2,
+                                                color: AppConstants.primaryDarkBlue,
+                                                size: 20,
+                                              );
+                                            },
+                                            headers: const {
+                                              'Accept': 'image/*',
+                                            },
+                                          ),
+                                        )
+                                      : Icon(
+                                          Icons.inventory_2,
+                                          color: AppConstants.primaryDarkBlue,
+                                          size: 20,
+                                        ),
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        productName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Text(
+                                        'ขายได้ $totalQuantity หน่วย',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: AppConstants.textDarkGray,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  AppUtils.formatCurrency(totalRevenue),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppConstants.primaryDarkBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('ปิด'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -2135,4 +2425,118 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     }
   }
 
+  void _showAllLowStockProducts(List<Product> lowStockProducts) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppConstants.errorRed),
+              SizedBox(width: 8),
+              Text('สินค้าใกล้หมด'),
+            ],
+          ),
+          content: Container(
+            width: MediaQuery.of(context).size.width * 0.8,
+            constraints: BoxConstraints(maxHeight: 400),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: lowStockProducts.length,
+              itemBuilder: (context, index) {
+                final product = lowStockProducts[index];
+                return Container(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.withOpacity(0.2),
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppConstants.errorRed.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: product.image != null && product.image!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  product.image!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.inventory_2_outlined,
+                                      color: AppConstants.errorRed,
+                                      size: 20.0,
+                                    );
+                                  },
+                                  headers: const {
+                                    'Accept': 'image/*',
+                                  },
+                                ),
+                              )
+                            : Icon(
+                                Icons.inventory_2_outlined,
+                                color: AppConstants.errorRed,
+                                size: 20.0,
+                              ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              product.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'เหลือ ${product.quantity} ${product.unit}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppConstants.textDarkGray,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppConstants.errorRed.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'น้อยกว่า ${product.lowStock}',
+                          style: TextStyle(
+                            color: AppConstants.errorRed,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('ปิด'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
