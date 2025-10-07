@@ -66,13 +66,21 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
     final app = Provider.of<AppProvider>(context, listen: false);
     if (app.cartItems.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ตะกร้าสินค้าว่างเปล่า กรุณาเพิ่มสินค้าก่อนชำระเงิน'),
-            backgroundColor: AppConstants.errorRed,
-          ),
-        );
+        
+        // Use a delayed callback to show snackbar after dialog is completely dismissed
+        Future.delayed(Duration(milliseconds: 100), () {
+          // Show snackbar using the stored scaffold messenger reference
+          scaffoldMessenger.showSnackBar(
+            const SnackBar(
+              content: Text('ตะกร้าสินค้าว่างเปล่า กรุณาเพิ่มสินค้าก่อนชำระเงิน'),
+              backgroundColor: AppConstants.errorRed,
+            ),
+          );
+        });
       });
     }
   }
@@ -759,8 +767,13 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
   Future<void> _confirmPayment(AppProvider app) async {
     setState(() => _isProcessing = true);
     
+    // Store the ScaffoldMessenger reference at the beginning
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Removed for security - was: debugPrint('Starting sale completion process...');
       
       // Complete the sale with the selected payment method
       final success = await app.completeSale(
@@ -769,27 +782,48 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         paymentMethod: _paymentMethod, // Fix: Pass the actual selected payment method
       );
       
+      // Removed for security - was: debugPrint('Sale completion result: $success');
+      
+      // Check if the widget is still mounted before proceeding
+      if (!mounted) {
+        // Removed for security - was: debugPrint('Widget is no longer mounted after sale completion');
+        return;
+      }
+      
       if (success) {
         setState(() => _isPaymentConfirmed = true);
         
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
+        // Navigate to receipt immediately to prevent context issues
+        // Removed for security - was: debugPrint('Navigating to receipt screen...');
+        Navigator.pushReplacementNamed(context, AppConstants.receiptRoute);
+        
+        // Show success message on the receipt screen using the stored scaffold messenger reference
+        Future.delayed(Duration(milliseconds: 100), () {
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text(_paymentMethod == 'Cash' 
+                  ? 'ชำระเงินด้วยเงินสดเรียบร้อยแล้ว' 
+                  : 'ชำระเงินผ่าน QR Code เรียบร้อยแล้ว'),
+              backgroundColor: AppConstants.successGreen,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        });
+      } else {
+        // Removed for security - was: debugPrint('Sale completion failed');
+        // Show error message immediately before any potential navigation
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text(_paymentMethod == 'Cash' 
-                ? 'ชำระเงินด้วยเงินสดเรียบร้อยแล้ว' 
-                : 'ชำระเงินผ่าน QR Code เรียบร้อยแล้ว'),
-            backgroundColor: AppConstants.successGreen,
+            content: Text('ไม่สามารถบันทึกการขายได้'),
+            backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
-        // Navigate to receipt
-        Navigator.pushReplacementNamed(context, AppConstants.receiptRoute);
-      } else {
-        throw Exception('ไม่สามารถบันทึกการขายได้');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      // Removed for security - was: debugPrint('Error during sale completion: $e');
+      // Show error message immediately before any potential navigation
+      scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text('เกิดข้อผิดพลาด: $e'),
           backgroundColor: AppConstants.errorRed,
@@ -797,7 +831,10 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         ),
       );
     } finally {
-      setState(() => _isProcessing = false);
+      // Only update state if still mounted
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 

@@ -396,10 +396,39 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
           );
         } else {
+          // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          
           Navigator.pop(context); // Remove loading indicator
-          ScaffoldMessenger.of(context).showSnackBar(
+          
+          // Use a delayed callback to show snackbar after dialog is completely dismissed
+          Future.delayed(Duration(milliseconds: 100), () {
+            // Show snackbar using the stored scaffold messenger reference
+            scaffoldMessenger.showSnackBar(
+              SnackBar(
+                content: Text('ข้อมูลไม่ตรงกับบันทึกในระบบ'),
+                backgroundColor: AppConstants.errorRed,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                margin: EdgeInsets.all(16),
+              ),
+            );
+          });
+        }
+      } else {
+        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        
+        Navigator.pop(context); // Remove loading indicator
+        
+        // Use a delayed callback to show snackbar after dialog is completely dismissed
+        Future.delayed(Duration(milliseconds: 100), () {
+          // Show snackbar using the stored scaffold messenger reference
+          scaffoldMessenger.showSnackBar(
             SnackBar(
-              content: Text('ข้อมูลไม่ตรงกับบันทึกในระบบ'),
+              content: Text('ไม่พบผู้ใช้งานในระบบ'),
               backgroundColor: AppConstants.errorRed,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
@@ -408,12 +437,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               margin: EdgeInsets.all(16),
             ),
           );
-        }
-      } else {
-        Navigator.pop(context); // Remove loading indicator
-        ScaffoldMessenger.of(context).showSnackBar(
+        });
+      }
+    } catch (e) {
+      // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      
+      Navigator.pop(context); // Remove loading indicator
+      
+      // Use a delayed callback to show snackbar after dialog is completely dismissed
+      Future.delayed(Duration(milliseconds: 100), () {
+        // Show snackbar using the stored scaffold messenger reference
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('ไม่พบผู้ใช้งานในระบบ'),
+            content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -422,20 +459,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             margin: EdgeInsets.all(16),
           ),
         );
-      }
-    } catch (e) {
-      Navigator.pop(context); // Remove loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-          backgroundColor: AppConstants.errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: EdgeInsets.all(16),
-        ),
-      );
+      });
     }
   }
 
@@ -468,7 +492,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Navigator.pop(context); // Remove loading indicator
       
       if (result > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('รีเซ็ตรหัสผ่านสำเร็จ'),
             backgroundColor: AppConstants.successGreen,
@@ -480,13 +507,43 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         );
         
-        // Navigate back to login screen
-        Navigator.pop(context);
-        Navigator.pop(context);
+        // Navigate back to login screen after a delay to ensure snackbar is shown
+        Future.delayed(Duration(seconds: 2), () {
+          Navigator.pop(context);
+          Navigator.pop(context);
+        });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+        final scaffoldMessenger = ScaffoldMessenger.of(context);
+        
+        // Use a delayed callback to show snackbar after dialog is completely dismissed
+        Future.delayed(Duration(milliseconds: 100), () {
+          // Show snackbar using the stored scaffold messenger reference
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Text('ไม่สามารถรีเซ็ตรหัสผ่านได้'),
+              backgroundColor: AppConstants.errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: EdgeInsets.all(16),
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      
+      Navigator.pop(context); // Remove loading indicator
+      
+      // Use a delayed callback to show snackbar after dialog is completely dismissed
+      Future.delayed(Duration(milliseconds: 100), () {
+        // Show snackbar using the stored scaffold messenger reference
+        scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถรีเซ็ตรหัสผ่านได้'),
+            content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -495,20 +552,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             margin: EdgeInsets.all(16),
           ),
         );
-      }
-    } catch (e) {
-      Navigator.pop(context); // Remove loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-          backgroundColor: AppConstants.errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: EdgeInsets.all(16),
-        ),
-      );
+      });
     }
   }
 }

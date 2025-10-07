@@ -455,21 +455,29 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
           ),
           ElevatedButton(
             onPressed: () {
+              // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              
               if (auth.currentUser?.id != null) {
                 app.removeFromCartWithPersistence(auth.currentUser!.id!, cartItem.product.id!);
               } else {
                 app.removeFromCart(cartItem.product.id!);
               }
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('ลบ ${cartItem.product.name} ออกจากตะกร้าแล้ว'),
-                  backgroundColor: AppConstants.successGreen,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
+              
+              // Use a delayed callback to show snackbar after dialog is completely dismissed
+              Future.delayed(Duration(milliseconds: 50), () {
+                // Show snackbar using the stored scaffold messenger reference
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text('ลบ ${cartItem.product.name} ออกจากตะกร้าแล้ว'),
+                    backgroundColor: AppConstants.successGreen,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -497,21 +505,29 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
           ),
           ElevatedButton(
             onPressed: () {
+              // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              
               if (auth.currentUser?.id != null) {
                 app.clearCartWithPersistence(auth.currentUser!.id!);
               } else {
                 app.clearCart();
               }
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('ล้างสินค้าในตะกร้าแล้ว'),
-                  backgroundColor: AppConstants.successGreen,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  margin: const EdgeInsets.all(16),
-                ),
-              );
+              
+              // Use a delayed callback to show snackbar after dialog is completely dismissed
+              Future.delayed(Duration(milliseconds: 100), () {
+                // Show snackbar using the stored scaffold messenger reference
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: const Text('ล้างสินค้าในตะกร้าแล้ว'),
+                    backgroundColor: AppConstants.successGreen,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    margin: const EdgeInsets.all(16),
+                  ),
+                );
+              });
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

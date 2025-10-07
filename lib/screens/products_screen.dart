@@ -1090,16 +1090,23 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   void _addToCart(Product product) {
+    // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     if (product.quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('สินค้านี้หมดสต็อกแล้ว'),
-          backgroundColor: AppConstants.errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: EdgeInsets.all(16),
-        ),
-      );
+      // Use a delayed callback to show snackbar after any potential widget disposal
+      Future.delayed(Duration(milliseconds: 100), () {
+        // Show snackbar using the stored scaffold messenger reference
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('สินค้านี้หมดสต็อกแล้ว'),
+            backgroundColor: AppConstants.errorRed,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: EdgeInsets.all(16),
+          ),
+        );
+      });
       return;
     }
 
@@ -1114,22 +1121,26 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       appProvider.addToCart(product, quantity: 1);
     }
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
-        backgroundColor: AppConstants.successGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: EdgeInsets.all(16),
-        action: SnackBarAction(
-          label: 'ดูตะกร้า',
-          textColor: Colors.white,
-          onPressed: () {
-            Navigator.pushNamed(context, AppConstants.cartRoute);
-          },
+    // Use a delayed callback to show snackbar after any potential widget disposal
+    Future.delayed(Duration(milliseconds: 100), () {
+      // Show snackbar using the stored scaffold messenger reference
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
+          backgroundColor: AppConstants.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: EdgeInsets.all(16),
+          action: SnackBarAction(
+            label: 'ดูตะกร้า',
+            textColor: Colors.white,
+            onPressed: () {
+              // Note: We can't safely navigate from here as the context might be disposed
+            },
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   void _showAddToCartDialog(Product product) {
@@ -1238,28 +1249,43 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   void _addToCartConfirmed(Product product, String quantityText) {
+    // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     final quantity = int.tryParse(quantityText) ?? 0;
     if (quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาใส่จำนวนที่ถูกต้อง'),
-          backgroundColor: AppConstants.errorRed,
-        ),
-      );
+      // Pop the dialog first
+      Navigator.pop(context);
+      
+      // Use a delayed callback to show snackbar after dialog is completely dismissed
+      Future.delayed(Duration(milliseconds: 100), () {
+        // Show snackbar using the stored scaffold messenger reference
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('กรุณาใส่จำนวนที่ถูกต้อง'),
+            backgroundColor: AppConstants.errorRed,
+          ),
+        );
+      });
       return;
     }
     
     if (quantity > product.quantity) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('จำนวนที่ต้องการมากกว่าสต็อกที่มี (${product.quantity} ${product.unit})'),
-          backgroundColor: AppConstants.errorRed,
-        ),
-      );
+      // Pop the dialog first
+      Navigator.pop(context);
+      
+      // Use a delayed callback to show snackbar after dialog is completely dismissed
+      Future.delayed(Duration(milliseconds: 100), () {
+        // Show snackbar using the stored scaffold messenger reference
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('จำนวนที่ต้องการมากกว่าสต็อกที่มี (${product.quantity} ${product.unit})'),
+            backgroundColor: AppConstants.errorRed,
+          ),
+        );
+      });
       return;
     }
-    
-    Navigator.pop(context);
     
     // Add the product to the cart using AppProvider with persistence
     final appProvider = Provider.of<AppProvider>(context, listen: false);
@@ -1273,39 +1299,46 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       appProvider.addToCart(product, quantity: quantity);
     }
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
+    // Pop the dialog first
+    Navigator.pop(context);
+    
+    // Use a delayed callback to show snackbar after dialog is completely dismissed
+    Future.delayed(Duration(milliseconds: 100), () {
+      // Show snackbar using the stored scaffold messenger reference
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
-              child: const Icon(
-                Icons.check_rounded,
-                color: Colors.white,
-                size: 20,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'เพิ่ม ${product.name} จำนวน $quantity ${product.unit} ในตะกร้าแล้ว',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'เพิ่ม ${product.name} จำนวน $quantity ${product.unit} ในตะกร้าแล้ว',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+            ],
+          ),
+          backgroundColor: AppConstants.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
         ),
-        backgroundColor: AppConstants.successGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+      );
+    });
   }
 
   void _showProductDetailsDialog(Product product) {
@@ -2105,6 +2138,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final app = Provider.of<AppProvider>(context, listen: false);
     
+    // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    
     Navigator.pop(context);
     
     try {
@@ -2114,37 +2150,80 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _loadData();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
+        
+        // Use a delayed callback to show snackbar after dialog is completely dismissed
+        Future.delayed(Duration(milliseconds: 100), () {
+          // Show snackbar using the stored scaffold messenger reference
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    color: Colors.white,
-                    size: 20,
+                  const SizedBox(width: 12),
+                  const Text(
+                    'ลบสินค้าสำเร็จ',
+                    style: TextStyle(fontWeight: FontWeight.w600),
                   ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'ลบสินค้าสำเร็จ',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: AppConstants.successGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
             ),
-            backgroundColor: AppConstants.successGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
+          );
+        });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        // Use a delayed callback to show snackbar after dialog is completely dismissed
+        Future.delayed(Duration(milliseconds: 100), () {
+          // Show snackbar using the stored scaffold messenger reference
+          scaffoldMessenger.showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'ไม่สามารถลบสินค้าได้ กรุณาลองใหม่อีกครั้ง',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              backgroundColor: AppConstants.errorRed,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      // Use a delayed callback to show snackbar after dialog is completely dismissed
+      Future.delayed(Duration(milliseconds: 100), () {
+        // Show snackbar using the stored scaffold messenger reference
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Row(
               children: [
@@ -2161,9 +2240,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
-                  'ไม่สามารถลบสินค้าได้ กรุณาลองใหม่อีกครั้ง',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                Text(
+                  'เกิดข้อผิดพลาด: ${e.toString()}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -2173,37 +2252,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             margin: const EdgeInsets.all(16),
           ),
         );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.error_outline_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'เกิดข้อผิดพลาด: ${e.toString()}',
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          backgroundColor: AppConstants.errorRed,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      });
     }
   }
 
@@ -2360,6 +2409,36 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             ],
           ),
           backgroundColor: AppConstants.successGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.error_outline_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'เกิดข้อผิดพลาดในการเพิ่มสต็อก',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          backgroundColor: AppConstants.errorRed,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.all(16),

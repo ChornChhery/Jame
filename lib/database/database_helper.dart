@@ -272,7 +272,10 @@ class DatabaseHelper {
   // Sale operations - Direct MySQL with parameterized queries
   Future<Sale> createSale(Sale sale, List<SaleItem> items) async {
     try {
+      // Removed debug prints for security
+      
       final success = await _mysqlDB.syncSaleToMySQL(sale, items);
+      
       if (success) {
         return sale;
       } else {

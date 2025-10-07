@@ -240,10 +240,15 @@ class AppProvider extends ChangeNotifier {
 
   // Sale operations
   Future<bool> completeSale(int userId, String username, {String paymentMethod = 'QR'}) async {
-    if (_cartItems.isEmpty) return false;
+    // Removed debug prints for security
+    
+    if (_cartItems.isEmpty) {
+      return false;
+    }
 
     try {
       final receiptNumber = AppUtils.generateReceiptNumber(username);
+      
       final sale = Sale(
         userId: userId,
         saleDate: AppUtils.toThaiTime(DateTime.now()), // Use Thai time
@@ -294,6 +299,7 @@ class AppProvider extends ChangeNotifier {
       clearCartWithPersistence(userId); // Clear cart with persistence
       await loadSales(userId);
       notifyListeners();
+      
       return true;
     } catch (e) {
       _error = e.toString();

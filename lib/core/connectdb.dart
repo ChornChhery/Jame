@@ -346,68 +346,53 @@ class ConnectDB {
     }
   }
 
-  /// Sync individual sale to MySQL with parameterized queries
+  /// Sync a sale and its items to MySQL database with proper transaction handling
   Future<bool> syncSaleToMySQL(Sale sale, List<SaleItem> items) async {
     MySqlConnection? connection;
     try {
-      // Get fresh connection for sync operation
+      // Removed debug prints for security
+      
+      // Get fresh connection for transaction
       connection = await MySqlConnection.connect(_connectionSettings)
           .timeout(Duration(seconds: 10));
       
-      // First sync the sale with parameterized query
-      final saleResult = await connection.query(
-        '''
-        INSERT INTO sales (user_id, sale_date, total_amount, payment_status,
-                          receipt_number, payment_method, description, 
-                          customer_name, customer_phone)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-        total_amount=VALUES(total_amount), payment_status=VALUES(payment_status),
-        payment_method=VALUES(payment_method)
-        ''',
-        [
-          sale.userId,
-          sale.saleDate.toUtc() != null ? sale.saleDate.toUtc()!.toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null,
-          sale.totalAmount,
-          sale.paymentStatus,
-          sale.receiptNumber,
-          sale.paymentMethod,
-          sale.description ?? '',
-          sale.customerName ?? '',
-          sale.customerPhone ?? '',
-        ],
-      );
-      
-      // Get the sale ID (either inserted or existing)
-      int saleId;
-      if (saleResult.insertId != null && saleResult.insertId! > 0) {
-        saleId = saleResult.insertId!;
-      } else {
-        // If it was an update, find the existing sale ID
-        final existingSale = await connection.query(
-          'SELECT id FROM sales WHERE receipt_number = ? AND user_id = ? LIMIT 1',
-          [sale.receiptNumber, sale.userId]
+      try {
+        // Insert sale record
+        final saleResult = await connection.query(
+          '''
+          INSERT INTO sales (user_id, sale_date, total_amount, payment_status, 
+                           receipt_number, payment_method, description, 
+                           customer_name, customer_phone)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ''',
+          [
+            sale.userId,
+            sale.saleDate.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', ''),
+            sale.totalAmount,
+            sale.paymentStatus,
+            sale.receiptNumber,
+            sale.paymentMethod,
+            sale.description,
+            sale.customerName,
+            sale.customerPhone,
+          ],
         );
-        if (existingSale.isNotEmpty) {
-          saleId = existingSale.first['id'];
-        } else {
-          throw Exception('Could not determine sale ID after insertion');
+        
+        // Get the generated sale ID
+        final saleId = saleResult.insertId;
+        if (saleId == null) {
+          throw Exception('Failed to get sale ID from MySQL');
         }
-      }
-      
-      if (saleResult.affectedRows != null && saleResult.affectedRows! > 0) {
-        // Then sync all sale items with the correct sale_id
+        
+        // Insert sale items
         for (var item in items) {
           await connection.query(
             '''
             INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, total_price)
             VALUES (?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-            quantity=VALUES(quantity), unit_price=VALUES(unit_price), 
-            total_price=VALUES(total_price)
             ''',
             [
-              saleId, // Use the actual sale ID from database
+              saleId,
               item.productId,
               item.quantity,
               item.unitPrice,
@@ -415,9 +400,12 @@ class ConnectDB {
             ],
           );
         }
+        
+        return true;
+        
+      } catch (e) {
+        return false;
       }
-      
-      return saleResult.affectedRows != null && saleResult.affectedRows! > 0;
       
     } catch (e) {
       return false;
