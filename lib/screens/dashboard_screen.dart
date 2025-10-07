@@ -71,6 +71,28 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     });
   }
 
+  // Helper method to load all top products from database
+  static Future<List<Map<String, dynamic>>> _loadAllTopProducts(int userId, String sortOption) async {
+    try {
+      // Get all products without sorting in database query first
+      final products = await DatabaseHelper.instance.getTopSellingProducts(
+        userId,
+        DateTime.now().subtract(Duration(days: 30)), // Last 30 days
+        DateTime.now(),
+        limit: 10000, // Large number to get all products
+      );
+      
+      // Create an instance to access the sorting method
+      final state = _DashboardScreenState();
+      // Sort the products based on the selected option
+      state._sortTopProductsList(products, sortOption);
+      
+      return products;
+    } catch (e) {
+      return [];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -105,11 +127,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       // Only forward animation if widget is still mounted
       if (_mounted) {
         _animationController.forward().catchError((error) {
-          debugPrint('Animation forward error: $error');
+          // Animation forward error
         });
       }
     } catch (e) {
-      debugPrint('Animation initialization failed: $e');
       _isInitialized = false;
     }
   }
@@ -178,10 +199,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           }
         }
       } else {
-        debugPrint('⚠️ Cannot load data: User or User ID is null');
+        // Cannot load data: User or User ID is null
       }
     } catch (e) {
-      debugPrint('⚠️ Unexpected error in _loadData: $e');
+      // Unexpected error in _loadData
     }
   }
 
@@ -1340,204 +1361,25 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   void _showAllTopProducts(List<Map<String, dynamic>> topProducts) {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final userId = auth.currentUser?.id;
+    
+    if (userId == null) {
+      // Show error dialog if user ID is not available
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('ไม่สามารถโหลดข้อมูลได้'),
+          backgroundColor: AppConstants.errorRed,
+        ),
+      );
+      return;
+    }
+    
+    // Show the dialog with a dedicated widget to avoid rebuilding issues
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String currentSort = _topProductsSort; // Use the same sort option as the main screen
-        List<Map<String, dynamic>> currentList = List.from(topProducts);
-        
-        // Initial sort based on current sort option
-        _sortTopProductsList(currentList, currentSort);
-        
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Icon(Icons.trending_up, color: AppConstants.primaryDarkBlue),
-                  SizedBox(width: 8),
-                  Text('สินค้ายอดนิยม'),
-                ],
-              ),
-              content: Container(
-                width: MediaQuery.of(context).size.width * 0.8,
-                constraints: BoxConstraints(maxHeight: 500),
-                child: Column(
-                  children: [
-                    // Sorting options
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              currentSort = 'quantity';
-                              // Sort by quantity
-                              _sortTopProductsList(currentList, currentSort);
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: currentSort == 'quantity' 
-                                ? AppConstants.primaryDarkBlue 
-                                : Colors.grey[300],
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: Text(
-                            'ตามจำนวนขาย',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: currentSort == 'quantity' ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              currentSort = 'price';
-                              // Sort by price (revenue/quantity ratio)
-                              _sortTopProductsList(currentList, currentSort);
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: currentSort == 'price' 
-                                ? AppConstants.primaryDarkBlue 
-                                : Colors.grey[300],
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: Text(
-                            'ตามราคาขาย',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: currentSort == 'price' ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                    // Product list
-                    Expanded(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: currentList.length,
-                        itemBuilder: (context, index) {
-                          final product = currentList[index];
-                          
-                          // Safely extract string values from map, handling Blob types from MySQL
-                          String? _safeString(dynamic value) {
-                            if (value == null) return null;
-                            
-                            // Handle Blob type from MySQL
-                            if (value is List<int>) {
-                              return String.fromCharCodes(value);
-                            }
-                            
-                            // Handle regular string
-                            if (value is String) {
-                              return value.isEmpty ? null : value;
-                            }
-                            
-                            // Convert other types to string
-                            return value.toString();
-                          }
-                          
-                          final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
-                          final productImage = _safeString(product['image']);
-                          final totalRevenue = product['total_revenue'] is int 
-                              ? product['total_revenue'].toDouble() 
-                              : product['total_revenue'] as double? ?? 0.0;
-                          final totalQuantity = product['total_quantity'] is double
-                              ? product['total_quantity'].toInt()
-                              : product['total_quantity'] as int? ?? 0;
-                          
-                          return Container(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                  color: Colors.grey.withOpacity(0.2),
-                                ),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: AppConstants.primaryDarkBlue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: productImage != null && productImage.isNotEmpty
-                                      ? ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Image.network(
-                                            productImage,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) {
-                                              return Icon(
-                                                Icons.inventory_2,
-                                                color: AppConstants.primaryDarkBlue,
-                                                size: 20,
-                                              );
-                                            },
-                                            headers: const {
-                                              'Accept': 'image/*',
-                                            },
-                                          ),
-                                        )
-                                      : Icon(
-                                          Icons.inventory_2,
-                                          color: AppConstants.primaryDarkBlue,
-                                          size: 20,
-                                        ),
-                                ),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        productName,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      Text(
-                                        'ขายได้ $totalQuantity หน่วย',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: AppConstants.textDarkGray,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  AppUtils.formatCurrency(totalRevenue),
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppConstants.primaryDarkBlue,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('ปิด'),
-                ),
-              ],
-            );
-          },
-        );
+        return _TopProductsDialog(userId: userId, initialSort: _topProductsSort);
       },
     );
   }
@@ -2537,6 +2379,259 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ],
         );
       },
+    );
+  }
+}
+
+// Dedicated widget for the top products dialog to avoid rebuilding issues
+class _TopProductsDialog extends StatefulWidget {
+  final int userId;
+  final String initialSort;
+
+  const _TopProductsDialog({
+    Key? key,
+    required this.userId,
+    required this.initialSort,
+  }) : super(key: key);
+
+  @override
+  _TopProductsDialogState createState() => _TopProductsDialogState();
+}
+
+class _TopProductsDialogState extends State<_TopProductsDialog> {
+  late String _currentSort;
+  List<Map<String, dynamic>> _currentList = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentSort = widget.initialSort;
+    _loadProducts();
+  }
+
+  Future<void> _loadProducts() async {
+    try {
+      // Add timeout to prevent hanging
+      final products = await _DashboardScreenState._loadAllTopProducts(widget.userId, _currentSort).timeout(
+        Duration(seconds: 10),
+        onTimeout: () {
+          return [];
+        },
+      );
+      if (mounted) {
+        setState(() {
+          _currentList = products;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('ไม่สามารถโหลดข้อมูลได้'),
+              backgroundColor: AppConstants.errorRed,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _sortProducts(String sortOption) {
+    setState(() {
+      _currentSort = sortOption;
+      _isLoading = true;
+    });
+    _loadProducts();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.trending_up, color: AppConstants.primaryDarkBlue),
+          SizedBox(width: 8),
+          Text('สินค้ายอดนิยม'),
+        ],
+      ),
+      content: Container(
+        width: MediaQuery.of(context).size.width * 0.8,
+        constraints: BoxConstraints(maxHeight: 500),
+        child: Column(
+          children: [
+            // Sorting options
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    _sortProducts('quantity');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _currentSort == 'quantity' 
+                        ? AppConstants.primaryDarkBlue 
+                        : Colors.grey[300],
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  child: Text(
+                    'ตามจำนวนขาย',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _currentSort == 'quantity' ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    _sortProducts('price');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _currentSort == 'price' 
+                        ? AppConstants.primaryDarkBlue 
+                        : Colors.grey[300],
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  child: Text(
+                    'ตามราคาขาย',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _currentSort == 'price' ? Colors.white : Colors.black,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            // Product list
+            Expanded(
+              child: _isLoading
+                ? Center(child: CircularProgressIndicator(color: AppConstants.primaryDarkBlue))
+                : _currentList.isEmpty
+                  ? Center(child: Text('ไม่พบข้อมูลสินค้า'))
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _currentList.length,
+                      itemBuilder: (context, index) {
+                        final product = _currentList[index];
+                        
+                        // Safely extract string values from map, handling Blob types from MySQL
+                        String? _safeString(dynamic value) {
+                          if (value == null) return null;
+                          
+                          // Handle Blob type from MySQL
+                          if (value is List<int>) {
+                            return String.fromCharCodes(value);
+                          }
+                          
+                          // Handle regular string
+                          if (value is String) {
+                            return value.isEmpty ? null : value;
+                          }
+                          
+                          // Convert other types to string
+                          return value.toString();
+                        }
+                        
+                        final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+                        final productImage = _safeString(product['image']);
+                        final totalRevenue = product['total_revenue'] is int 
+                            ? product['total_revenue'].toDouble() 
+                            : product['total_revenue'] as double? ?? 0.0;
+                        final totalQuantity = product['total_quantity'] is double
+                            ? product['total_quantity'].toInt()
+                            : product['total_quantity'] as int? ?? 0;
+                        
+                        return Container(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: Colors.grey.withOpacity(0.2),
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: productImage != null && productImage.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          productImage,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.inventory_2,
+                                              color: AppConstants.primaryDarkBlue,
+                                              size: 20,
+                                            );
+                                          },
+                                          headers: const {
+                                            'Accept': 'image/*',
+                                          },
+                                        ),
+                                      )
+                                    : Icon(
+                                        Icons.inventory_2,
+                                        color: AppConstants.primaryDarkBlue,
+                                        size: 20,
+                                      ),
+                              ),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      productName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      'ขายได้ $totalQuantity หน่วย',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppConstants.textDarkGray,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                AppUtils.formatCurrency(totalRevenue),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: AppConstants.primaryDarkBlue,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('ปิด'),
+        ),
+      ],
     );
   }
 }

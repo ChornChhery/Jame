@@ -420,7 +420,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   Icon(Icons.warning_rounded, 
                     color: lowStockCount > 0 ? AppConstants.errorRed : null),
                   const SizedBox(width: 8),
-                  Text('สต็อกต่ำ ($lowStockCount)'),
+                  Text('สิ้นค้าใกล้หมด ($lowStockCount)'),
                 ],
               ),
             ),
