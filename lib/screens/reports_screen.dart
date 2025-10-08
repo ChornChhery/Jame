@@ -2,6 +2,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+
+
+
+
+
+
+
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../core/constants.dart';
@@ -44,17 +52,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   List<Map<String, dynamic>> _productPerformance = [];
   Map<String, dynamic> _customerSegmentation = {};
   
+  // New analytics data
+  Map<String, dynamic> _domesticExportData = {};
+  Map<String, dynamic> _historicalProjectedData = {};
+  List<Map<String, dynamic>> _paymentMethodData = [];
+  List<Map<String, dynamic>> _categoryPerformanceData = [];
+  
   // Top products filter
   String _selectedTopProductsPeriod = 'ทั้งหมด';
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+    _initializeControllers();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      setState(() {
-        _tabController = TabController(length: 5, vsync: this);
-      });
-      _initializeControllers();
       _loadReportsData();
     });
   }
@@ -115,7 +127,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       await _loadAdvancedAnalytics(auth.currentUser!.id!);
       
     } catch (e) {
-      _showErrorMessage('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}');
+      _showErrorMessage(context, 'เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -180,6 +192,12 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       _salesTrends = await app.getSalesTrends(userId, _startDate, _endDate);
       _productPerformance = await app.getProductPerformance(userId, _startDate, _endDate, limit: 15);
       _customerSegmentation = await app.getCustomerSegmentation(userId, limit: 100);
+      
+      // Load new analytics data
+      _domesticExportData = await app.getDomesticExportSales(userId, _startDate, _endDate);
+      _historicalProjectedData = await app.getHistoricalProjectedRevenue(userId, _startDate, _endDate);
+      _paymentMethodData = await app.getPaymentMethodDistribution(userId, _startDate, _endDate);
+      _categoryPerformanceData = await app.getCategoryPerformanceForRadar(userId, _startDate, _endDate);
       
     } catch (e) {
       debugPrint('Error loading advanced analytics: $e');
@@ -874,8 +892,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               ],
             ),
           ),
-          Container(
-            height: 550,
+          SizedBox(
+            height: 600,
             child: TabBarView(
               controller: _tabController,
               children: [
@@ -1554,6 +1572,38 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             'การแบ่งกลุ่มลูกค้า',
             200,
             _buildCustomerSegmentationChart(),
+          ),
+          const SizedBox(height: 16),
+          
+          // Domestic and Export Sales Growth Chart
+          _buildChartCard(
+            'ยอดขายในประเทศ vs ต่างประเทศ',
+            250,
+            _buildDomesticExportSalesChart(),
+          ),
+          const SizedBox(height: 16),
+          
+          // Historical and Projected Revenue Chart
+          _buildChartCard(
+            'รายได้ในอดีตและการคาดการณ์',
+            250,
+            _buildHistoricalProjectedRevenueChart(),
+          ),
+          const SizedBox(height: 16),
+          
+          // Payment Method Distribution Pie Chart
+          _buildChartCard(
+            'การกระจายตามวิธีการชำระเงิน',
+            250,
+            _buildPaymentMethodPieChart(),
+          ),
+          const SizedBox(height: 16),
+          
+          // Category Performance Bar Chart
+          _buildChartCard(
+            'ประสิทธิภาพตามหมวดหมู่สินค้า (เปอร์เซ็นต์)',
+            250,
+            _buildCategoryPerformanceRadarChart(),
           ),
         ],
       ),
@@ -2259,7 +2309,527 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     );
   }
 
-  void _showErrorMessage(String message) {
+  // New chart implementations for requested graph types
+
+  /// Domestic and Export Sales Growth Financial Graph
+  Widget _buildDomesticExportSalesChart() {
+    final dailyData = _domesticExportData['dailyData'] as List? ?? [];
+    
+    if (dailyData.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Sort by date and take last 7 days
+    final sortedData = List.from(dailyData)..sort((a, b) {
+      DateTime dateA, dateB;
+      
+      if (a['sale_day'] is DateTime) {
+        dateA = a['sale_day'] as DateTime;
+      } else if (a['sale_day'] is String) {
+        dateA = DateTime.parse(a['sale_day'] as String);
+      } else {
+        dateA = DateTime.now();
+      }
+      
+      if (b['sale_day'] is DateTime) {
+        dateB = b['sale_day'] as DateTime;
+      } else if (b['sale_day'] is String) {
+        dateB = DateTime.parse(b['sale_day'] as String);
+      } else {
+        dateB = DateTime.now();
+      }
+      
+      return dateA.compareTo(dateB);
+    });
+    
+    final recentData = sortedData.length > 7 
+        ? sortedData.sublist(sortedData.length - 7) 
+        : sortedData;
+    
+    final List<FlSpot> domesticSpots = [];
+    final List<FlSpot> exportSpots = [];
+    
+    for (int i = 0; i < recentData.length; i++) {
+      final domesticRevenue = (recentData[i]['domestic_revenue'] as double?) ?? 0.0;
+      final exportRevenue = (recentData[i]['export_revenue'] as double?) ?? 0.0;
+      
+      domesticSpots.add(FlSpot(i.toDouble(), domesticRevenue));
+      exportSpots.add(FlSpot(i.toDouble(), exportRevenue));
+    }
+    
+    if (domesticSpots.isEmpty && exportSpots.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    return LineChart(
+      LineChartData(
+        lineBarsData: [
+          LineChartBarData(
+            spots: domesticSpots,
+            isCurved: true,
+            color: AppConstants.primaryDarkBlue,
+            barWidth: 3,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppConstants.primaryDarkBlue.withOpacity(0.2),
+            ),
+            dotData: FlDotData(
+              show: true,
+            ),
+          ),
+          LineChartBarData(
+            spots: exportSpots,
+            isCurved: true,
+            color: AppConstants.accentOrange,
+            barWidth: 3,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppConstants.accentOrange.withOpacity(0.2),
+            ),
+            dotData: FlDotData(
+              show: true,
+            ),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() < recentData.length) {
+                  DateTime date;
+                  final saleDay = recentData[value.toInt()]['sale_day'];
+                  
+                  if (saleDay is DateTime) {
+                    date = saleDay;
+                  } else if (saleDay is String) {
+                    date = DateTime.parse(saleDay);
+                  } else {
+                    date = DateTime.now();
+                  }
+                  
+                  return Text(
+                    DateFormat('dd/MM', 'th_TH').format(date),
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  );
+                }
+                return const Text('');
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  AppUtils.formatCurrency(value),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 50,
+            ),
+          ),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey[300]!)),
+        gridData: FlGridData(show: true),
+      ),
+    );
+  }
+
+  /// Financial Graph Historical and Projection Revenue
+  Widget _buildHistoricalProjectedRevenueChart() {
+    final historicalData = _historicalProjectedData['historicalData'] as List? ?? [];
+    final projectionAverage = _historicalProjectedData['projectionAverage'] as double? ?? 0.0;
+    
+    if (historicalData.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Sort by date
+    final sortedData = List.from(historicalData)..sort((a, b) {
+      DateTime dateA, dateB;
+      
+      if (a['period'] is DateTime) {
+        dateA = a['period'] as DateTime;
+      } else if (a['period'] is String) {
+        dateA = DateTime.parse(a['period'] as String);
+      } else {
+        dateA = DateTime.now();
+      }
+      
+      if (b['period'] is DateTime) {
+        dateB = b['period'] as DateTime;
+      } else if (b['period'] is String) {
+        dateB = DateTime.parse(b['period'] as String);
+      } else {
+        dateB = DateTime.now();
+      }
+      
+      return dateA.compareTo(dateB);
+    });
+    
+    // Take last 10 days of historical data
+    final recentHistoricalData = sortedData.length > 10 
+        ? sortedData.sublist(sortedData.length - 10) 
+        : sortedData;
+    
+    // Generate 5 days of projected data
+    final List<Map<String, dynamic>> projectedData = [];
+    DateTime lastDate = DateTime.now();
+    
+    if (recentHistoricalData.isNotEmpty) {
+      final lastEntry = recentHistoricalData.last;
+      if (lastEntry['period'] is DateTime) {
+        lastDate = lastEntry['period'] as DateTime;
+      } else if (lastEntry['period'] is String) {
+        lastDate = DateTime.parse(lastEntry['period'] as String);
+      }
+    }
+    
+    // Generate projected data for next 5 days
+    for (int i = 1; i <= 5; i++) {
+      final projectedDate = lastDate.add(Duration(days: i));
+      final projectedRevenue = projectionAverage * (1 + (i * 0.05)); // 5% growth per day
+      
+      projectedData.add({
+        'period': projectedDate,
+        'actual_revenue': projectedRevenue,
+      });
+    }
+    
+    final List<FlSpot> historicalSpots = [];
+    final List<FlSpot> projectedSpots = [];
+    
+    // Add historical data points
+    for (int i = 0; i < recentHistoricalData.length; i++) {
+      final revenue = (recentHistoricalData[i]['actual_revenue'] as double?) ?? 0.0;
+      historicalSpots.add(FlSpot(i.toDouble(), revenue));
+    }
+    
+    // Add projected data points (starting after historical data)
+    for (int i = 0; i < projectedData.length; i++) {
+      final revenue = (projectedData[i]['actual_revenue'] as double?) ?? 0.0;
+      projectedSpots.add(FlSpot((recentHistoricalData.length + i).toDouble(), revenue));
+    }
+    
+    if (historicalSpots.isEmpty && projectedSpots.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    return LineChart(
+      LineChartData(
+        lineBarsData: [
+          LineChartBarData(
+            spots: historicalSpots,
+            isCurved: true,
+            color: AppConstants.primaryDarkBlue,
+            barWidth: 3,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppConstants.primaryDarkBlue.withOpacity(0.2),
+            ),
+            dotData: FlDotData(
+              show: true,
+            ),
+          ),
+          LineChartBarData(
+            spots: projectedSpots,
+            isCurved: true,
+            color: AppConstants.successGreen,
+            barWidth: 3,
+            belowBarData: BarAreaData(
+              show: true,
+              color: AppConstants.successGreen.withOpacity(0.2),
+            ),
+            dotData: FlDotData(
+              show: true,
+            ),
+          ),
+        ],
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final totalDataPoints = recentHistoricalData.length + projectedData.length;
+                if (value.toInt() < totalDataPoints) {
+                  DateTime date;
+                  
+                  if (value.toInt() < recentHistoricalData.length) {
+                    // Historical data point
+                    final dataPoint = recentHistoricalData[value.toInt()];
+                    if (dataPoint['period'] is DateTime) {
+                      date = dataPoint['period'] as DateTime;
+                    } else if (dataPoint['period'] is String) {
+                      date = DateTime.parse(dataPoint['period'] as String);
+                    } else {
+                      date = DateTime.now();
+                    }
+                  } else {
+                    // Projected data point
+                    final projectedIndex = value.toInt() - recentHistoricalData.length;
+                    if (projectedIndex < projectedData.length) {
+                      final dataPoint = projectedData[projectedIndex];
+                      if (dataPoint['period'] is DateTime) {
+                        date = dataPoint['period'] as DateTime;
+                      } else if (dataPoint['period'] is String) {
+                        date = DateTime.parse(dataPoint['period'] as String);
+                      } else {
+                        date = DateTime.now().add(Duration(days: projectedIndex + 1));
+                      }
+                    } else {
+                      date = DateTime.now();
+                    }
+                  }
+                  
+                  return Text(
+                    DateFormat('dd/MM', 'th_TH').format(date),
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  );
+                }
+                return const Text('');
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  AppUtils.formatCurrency(value),
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 50,
+            ),
+          ),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey[300]!)),
+        gridData: FlGridData(show: true),
+      ),
+    );
+  }
+
+  /// Payment Method Distribution Pie Chart
+  Widget _buildPaymentMethodPieChart() {
+    if (_paymentMethodData.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Calculate total revenue for percentage calculation
+    double totalRevenue = 0;
+    for (var method in _paymentMethodData) {
+      totalRevenue += (method['total_revenue'] as double?) ?? 0.0;
+    }
+    
+    if (totalRevenue == 0) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Sort by revenue and take top 5 methods
+    final sortedData = List.from(_paymentMethodData)..sort((a, b) {
+      final revenueA = (a['total_revenue'] as double?) ?? 0.0;
+      final revenueB = (b['total_revenue'] as double?) ?? 0.0;
+      return revenueB.compareTo(revenueA);
+    });
+    
+    final topData = sortedData.length > 5 
+        ? sortedData.sublist(0, 5) 
+        : sortedData;
+    
+    return PieChart(
+      PieChartData(
+        sections: List.generate(topData.length, (index) {
+          final method = topData[index];
+          final methodName = method['payment_method'] as String? ?? 'ไม่ระบุ';
+          final revenue = (method['total_revenue'] as double?) ?? 0.0;
+          final percentage = (revenue / totalRevenue) * 100;
+          
+          // Generate colors for each payment method
+          final colors = [
+            AppConstants.primaryDarkBlue,
+            AppConstants.primaryYellow,
+            AppConstants.accentOrange,
+            AppConstants.successGreen,
+            AppConstants.softBlue,
+          ];
+          
+          return PieChartSectionData(
+            value: revenue,
+            title: '${percentage.toStringAsFixed(1)}%',
+            radius: 50,
+            color: colors[index % colors.length],
+            titleStyle: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          );
+        }),
+        sectionsSpace: 2,
+        centerSpaceRadius: 40,
+        centerSpaceColor: Colors.white,
+        startDegreeOffset: 90,
+      ),
+    );
+  }
+
+  /// Category Performance Chart (Bar Chart visualization)
+  Widget _buildCategoryPerformanceRadarChart() {
+    if (_categoryPerformanceData.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Sort by revenue and take top 6 categories
+    final sortedData = List.from(_categoryPerformanceData)..sort((a, b) {
+      final revenueA = (a['total_revenue'] as double?) ?? 0.0;
+      final revenueB = (b['total_revenue'] as double?) ?? 0.0;
+      return revenueB.compareTo(revenueA);
+    });
+    
+    final topData = sortedData.length > 6 
+        ? sortedData.sublist(0, 6) 
+        : sortedData;
+    
+    // Ensure we have at least one data entry to avoid empty chart
+    if (topData.isEmpty) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Find max revenue for normalization
+    double maxRevenue = 0;
+    for (var category in topData) {
+      final revenue = (category['total_revenue'] as double?) ?? 0.0;
+      if (revenue > maxRevenue) maxRevenue = revenue;
+    }
+    
+    if (maxRevenue == 0) {
+      return Center(
+        child: Text('ยังไม่มีข้อมูล', style: TextStyle(color: Colors.grey[500])),
+      );
+    }
+    
+    // Bar chart visualization for category performance
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: 100, // Percentage scale
+        barGroups: topData.asMap().entries.map((entry) {
+          final category = entry.value;
+          final index = entry.key;
+          final categoryName = category['category'] as String? ?? 'ไม่ระบุ';
+          final revenue = (category['total_revenue'] as double?) ?? 0.0;
+          final percentage = (revenue / maxRevenue) * 100;
+          
+          // Generate colors for each category
+          final colors = [
+            AppConstants.primaryDarkBlue,
+            AppConstants.primaryYellow,
+            AppConstants.accentOrange,
+            AppConstants.successGreen,
+            AppConstants.softBlue,
+            Colors.purple,
+          ];
+          
+          return BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: percentage,
+                color: colors[index % colors.length],
+                width: 20,
+                borderRadius: BorderRadius.zero,
+              ),
+            ],
+          );
+        }).toList(),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() < topData.length) {
+                  final categoryName = topData[value.toInt()]['category'] as String? ?? 'ไม่ระบุ';
+                  // Truncate long names
+                  final displayName = categoryName.length > 10 
+                      ? '${categoryName.substring(0, 7)}...' 
+                      : categoryName;
+                  return Text(
+                    displayName,
+                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                  );
+                }
+                return const Text('');
+              },
+              reservedSize: 30,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  '${value.toInt()}%',
+                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                );
+              },
+              reservedSize: 30,
+            ),
+          ),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey[300]!)),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+        ),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            tooltipBgColor: Colors.grey[800]!,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              final categoryName = topData[groupIndex]['category'] as String? ?? 'ไม่ระบุ';
+              final revenue = (topData[groupIndex]['total_revenue'] as double? ?? 0.0);
+              return BarTooltipItem(
+                '$categoryName\n${AppUtils.formatCurrency(revenue)}',
+                const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showErrorMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(

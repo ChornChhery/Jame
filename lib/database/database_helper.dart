@@ -519,6 +519,129 @@ class DatabaseHelper {
     }
   }
 
+  /// Get domestic vs export sales data for trend analysis
+  Future<Map<String, dynamic>> getDomesticExportSales(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      // For domestic sales, we'll assume local phone numbers (10 digits starting with 0)
+      // For export sales, we'll assume international numbers (not matching domestic pattern)
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT 
+           DATE(sale_date) as sale_day,
+           SUM(CASE WHEN customer_phone REGEXP '^[0][0-9]{9}\$' OR customer_phone IS NULL THEN total_amount ELSE 0 END) as domestic_revenue,
+           SUM(CASE WHEN customer_phone IS NOT NULL AND customer_phone NOT REGEXP '^[0][0-9]{9}\$' THEN total_amount ELSE 0 END) as export_revenue,
+           COUNT(CASE WHEN customer_phone REGEXP '^[0][0-9]{9}\$' OR customer_phone IS NULL THEN 1 END) as domestic_count,
+           COUNT(CASE WHEN customer_phone IS NOT NULL AND customer_phone NOT REGEXP '^[0][0-9]{9}\$' THEN 1 END) as export_count
+           FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           GROUP BY DATE(sale_date)
+           ORDER BY sale_day''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      return {
+        'dailyData': results,
+      };
+    } catch (e) {
+      debugPrint('Get domestic vs export sales failed: $e');
+      return {'dailyData': []};
+    }
+  }
+
+  /// Get historical and projected revenue data
+  Future<Map<String, dynamic>> getHistoricalProjectedRevenue(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      // Get actual historical data
+      final historicalResults = await _mysqlDB.executeSelectQuery(
+        '''SELECT 
+           DATE(sale_date) as period,
+           SUM(total_amount) as actual_revenue
+           FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           GROUP BY DATE(sale_date)
+           ORDER BY period''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      // For projection, we'll calculate average daily growth and project 30 days into future
+      final projectionResults = await _mysqlDB.executeSelectQuery(
+        '''SELECT 
+           DATE(sale_date) as period,
+           SUM(total_amount) as daily_revenue
+           FROM sales 
+           WHERE user_id = ? AND sale_date >= DATE_SUB(?, INTERVAL 30 DAY) AND sale_date <= ?
+           GROUP BY DATE(sale_date)
+           ORDER BY period''',
+        [userId, endDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      // Calculate average daily revenue for projection
+      double totalRevenue = 0;
+      int dayCount = 0;
+      for (var row in projectionResults) {
+        totalRevenue += (row['daily_revenue'] as double?) ?? 0.0;
+        dayCount++;
+      }
+      
+      final averageDailyRevenue = dayCount > 0 ? totalRevenue / dayCount : 0.0;
+      
+      return {
+        'historicalData': historicalResults,
+        'projectionAverage': averageDailyRevenue,
+      };
+    } catch (e) {
+      debugPrint('Get historical and projected revenue failed: $e');
+      return {'historicalData': [], 'projectionAverage': 0.0};
+    }
+  }
+
+  /// Get payment method distribution data for pie chart
+  Future<List<Map<String, dynamic>>> getPaymentMethodDistribution(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT 
+           payment_method,
+           COUNT(*) as transaction_count,
+           SUM(total_amount) as total_revenue
+           FROM sales 
+           WHERE user_id = ? AND sale_date >= ? AND sale_date <= ?
+           GROUP BY payment_method
+           ORDER BY total_revenue DESC''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      return results;
+    } catch (e) {
+      debugPrint('Get payment method distribution failed: $e');
+      return [];
+    }
+  }
+
+  /// Get product category performance for radar chart
+  Future<List<Map<String, dynamic>>> getCategoryPerformance(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      final results = await _mysqlDB.executeSelectQuery(
+        '''SELECT 
+           p.category,
+           SUM(si.total_price) as total_revenue,
+           SUM(si.quantity) as total_quantity,
+           COUNT(DISTINCT s.id) as transaction_count
+           FROM sale_items si
+           JOIN sales s ON si.sale_id = s.id
+           JOIN products p ON si.product_id = p.id
+           WHERE s.user_id = ? AND s.sale_date >= ? AND s.sale_date <= ? AND p.category IS NOT NULL
+           GROUP BY p.category
+           ORDER BY total_revenue DESC
+           LIMIT 8''',
+        [userId, startDate.toIso8601String(), endDate.toIso8601String()]
+      );
+      
+      return results;
+    } catch (e) {
+      debugPrint('Get category performance failed: $e');
+      return [];
+    }
+  }
+
   Future<void> close() async {
     try {
       await _mysqlDB.close();

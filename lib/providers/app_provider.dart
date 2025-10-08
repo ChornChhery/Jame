@@ -565,6 +565,50 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  /// Get domestic vs export sales data
+  Future<Map<String, dynamic>> getDomesticExportSales(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getDomesticExportSales(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {'dailyData': []};
+    }
+  }
+
+  /// Get historical and projected revenue data
+  Future<Map<String, dynamic>> getHistoricalProjectedRevenue(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getHistoricalProjectedRevenue(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return {'historicalData': [], 'projectionAverage': 0.0};
+    }
+  }
+
+  /// Get payment method distribution data
+  Future<List<Map<String, dynamic>>> getPaymentMethodDistribution(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getPaymentMethodDistribution(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
+  /// Get category performance data for radar chart
+  Future<List<Map<String, dynamic>>> getCategoryPerformanceForRadar(int userId, DateTime startDate, DateTime endDate) async {
+    try {
+      return await DatabaseHelper.instance.getCategoryPerformance(userId, startDate, endDate);
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return [];
+    }
+  }
+
   // Background sync methods
   Future<void> _syncProductToServer(Product product) async {
     try {
