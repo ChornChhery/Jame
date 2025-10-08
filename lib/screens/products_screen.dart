@@ -657,19 +657,23 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 3),
                               decoration: BoxDecoration(
-                                color: isLowStock 
-                                  ? AppConstants.errorRed.withOpacity(0.1)
-                                  : AppConstants.successGreen.withOpacity(0.1),
+                                color: product.quantity <= 0
+                                  ? Colors.grey.withOpacity(0.1)
+                                  : isLowStock 
+                                    ? AppConstants.errorRed.withOpacity(0.1)
+                                    : AppConstants.successGreen.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                '${product.quantity} ${product.unit}',
+                                product.quantity <= 0 ? 'หมดสต็อก' : '${product.quantity} ${product.unit}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
-                                  color: isLowStock 
-                                    ? AppConstants.errorRed
-                                    : AppConstants.successGreen,
+                                  color: product.quantity <= 0
+                                    ? Colors.grey
+                                    : isLowStock 
+                                      ? AppConstants.errorRed
+                                      : AppConstants.successGreen,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -709,10 +713,10 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   child: Column(
                     children: [
                       IconButton(
-                        onPressed: () => _showAddToCartDialog(product),
+                        onPressed: product.quantity > 0 ? () => _showAddToCartDialog(product) : null,
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 24), // Increased from 20 to 24
-                        color: AppConstants.primaryDarkBlue,
-                        tooltip: 'เพิ่มในตะกร้า',
+                        color: product.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
+                        tooltip: product.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก',
                         padding: const EdgeInsets.all(0),
                         constraints: const BoxConstraints(),
                       ),
@@ -849,23 +853,45 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 Row(
                   children: [
                     Icon(
-                      Icons.inventory_2_rounded,
+                      product.quantity <= 0 ? Icons.block : Icons.inventory_2_rounded,
                       size: 12,
-                      color: isLowStock ? AppConstants.errorRed : Colors.grey[600],
+                      color: product.quantity <= 0 
+                        ? Colors.grey 
+                        : isLowStock ? AppConstants.errorRed : Colors.grey[600],
                     ),
                     const SizedBox(width: 3),
                     Expanded(
                       child: Text(
-                        '${product.quantity} ${product.unit}',
+                        product.quantity <= 0 ? 'หมดสต็อก' : '${product.quantity} ${product.unit}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: isLowStock ? AppConstants.errorRed : Colors.grey[600],
-                          fontWeight: isLowStock ? FontWeight.w600 : FontWeight.normal,
+                          color: product.quantity <= 0 
+                            ? Colors.grey 
+                            : isLowStock ? AppConstants.errorRed : Colors.grey[600],
+                          fontWeight: product.quantity <= 0 
+                            ? FontWeight.normal 
+                            : isLowStock ? FontWeight.w600 : FontWeight.normal,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (isLowStock)
+                    if (product.quantity <= 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'หมดสต็อก',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                    else if (isLowStock)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                         decoration: BoxDecoration(
@@ -890,10 +916,10 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
-                        onPressed: () => _showAddToCartDialog(product),
+                        onPressed: product.quantity > 0 ? () => _showAddToCartDialog(product) : null,
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
-                        color: AppConstants.primaryDarkBlue,
-                        tooltip: 'เพิ่มในตะกร้า',
+                        color: product.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
+                        tooltip: product.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก',
                       ),
                       PopupMenuButton<String>(
                         icon: Icon(Icons.more_vert_rounded, 
@@ -1144,6 +1170,17 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   void _showAddToCartDialog(Product product) {
+    // Check if product is out of stock
+    if (product.quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product.name} หมดสต็อก'),
+          backgroundColor: AppConstants.errorRed,
+        ),
+      );
+      return;
+    }
+    
     final quantityController = TextEditingController(text: '1');
     
     showDialog(

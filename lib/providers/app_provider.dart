@@ -11,6 +11,7 @@ class AppProvider extends ChangeNotifier {
   List<Product> _products = [];
   List<CartItem> _cartItems = [];
   List<Sale> _sales = [];
+  List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = false;
   String? _error;
   final ConnectDB _connectDB = ConnectDB(); // Add server connection
@@ -18,6 +19,8 @@ class AppProvider extends ChangeNotifier {
   List<Product> get products => _products;
   List<CartItem> get cartItems => _cartItems;
   List<Sale> get sales => _sales;
+  List<Map<String, dynamic>> get notifications => _notifications;
+  List<Map<String, dynamic>> get unreadNotifications => _notifications.where((n) => !n['isRead']).toList();
   bool get isLoading => _isLoading;
   String? get error => _error;
   
@@ -133,8 +136,48 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
+  // Notification methods
+  void _notifyProductOutOfStock(Product product) {
+    // Add notification to the list
+    _notifications.insert(0, {
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'type': 'out_of_stock',
+      'title': 'สินค้าหมดสต็อก',
+      'message': '${product.name} หมดสต็อกแล้ว',
+      'timestamp': DateTime.now(),
+      'productId': product.id,
+      'isRead': false,
+    });
+    
+    // This method can be extended to send push notifications or other alerts
+    debugPrint('Product ${product.name} is now out of stock');
+    notifyListeners();
+  }
+  
+  void _notifyProductLowStock(Product product) {
+    // Add notification to the list
+    _notifications.insert(0, {
+      'id': DateTime.now().millisecondsSinceEpoch,
+      'type': 'low_stock',
+      'title': 'สินค้าใกล้หมดสต็อก',
+      'message': '${product.name} เหลือสต็อก ${product.quantity} ${product.unit} เท่านั้น',
+      'timestamp': DateTime.now(),
+      'productId': product.id,
+      'isRead': false,
+    });
+    
+    // This method can be extended to send push notifications or other alerts
+    debugPrint('Product ${product.name} is now low on stock');
+    notifyListeners();
+  }
+  
   // Cart operations
   void addToCart(Product product, {int quantity = 1}) {
+    // Check if product is out of stock
+    if (product.quantity <= 0) {
+      return; // Don't add out of stock products
+    }
+    
     final existingIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
     
     if (existingIndex != -1) {
@@ -167,6 +210,32 @@ class AppProvider extends ChangeNotifier {
     _cartItems.clear();
     notifyListeners();
   }
+  
+  // Notification management methods
+  void markNotificationAsRead(int notificationId) {
+    final index = _notifications.indexWhere((n) => n['id'] == notificationId);
+    if (index != -1) {
+      _notifications[index]['isRead'] = true;
+      notifyListeners();
+    }
+  }
+  
+  void markAllNotificationsAsRead() {
+    for (var notification in _notifications) {
+      notification['isRead'] = true;
+    }
+    notifyListeners();
+  }
+  
+  void clearNotifications() {
+    _notifications.clear();
+    notifyListeners();
+  }
+  
+  void removeNotification(int notificationId) {
+    _notifications.removeWhere((n) => n['id'] == notificationId);
+    notifyListeners();
+  }
 
   // Persistent cart operations
   Future<void> saveCartItemToDatabase(int userId, CartItem cartItem) async {
@@ -195,6 +264,11 @@ class AppProvider extends ChangeNotifier {
 
   // Enhanced cart operations with database persistence
   void addToCartWithPersistence(int userId, Product product, {int quantity = 1}) {
+    // Check if product is out of stock
+    if (product.quantity <= 0) {
+      return; // Don't add out of stock products
+    }
+    
     final existingIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
     CartItem cartItem;
     
@@ -285,11 +359,22 @@ class AppProvider extends ChangeNotifier {
             quantity: newQuantity,
           );
           
+          // Check if product just went out of stock
+          bool wasLowStock = oldQuantity <= updatedProduct.lowStock;
+          bool isNowOutOfStock = newQuantity <= 0;
+          
           // Update in local list
           _products[productIndex] = updatedProduct;
           
           // Update in database
           await DatabaseHelper.instance.updateProduct(updatedProduct);
+          
+          // Notify if product just went out of stock
+          if (!wasLowStock && isNowOutOfStock) {
+            _notifyProductOutOfStock(updatedProduct);
+          } else if (!wasLowStock && newQuantity <= updatedProduct.lowStock) {
+            _notifyProductLowStock(updatedProduct);
+          }
         }
       }
       

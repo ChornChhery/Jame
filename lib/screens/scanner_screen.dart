@@ -520,12 +520,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _addToCart(_scannedProduct!),
+                          onPressed: _scannedProduct!.quantity > 0 ? () => _addToCart(_scannedProduct!) : null,
                           icon: const Icon(Icons.add_shopping_cart),
-                          label: const Text('เพิ่มในตะกร้า'),
+                          label: Text(_scannedProduct!.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppConstants.primaryDarkBlue,
-                            side: const BorderSide(color: AppConstants.primaryDarkBlue),
+                            foregroundColor: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
+                            side: BorderSide(color: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -651,12 +651,12 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
-                          onPressed: () => _addToCart(_scannedProduct!),
+                          onPressed: _scannedProduct!.quantity > 0 ? () => _addToCart(_scannedProduct!) : null,
                           icon: const Icon(Icons.add_shopping_cart),
-                          label: const Text('เพิ่มในตะกร้า'),
+                          label: Text(_scannedProduct!.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppConstants.primaryDarkBlue,
-                            side: const BorderSide(color: AppConstants.primaryDarkBlue),
+                            foregroundColor: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
+                            side: BorderSide(color: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -905,6 +905,17 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
 
   // Action handlers
   void _addToCart(Product product) {
+    // Check if product is out of stock
+    if (product.quantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${product.name} หมดสต็อก'),
+          backgroundColor: AppConstants.errorRed,
+        ),
+      );
+      return;
+    }
+    
     final app = Provider.of<AppProvider>(context, listen: false);
     app.addToCart(product);
     

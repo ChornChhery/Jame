@@ -380,6 +380,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         // Count cart items
                         final cartItemCount = app.cartItemCount;
                         
+                        // Count unread notifications
+                        final unreadNotificationCount = app.unreadNotifications.length;
+                        
+                        // Total badge count
+                        final totalBadgeCount = lowStockCount + cartItemCount + unreadNotificationCount;
+                        
                         return Stack(
                           children: [
                             Container(
@@ -391,10 +397,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                 icon: Icon(Icons.notifications_outlined, color: Colors.white),
                                 onPressed: () {
                                   _showNotificationsDialog(context);
+                                  // Mark all notifications as read when opening the dialog
+                                  final appProvider = Provider.of<AppProvider>(context, listen: false);
+                                  appProvider.markAllNotificationsAsRead();
                                 },
                               ),
                             ),
-                            if (lowStockCount > 0 || cartItemCount > 0)
+                            if (totalBadgeCount > 0)
                               Positioned(
                                 right: 0,
                                 top: 0,
@@ -413,7 +422,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                     minHeight: 16,
                                   ),
                                   child: Text(
-                                    '${lowStockCount + cartItemCount}',
+                                    '$totalBadgeCount',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -1735,6 +1744,96 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // System notifications
+                    if (app.notifications.isNotEmpty) ...[
+                      Text(
+                        'การแจ้งเตือนระบบ (${app.notifications.length})',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.primaryDarkBlue,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Container(
+                        constraints: BoxConstraints(maxHeight: 150),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: app.notifications.length,
+                          itemBuilder: (context, index) {
+                            final notification = app.notifications[index];
+                            Color notificationColor = AppConstants.primaryDarkBlue;
+                            IconData notificationIcon = Icons.info;
+                            
+                            if (notification['type'] == 'out_of_stock') {
+                              notificationColor = AppConstants.errorRed;
+                              notificationIcon = Icons.block;
+                            } else if (notification['type'] == 'low_stock') {
+                              notificationColor = Colors.orange;
+                              notificationIcon = Icons.warning;
+                            }
+                            
+                            return Container(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: Colors.grey.withOpacity(0.2),
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: notificationColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      notificationIcon,
+                                      color: notificationColor,
+                                      size: 20.0,
+                                    ),
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          notification['title'],
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        Text(
+                                          notification['message'],
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: AppConstants.textDarkGray,
+                                          ),
+                                        ),
+                                        Text(
+                                          AppUtils.formatDateTimeThai(notification['timestamp']),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                    ],
+                    
                     // Low stock notifications
                     if (lowStockProducts.isNotEmpty) ...[
                       Text(
