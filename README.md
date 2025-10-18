@@ -64,9 +64,9 @@ See Jame in action! All screenshots reflect the Thai-localized interface with Th
 |-----------------|----------------------------|--------------------|
 | ![Login](image.png) ![Forget Password](image-2.png) ![alt text](image-3.png) ![alt text](image-4.png) | ![alt text](image-5.png) ![alt text](image-6.png) ![alt text](image-7.png) ![alt text](image-8.png) ![alt text](image-9.png) ![alt text](image-10.png) ![alt text](image-11.png) | ![alt text](image-12.png) ![alt text](image-13.png) ![alt text](image-14.png) ![alt text](image-15.png) ![alt text](image-16.png)  |
 
-| Cart & Checkout | PromptPay QR Payment | Thai-Format Receipt |
+| Cart & Payment | Receipt & History | Report  |
 |-----------------|----------------------|---------------------|
-| ![Cart](https://github.com/your-username/jame/raw/main/assets/screenshots/cart_checkout.png) | ![Payment QR](https://github.com/your-username/jame/raw/main/assets/screenshots/payment_qr.png) | ![Receipt](https://github.com/your-username/jame/raw/main/assets/screenshots/receipt.png) |
+| ![alt text](image-17.png) ![alt text](image-18.png) ![alt text](image-19.png) ![alt text](image-20.png) | ![alt text](image-21.png) ![alt text](image-22.png) ![alt text](image-23.png) | ![alt text](image-24.png) ![alt text](image-25.png) ![alt text](image-26.png) ![alt text](image-27.png) ![alt text](image-28.png) ![alt text](image-29.png) ![alt text](image-30.png) |
 
 
 ---
