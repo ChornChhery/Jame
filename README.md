@@ -60,9 +60,9 @@ The app will help you:
 
 See Jame in action! All screenshots reflect the Thai-localized interface with Thai Baht (฿) currency and PromptPay integration.
 
-| Login / Forget Password / Register | Dashboard / Profile | QR Product Scanner |
+| Login / Forget Password / Register | Dashboard / Profile | Product Managermant|
 |-----------------|----------------------------|--------------------|
-| ![Login](image.png) ![Forget Password](image-2.png) ![alt text](image-3.png) ![alt text](image-4.png) | ![alt text](image-5.png) ![alt text](image-6.png) ![alt text](image-7.png) ![alt text](image-8.png) ![alt text](image-9.png) ![alt text](image-10.png) ![alt text](image-11.png) | ![Scanner](https://github.com/your-username/jame/raw/main/assets/screenshots/scanner.png) |
+| ![Login](image.png) ![Forget Password](image-2.png) ![alt text](image-3.png) ![alt text](image-4.png) | ![alt text](image-5.png) ![alt text](image-6.png) ![alt text](image-7.png) ![alt text](image-8.png) ![alt text](image-9.png) ![alt text](image-10.png) ![alt text](image-11.png) | ![alt text](image-12.png) ![alt text](image-13.png) ![alt text](image-14.png) ![alt text](image-15.png) ![alt text](image-16.png)  |
 
 | Cart & Checkout | PromptPay QR Payment | Thai-Format Receipt |
 |-----------------|----------------------|---------------------|
