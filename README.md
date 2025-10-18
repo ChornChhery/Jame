@@ -56,6 +56,19 @@ The app will help you:
 - Automatically generate receipts
 - View personal sales analytics and reports
 
+## 📸 App Screenshots
+
+See Jame in action! All screenshots reflect the Thai-localized interface with Thai Baht (฿) currency and PromptPay integration.
+
+| Login / Forget Password / Register | Dashboard (THB Analytics) | QR Product Scanner |
+|-----------------|----------------------------|--------------------|
+| (![Login](image.png)) | ![Dashboard](https://github.com/your-username/jame/raw/main/assets/screenshots/dashboard.png) | ![Scanner](https://github.com/your-username/jame/raw/main/assets/screenshots/scanner.png) |
+
+| Cart & Checkout | PromptPay QR Payment | Thai-Format Receipt |
+|-----------------|----------------------|---------------------|
+| ![Cart](https://github.com/your-username/jame/raw/main/assets/screenshots/cart_checkout.png) | ![Payment QR](https://github.com/your-username/jame/raw/main/assets/screenshots/payment_qr.png) | ![Receipt](https://github.com/your-username/jame/raw/main/assets/screenshots/receipt.png) |
+
+
 ---
 
 ## 🎯 Goals & Core Features
