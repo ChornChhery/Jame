@@ -62,7 +62,7 @@ See Jame in action! All screenshots reflect the Thai-localized interface with Th
 
 | Login / Forget Password / Register | Dashboard (THB Analytics) | QR Product Scanner |
 |-----------------|----------------------------|--------------------|
-| (![Login](image.png)) | ![Dashboard](https://github.com/your-username/jame/raw/main/assets/screenshots/dashboard.png) | ![Scanner](https://github.com/your-username/jame/raw/main/assets/screenshots/scanner.png) |
+| ![Login](image.png) ![Forget Password](image-1.png) | ![Dashboard](https://github.com/your-username/jame/raw/main/assets/screenshots/dashboard.png) | ![Scanner](https://github.com/your-username/jame/raw/main/assets/screenshots/scanner.png) |
 
 | Cart & Checkout | PromptPay QR Payment | Thai-Format Receipt |
 |-----------------|----------------------|---------------------|
