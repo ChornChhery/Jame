@@ -25,6 +25,19 @@ def test_settings_require_server_database_configuration(monkeypatch):
         Settings(_env_file=None)
 
 
+def test_settings_do_not_load_repository_dotenv(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("SESSION_SECRET", raising=False)
+    (tmp_path / ".env").write_text(
+        "DATABASE_URL=postgresql+psycopg://unused:unused@localhost/unused\n"
+        "SESSION_SECRET=temporary-test-secret-that-is-long-enough\n"
+    )
+
+    with pytest.raises(ValidationError):
+        Settings()
+
+
 def test_cors_allows_only_configured_origins(settings):
     from fastapi.testclient import TestClient
 

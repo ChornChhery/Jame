@@ -6,6 +6,8 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Settings, get_settings
+from app.routers.auth import router as auth_router
+from app.routers.profile import router as profile_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -20,6 +22,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Jame API", version="0.1.0", lifespan=lifespan)
     app.state.settings = application_settings
     app.state.engine = engine
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(profile_router, prefix="/api/v1")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=application_settings.allowed_origins,

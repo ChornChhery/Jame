@@ -13,6 +13,9 @@ The API listens at `http://localhost:8000`; its liveness endpoint is
 `http://localhost:8025` and its SMTP service is available to the API at
 `mailpit:1025`.
 
+The API container applies Alembic migrations before serving requests. Its
+PostgreSQL data is isolated in the `jame-postgres-data` Compose volume.
+
 Configure Flutter Web's non-secret API URL with:
 
 ```powershell
