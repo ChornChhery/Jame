@@ -1,7 +1,0 @@
-pyproject.toml
-jame_api.egg-info/PKG-INFO
-jame_api.egg-info/SOURCES.txt
-jame_api.egg-info/dependency_links.txt
-jame_api.egg-info/requires.txt
-jame_api.egg-info/top_level.txt
-tests/test_health.py
