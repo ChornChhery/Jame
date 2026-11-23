@@ -37,6 +37,23 @@ existing `pos-postgres` service is not reused. See [backend/README.md](backend/R
 for production requirements and API readiness checks. Never put database
 credentials in Flutter assets or web builds.
 
+For an Android emulator, use `http://10.0.2.2:8000/api/v1` as the API base
+URL. For a physical device, bind the API port to the development machine's
+network interfaces and use that machine's LAN address:
+
+```powershell
+$env:JAME_API_BIND_ADDRESS = '0.0.0.0'
+docker compose up -d --wait postgres mailpit api
+flutter run -d DEVICE_ID --dart-define=API_BASE_URL=http://192.168.1.20:8000/api/v1
+```
+
+Replace `DEVICE_ID` and `192.168.1.20` with your device ID and the host's LAN
+address.
+
+Only expose the development API on a trusted network. For Flutter Web on a
+different origin, add that exact origin to the backend `ALLOWED_ORIGINS`
+setting; native clients do not use browser CORS.
+
 ---
 
 ## 🎯 App Concept Overview
@@ -168,9 +185,18 @@ All while being fully **offline-capable**, cost-efficient, and simple to use.
 
 ---
 
-## 🗄️ Database Design with User Management
+## 🗄️ Data Model
 
-### Database Schema (MySQL)
+PostgreSQL is private to the FastAPI service. Its current schema and
+migrations live under `backend/alembic`; the Flutter app accesses data through
+the authenticated API. Each account owns its products, sales, cart, and
+inventory movements.
+
+### Historical MySQL schema proposal (obsolete)
+
+> The SQL examples below are retained only as historical design notes. They
+> are not used by Jame and must not be run against the current PostgreSQL
+> database. Use the Alembic migrations under `backend/alembic` instead.
 
 #### 1. **users** table
 ```sql
@@ -371,9 +397,10 @@ jame/
 │   │   ├── sale.dart              # Sale & sale_item models
 │   │   └── inventory.dart         # Inventory & cart models
 │   │
-│   ├── database/
-│   │   ├── database_helper.dart   # MySQL setup & all DAOs
-│   │   └── repositories.dart      # All repositories combined
+│   ├── services/
+│   │   ├── api_client.dart        # HTTP transport and authentication
+│   │   ├── jame_api.dart          # API contract
+│   │   └── jame_repository.dart   # POS and report data access
 │   │
 │   ├── screens/
 │   │   ├── auth_screens.dart      # Login & signup combined
@@ -488,10 +515,10 @@ The architecture now includes **Authentication Layer** and **User Context**:
 +---------------------------+
             ↓
 +---------------------------+
-| Data Layer               | ← MySQL + Repositories (User-filtered)
-| - UserDAO                |
-| - ProductDAO             |
-| - SaleDAO                |
+| API / Data Layer         | ← FastAPI + PostgreSQL (account-scoped)
+| - JameRepository         |
+| - Product and POS routes |
+| - Alembic migrations     |
 +---------------------------+
 ```
 
@@ -504,7 +531,8 @@ dependencies:
   # State Management
   provider: ^6.0.5
   
-  # Database - Direct MySQL Connection
+  # HTTP API
+  http: ^1.1.0
   path: ^1.8.3
   
   # Authentication & Security

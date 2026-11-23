@@ -1,7 +1,6 @@
 // FILE: lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'providers/auth_provider.dart';
 import 'services/jame_api.dart';
@@ -11,25 +10,12 @@ import 'services/jame_repository.dart';
 import 'routes.dart';
 import 'core/theme.dart';
 import 'core/constants.dart';
-import 'database/database_helper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize date formatting for Thai locale
-  initializeDateFormatting('th_TH', null);
-  
-  // Load environment variables
-  try {
-    await dotenv.load(fileName: ".env");
-    print('✅ Environment variables loaded successfully');
-  } catch (e) {
-    print('⚠️ Warning: Could not load .env file: $e');
-    print('   App will use default configuration');
-  }
-  
-  // Initialize database
-  await DatabaseHelper.instance.initializeDatabase();
+  await initializeDateFormatting('th_TH', null);
 
   final api = JameApi();
   runApp(MyApp(api: api));

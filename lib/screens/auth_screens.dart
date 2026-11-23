@@ -126,13 +126,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   flex: 7,
                   child: Padding(
                     padding: EdgeInsets.all(24.0),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
+                    child: SingleChildScrollView(
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
                             // Welcome text
                             Text(
                               'ยินดีต้อนรับกลับ',
@@ -362,7 +363,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                 ),
                               ],
                             ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

@@ -23,7 +23,17 @@ flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 `backend/.env.example` contains local-only values for the Compose stack. Do
-not use those values in a deployment. Production must supply a unique database
-URL and session secret, HTTPS, explicit CORS origins, secure cookies, and
-working SMTP credentials. Recovery requests must not be reported as delivered
+not use those values in a deployment. Production must provide `DATABASE_URL`,
+a unique `SESSION_SECRET` (at least 32 characters), explicit
+`ALLOWED_ORIGINS`, and SMTP settings (`SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS=true`, and `SMTP_FROM`).
+Set `ENVIRONMENT=production` and `COOKIE_SECURE=true`; serve the API over
+HTTPS. The API rejects production configuration without SMTP credentials,
+TLS, and secure cookies. Recovery requests must not be reported as delivered
 when SMTP is unavailable.
+
+For a physical device on a trusted development network, set
+`JAME_API_BIND_ADDRESS=0.0.0.0` before starting Compose and use the host
+machine's LAN address in Flutter's `API_BASE_URL`. Keep the default loopback
+binding for local browser development and do not expose development secrets
+or services to untrusted networks.
