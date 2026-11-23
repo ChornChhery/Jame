@@ -1,0 +1,49 @@
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import create_engine, text
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.config import Settings, get_settings
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    application_settings = settings or get_settings()
+    engine = create_engine(application_settings.database_url, pool_pre_ping=True)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        yield
+        engine.dispose()
+
+    app = FastAPI(title="Jame API", version="0.1.0", lifespan=lifespan)
+    app.state.settings = application_settings
+    app.state.engine = engine
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=application_settings.allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready() -> dict[str, str]:
+        try:
+            with engine.connect() as connection:
+                connection.execute(text("SELECT 1"))
+        except SQLAlchemyError as error:
+            raise HTTPException(
+                status_code=503, detail="database unavailable"
+            ) from error
+        return {"status": "ok"}
+
+    return app
+
+
+app = create_app()

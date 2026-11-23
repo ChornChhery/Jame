@@ -22,24 +22,20 @@
 
 ## 🔧 Environment Setup
 
-**IMPORTANT: Before running the app, you must configure your MySQL database connection in the `.env` file.**
+The app communicates with the Jame API; Flutter does not connect directly to a
+database. From the repository root, start the isolated PostgreSQL, API, and
+Mailpit services:
 
-Create a `.env` file in the project root with the following configuration:
-
-```env
-# MySQL Database Configuration
-MYSQL_HOST=your_mysql_server_host
-MYSQL_PORT=3306
-MYSQL_USER=your_mysql_username
-MYSQL_PASSWORD=your_mysql_password
-MYSQL_DATABASE=your_database_name
+```powershell
+docker compose up -d --wait postgres mailpit api
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-**Security Note**: 
-- All values are mandatory - no default fallback values are provided for security
-- The app will throw exceptions if any MySQL configuration is missing
-- Never commit your `.env` file to version control
-- The database helper will automatically create all required MySQL tables on first connection
+The API is available at `http://localhost:8000`, and the local Mailpit inbox
+is at `http://localhost:8025`. The Jame database uses host port `5435`; the
+existing `pos-postgres` service is not reused. See [backend/README.md](backend/README.md)
+for production requirements and API readiness checks. Never put database
+credentials in Flutter assets or web builds.
 
 ---
 
@@ -162,12 +158,13 @@ All while being fully **offline-capable**, cost-efficient, and simple to use.
 |-----------|----------------|-------------|
 | **UI** | Flutter | Build responsive, cross-platform mobile app |
 | **Language** | Dart | Used with Flutter to build logic and UI |
-| **Database** | MySQL (Direct Connection) | Primary database with server connectivity |
-| **Authentication** | Local (SQLite) + crypto | Secure password hashing and user session |
+| **Database** | PostgreSQL | Private persistence behind the API |
+| **API** | FastAPI | Authentication, authorization, validation, and transactions |
+| **Authentication** | Server sessions + Argon2id | Password verification and account sessions |
 | **QR Scanner** | mobile_scanner | Scan product QR codes |
 | **QR Generator** | qr_flutter | Generate payment QR codes |
 | **PDF Generator** | pdf + printing | Create and print/share receipts |
-| **Security** | crypto (Dart package) | Password hashing and encryption |
+| **Security** | HTTPS API + HttpOnly cookies | Keep database credentials out of Flutter clients |
 
 ---
 
