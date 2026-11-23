@@ -1115,7 +1115,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     }
   }
 
-  void _addToCart(Product product) {
+  Future<void> _addToCart(Product product) async {
     // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     
@@ -1139,12 +1139,24 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     final appProvider = Provider.of<AppProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    if (authProvider.currentUser?.id != null) {
-      // Use persistent cart operations
-      appProvider.addToCartWithPersistence(authProvider.currentUser!.id!, product, quantity: 1);
-    } else {
-      // Fallback to in-memory operations
-      appProvider.addToCart(product, quantity: 1);
+    try {
+      if (authProvider.currentUser?.id != null) {
+        await appProvider.addToCartWithPersistence(
+          authProvider.currentUser!.id!,
+          product,
+          quantity: 1,
+        );
+      } else {
+        appProvider.addToCart(product, quantity: 1);
+      }
+    } catch (error) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: AppConstants.errorRed,
+        ),
+      );
+      return;
     }
     
     // Use a delayed callback to show snackbar after any potential widget disposal
@@ -1285,7 +1297,10 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     );
   }
 
-  void _addToCartConfirmed(Product product, String quantityText) {
+  Future<void> _addToCartConfirmed(
+    Product product,
+    String quantityText,
+  ) async {
     // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     
@@ -1328,12 +1343,24 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     final appProvider = Provider.of<AppProvider>(context, listen: false);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
-    if (authProvider.currentUser?.id != null) {
-      // Use persistent cart operations
-      appProvider.addToCartWithPersistence(authProvider.currentUser!.id!, product, quantity: quantity);
-    } else {
-      // Fallback to in-memory operations
-      appProvider.addToCart(product, quantity: quantity);
+    try {
+      if (authProvider.currentUser?.id != null) {
+        await appProvider.addToCartWithPersistence(
+          authProvider.currentUser!.id!,
+          product,
+          quantity: quantity,
+        );
+      } else {
+        appProvider.addToCart(product, quantity: quantity);
+      }
+    } catch (error) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: AppConstants.errorRed,
+        ),
+      );
+      return;
     }
     
     // Pop the dialog first

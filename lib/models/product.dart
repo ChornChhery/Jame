@@ -51,9 +51,9 @@ class Product {
   factory Product.fromMap(Map<String, dynamic> map) {
     return Product(
       id: map['id'],
-      userId: map['user_id'],
+      userId: map['user_id'] is int ? map['user_id'] as int : 0,
       name: _safeStringFromMap(map, 'name') ?? '',
-      price: map['price']?.toDouble() ?? 0.0,
+      price: _numberFromMap(map, 'price'),
       quantity: map['quantity'] ?? 0,
       lowStock: map['low_stock'] ?? 5,
       code: _safeStringFromMap(map, 'code') ?? '',
@@ -74,7 +74,7 @@ class Product {
     if (value is List<int>) {
       return String.fromCharCodes(value);
     }
-    
+
     // Handle regular string
     if (value is String) {
       return value.isEmpty ? null : value;
@@ -82,6 +82,13 @@ class Product {
     
     // Convert other types to string
     return value.toString();
+  }
+
+  static double _numberFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value is num) return value.toDouble();
+    if (value is String) return double.parse(value);
+    throw FormatException('Expected numeric product field "$key".');
   }
 
   Product copyWith({

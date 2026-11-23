@@ -49,7 +49,7 @@ class Sale {
       id: map['id'],
       userId: map['user_id'],
       saleDate: AppUtils.toThaiTime(DateTime.parse(_safeStringFromMap(map, 'sale_date')!)),
-      totalAmount: map['total_amount']?.toDouble() ?? 0.0,
+      totalAmount: _numberFromMap(map, 'total_amount'),
       paymentStatus: _safeStringFromMap(map, 'payment_status') ?? 'Completed',
       receiptNumber: _safeStringFromMap(map, 'receipt_number') ?? '',
       paymentMethod: _safeStringFromMap(map, 'payment_method') ?? 'QR',
@@ -68,7 +68,7 @@ class Sale {
     if (value is List<int>) {
       return String.fromCharCodes(value);
     }
-    
+
     // Handle regular string
     if (value is String) {
       return value.isEmpty ? null : value;
@@ -76,6 +76,13 @@ class Sale {
     
     // Convert other types to string
     return value.toString();
+  }
+
+  static double _numberFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value is num) return value.toDouble();
+    if (value is String) return double.parse(value);
+    throw FormatException('Expected numeric sale field "$key".');
   }
 
   Sale copyWith({
@@ -143,9 +150,16 @@ class SaleItem {
       saleId: map['sale_id'],
       productId: map['product_id'],
       quantity: map['quantity'],
-      unitPrice: map['unit_price']?.toDouble() ?? 0.0,
-      totalPrice: map['total_price']?.toDouble() ?? 0.0,
+      unitPrice: _numberFromMap(map, 'unit_price'),
+      totalPrice: _numberFromMap(map, 'total_price'),
     );
+  }
+
+  static double _numberFromMap(Map<String, dynamic> map, String key) {
+    final value = map[key];
+    if (value is num) return value.toDouble();
+    if (value is String) return double.parse(value);
+    throw FormatException('Expected numeric sale item field "$key".');
   }
 
   factory SaleItem.fromCartItem(CartItem cartItem, int saleId) {

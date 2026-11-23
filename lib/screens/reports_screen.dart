@@ -103,12 +103,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       
       final salesWithItems = <Sale>[];
       for (var sale in filteredSales) {
-        try {
-          final items = await app.getSaleItemsWithProducts(sale.id!);
-          salesWithItems.add(sale.copyWith(items: items));
-        } catch (e) {
-          salesWithItems.add(sale);
-        }
+        final items = await app.getSaleItemsWithProducts(sale.id!);
+        salesWithItems.add(sale.copyWith(items: items));
       }
       
       _recentSales = salesWithItems.take(10).toList();
@@ -190,8 +186,13 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       _paymentMethodData = await app.getPaymentMethodDistribution(userId, _startDate, _endDate);
       _categoryPerformanceData = await app.getCategoryPerformanceForRadar(userId, _startDate, _endDate);
       
-    } catch (e) {
-      debugPrint('Error loading advanced analytics: $e');
+    } catch (error) {
+      if (mounted) {
+        _showErrorMessage(
+          context,
+          'Error loading advanced analytics: $error',
+        );
+      }
     }
   }
 

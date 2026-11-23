@@ -134,6 +134,34 @@ class JameApi {
     return _client.getJson(_client.readinessUri.toString());
   }
 
+  Future<Map<String, dynamic>> getJson(
+    String path, {
+    Map<String, String> queryParameters = const {},
+  }) {
+    return _client.getJson(path, queryParameters: queryParameters);
+  }
+
+  Future<List<Map<String, dynamic>>> getJsonList(
+    String path, {
+    Map<String, String> queryParameters = const {},
+  }) {
+    return _client.getJsonList(path, queryParameters: queryParameters);
+  }
+
+  Future<Map<String, dynamic>> postJson(String path, {Object? body}) {
+    return _client.postJson(path, body: body);
+  }
+
+  Future<Map<String, dynamic>> putJson(String path, {Object? body}) {
+    return _client.putJson(path, body: body);
+  }
+
+  Future<Map<String, dynamic>> patchJson(String path, {Object? body}) {
+    return _client.patchJson(path, body: body);
+  }
+
+  Future<void> delete(String path) => _client.delete(path);
+
   Future<User> _readAuthResponse(Map<String, dynamic> response) async {
     _client.setCsrfToken(response['csrf_token'] as String?);
     final token = response['access_token'] as String?;

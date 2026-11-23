@@ -70,8 +70,21 @@ class ApiClient {
     return _decodeJson(response);
   }
 
+  Future<List<Map<String, dynamic>>> getJsonList(
+    String path, {
+    Map<String, String> queryParameters = const {},
+  }) async {
+    final response = await _send('GET', path, queryParameters: queryParameters);
+    return _decodeJsonList(response);
+  }
+
   Future<Map<String, dynamic>> postJson(String path, {Object? body}) async {
     final response = await _send('POST', path, body: body);
+    return _decodeJson(response);
+  }
+
+  Future<Map<String, dynamic>> putJson(String path, {Object? body}) async {
+    final response = await _send('PUT', path, body: body);
     return _decodeJson(response);
   }
 
@@ -132,6 +145,26 @@ class ApiClient {
       final decoded = jsonDecode(response.body);
       if (decoded is Map<String, dynamic>) {
         return decoded;
+      }
+    } on FormatException {
+      throw const ApiException(
+        statusCode: 0,
+        code: 'invalid_response',
+        message: 'The Jame server returned an invalid response.',
+      );
+    }
+    throw const ApiException(
+      statusCode: 0,
+      code: 'invalid_response',
+      message: 'The Jame server returned an unexpected response.',
+    );
+  }
+
+  List<Map<String, dynamic>> _decodeJsonList(http.Response response) {
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is List && decoded.every((item) => item is Map<String, dynamic>)) {
+        return decoded.cast<Map<String, dynamic>>();
       }
     } on FormatException {
       throw const ApiException(

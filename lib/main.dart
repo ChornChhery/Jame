@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'services/jame_api.dart';
 import 'providers/app_provider.dart';
 import 'providers/settings_provider.dart';
+import 'services/jame_repository.dart';
 import 'routes.dart';
 import 'core/theme.dart';
 import 'core/constants.dart';
@@ -29,17 +30,24 @@ void main() async {
   
   // Initialize database
   await DatabaseHelper.instance.initializeDatabase();
-  
-  runApp(MyApp());
+
+  final api = JameApi();
+  runApp(MyApp(api: api));
 }
 
 class MyApp extends StatelessWidget {
+  MyApp({required this.api});
+
+  final JameApi api;
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider(api: JameApi())),
-        ChangeNotifierProvider(create: (_) => AppProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider(api: api)),
+        ChangeNotifierProvider(
+          create: (_) => AppProvider(repository: JameRepository(api: api)),
+        ),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: Consumer<AuthProvider>(

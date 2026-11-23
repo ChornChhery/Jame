@@ -37,7 +37,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   // Helper method to sort top products list
-  void _sortTopProductsList(List<Map<String, dynamic>> list, String sortOption) {
+  static void _sortTopProductsList(
+    List<Map<String, dynamic>> list,
+    String sortOption,
+  ) {
     list.sort((a, b) {
       if (sortOption == 'quantity') {
         // Sort by total quantity sold
@@ -60,28 +63,6 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         return revenueB.compareTo(revenueA);
       }
     });
-  }
-
-  // Helper method to load all top products from database
-  static Future<List<Map<String, dynamic>>> _loadAllTopProducts(int userId, String sortOption) async {
-    try {
-      // Get all products without sorting in database query first
-      final products = await DatabaseHelper.instance.getTopSellingProducts(
-        userId,
-        DateTime.now().subtract(Duration(days: 30)), // Last 30 days
-        DateTime.now(),
-        limit: 10000, // Large number to get all products
-      );
-      
-      // Create an instance to access the sorting method
-      final state = _DashboardScreenState();
-      // Sort the products based on the selected option
-      state._sortTopProductsList(products, sortOption);
-      
-      return products;
-    } catch (e) {
-      return [];
-    }
   }
 
   @override
@@ -180,7 +161,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           if (_mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('โหลดข้อมูลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง'), // Data loading failed, please try again
+                content: Text(e.toString()),
                 backgroundColor: AppConstants.errorRed,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -610,11 +591,10 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     
                     if (snapshot.hasError) {
                       return Text(
-                        '฿0.00',
+                        snapshot.error.toString(),
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
                         ),
                       );
                     }
@@ -652,10 +632,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               child: FutureBuilder<int>(
                 future: _getTodaySalesCount(userId), // Use async method for real-time count
                 builder: (context, snapshot) {
-                  final salesCount = snapshot.data ?? 0;
+                  final salesCount = snapshot.hasError
+                      ? snapshot.error.toString()
+                      : '${snapshot.data ?? 0}';
                   return _buildStatCard(
-                    'ขายแล้ววันนี้',
-                    '$salesCount',
+                    '?????????????',
+                    salesCount,
                     Icons.receipt_outlined,
                     AppConstants.accentOrange,
                   );
@@ -1122,7 +1104,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   Widget _buildTopProductsCard(AppProvider app, int userId) {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: DatabaseHelper.instance.getTopSellingProducts(
+      future: app.getTopSellingProducts(
         userId, 
         DateTime.now().subtract(Duration(days: 30)), // Last 30 days
         DateTime.now(),
@@ -1152,15 +1134,25 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           );
         }
         
-        if (snapshot.hasError || !snapshot.hasData || snapshot.data!.isEmpty) {
-          return Container(); // Return empty container if no data
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(snapshot.error.toString()),
+          );
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
         }
         
         final topProducts = snapshot.data!;
         
         // Sort products based on current sort option
         List<Map<String, dynamic>> sortedProducts = List.from(topProducts);
-        _sortTopProductsList(sortedProducts, _topProductsSort);
+        _DashboardScreenState._sortTopProductsList(
+          sortedProducts,
+          _topProductsSort,
+        );
         
         // Take only first 5 products for display
         final displayProducts = sortedProducts.take(5).toList();
@@ -2338,23 +2330,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   
   // Add async method to get today's sales for real-time data
   Future<double> _getTodaySales(int userId) async {
-    try {
-      return await DatabaseHelper.instance.getTotalSalesToday(userId);
-    } catch (e) {
-      debugPrint('Error getting today sales: $e');
-      return 0.0;
-    }
+    return Provider.of<AppProvider>(context, listen: false).getTodaySales(userId);
   }
   
   // Add async method to get today's sales count for real-time data
   Future<int> _getTodaySalesCount(int userId) async {
-    try {
-      final sales = await DatabaseHelper.instance.getSalesToday(userId);
-      return sales.length;
-    } catch (e) {
-      debugPrint('Error getting today sales count: $e');
-      return 0;
-    }
+    return Provider.of<AppProvider>(context, listen: false).getTodaySalesCount(userId);
   }
 
   void _showAllLowStockProducts(List<Product> lowStockProducts) {
@@ -2503,12 +2484,14 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
   Future<void> _loadProducts() async {
     try {
       // Add timeout to prevent hanging
-      final products = await _DashboardScreenState._loadAllTopProducts(widget.userId, _currentSort).timeout(
-        Duration(seconds: 10),
-        onTimeout: () {
-          return [];
-        },
+      final app = Provider.of<AppProvider>(context, listen: false);
+      final products = await app.getTopSellingProducts(
+        widget.userId,
+        DateTime.now().subtract(const Duration(days: 30)),
+        DateTime.now(),
+        limit: 10000,
       );
+      _DashboardScreenState._sortTopProductsList(products, _currentSort);
       if (mounted) {
         setState(() {
           _currentList = products;

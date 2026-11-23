@@ -1,75 +1,58 @@
-// FILE: lib/providers/app_provider.dart
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+
 import '../models/product.dart';
+import '../models/report_models.dart';
 import '../models/sale.dart';
-import '../database/database_helper.dart';
-import '../core/utils.dart';
-import '../core/connectdb.dart';
+import '../services/jame_api.dart';
+import '../services/jame_repository.dart';
 
 class AppProvider extends ChangeNotifier {
+  AppProvider({JameRepository? repository})
+    : _repository = repository ?? JameRepository(api: JameApi());
+
+  final JameRepository _repository;
   List<Product> _products = [];
   List<CartItem> _cartItems = [];
   List<Sale> _sales = [];
-  List<Map<String, dynamic>> _notifications = [];
+  final List<Map<String, dynamic>> _notifications = [];
   bool _isLoading = false;
   String? _error;
-  final ConnectDB _connectDB = ConnectDB(); // Add server connection
 
   List<Product> get products => _products;
   List<CartItem> get cartItems => _cartItems;
   List<Sale> get sales => _sales;
   List<Map<String, dynamic>> get notifications => _notifications;
-  List<Map<String, dynamic>> get unreadNotifications => _notifications.where((n) => !n['isRead']).toList();
+  List<Map<String, dynamic>> get unreadNotifications =>
+      _notifications.where((notification) => !notification['isRead']).toList();
   bool get isLoading => _isLoading;
   String? get error => _error;
-  
-  double get cartTotal => _cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-  int get cartItemCount => _cartItems.fold(0, (sum, item) => sum + item.quantity);
 
-  // Load cart items for a specific user
+  double get cartTotal =>
+      _cartItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+  int get cartItemCount =>
+      _cartItems.fold(0, (sum, item) => sum + item.quantity);
+
   Future<void> loadCartItems(int userId) async {
     try {
-      // Test MySQL connection first
-      final connectionAvailable = await _connectDB.testMySQLConnection();
-      if (!connectionAvailable) {
-        _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
-        _cartItems = []; // Empty list when offline
-        notifyListeners();
-        return;
-      }
-      
-      _cartItems = await DatabaseHelper.instance.getCartItems(userId);
+      _cartItems = await _repository.getCart();
+      _error = null;
       notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      _cartItems = []; // Empty list on error
-      notifyListeners();
+    } catch (error) {
+      _recordError(error);
+      rethrow;
     }
   }
 
-  // Product operations with graceful MySQL failure handling
   Future<void> loadProducts(int userId) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
-
     try {
-      // Test MySQL connection first
-      final connectionAvailable = await _connectDB.testMySQLConnection();
-      if (!connectionAvailable) {
-        _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
-        _products = []; // Empty list when offline
-        notifyListeners();
-        return;
-      }
-      
-      _products = await DatabaseHelper.instance.getProducts(userId);
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      _products = []; // Empty list on error
-      notifyListeners();
+      _products = await _repository.getProducts();
+      _error = null;
+    } catch (error) {
+      _recordError(error);
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -78,127 +61,79 @@ class AppProvider extends ChangeNotifier {
 
   Future<bool> addProduct(Product product) async {
     try {
-      // 1. Add to local database first
-      final newProduct = await DatabaseHelper.instance.createProduct(product);
-      _products.add(newProduct);
+      final createdProduct = await _repository.createProduct(product);
+      _products = [..._products, createdProduct];
+      _error = null;
       notifyListeners();
-      
-      // 2. Sync to server in background
-      _syncProductToServer(newProduct);
-      
       return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
+    } catch (error) {
+      _recordError(error);
       return false;
     }
   }
 
   Future<bool> updateProduct(Product product) async {
     try {
-      await DatabaseHelper.instance.updateProduct(product);
-      final index = _products.indexWhere((p) => p.id == product.id);
+      await _repository.updateProduct(product);
+      final index = _products.indexWhere((item) => item.id == product.id);
       if (index != -1) {
         _products[index] = product;
-        notifyListeners();
       }
-      return true;
-    } catch (e) {
-      _error = e.toString();
+      _error = null;
       notifyListeners();
+      return true;
+    } catch (error) {
+      _recordError(error);
       return false;
     }
   }
 
   Future<bool> deleteProduct(int productId, int userId) async {
     try {
-      final result = await DatabaseHelper.instance.deleteProduct(productId, userId);
-      if (result == 1) {
-        _products.removeWhere((p) => p.id == productId);
-        notifyListeners();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      _error = e.toString();
+      await _repository.deleteProduct(productId);
+      _products.removeWhere((product) => product.id == productId);
+      _error = null;
       notifyListeners();
+      return true;
+    } catch (error) {
+      _recordError(error);
       return false;
     }
   }
 
   Future<Product?> getProductByCode(String code, int userId) async {
     try {
-      return await DatabaseHelper.instance.getProductByCode(code, userId);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return null;
+      final product = await _repository.getProductByCode(code);
+      _error = null;
+      return product;
+    } catch (error) {
+      _recordError(error);
+      rethrow;
     }
   }
 
-  // Notification methods
-  void _notifyProductOutOfStock(Product product) {
-    // Add notification to the list
-    _notifications.insert(0, {
-      'id': DateTime.now().millisecondsSinceEpoch,
-      'type': 'out_of_stock',
-      'title': 'สินค้าหมดสต็อก',
-      'message': '${product.name} หมดสต็อกแล้ว',
-      'timestamp': DateTime.now(),
-      'productId': product.id,
-      'isRead': false,
-    });
-    
-    // This method can be extended to send push notifications or other alerts
-    debugPrint('Product ${product.name} is now out of stock');
-    notifyListeners();
-  }
-  
-  void _notifyProductLowStock(Product product) {
-    // Add notification to the list
-    _notifications.insert(0, {
-      'id': DateTime.now().millisecondsSinceEpoch,
-      'type': 'low_stock',
-      'title': 'สินค้าใกล้หมดสต็อก',
-      'message': '${product.name} เหลือสต็อก ${product.quantity} ${product.unit} เท่านั้น',
-      'timestamp': DateTime.now(),
-      'productId': product.id,
-      'isRead': false,
-    });
-    
-    // This method can be extended to send push notifications or other alerts
-    debugPrint('Product ${product.name} is now low on stock');
-    notifyListeners();
-  }
-  
-  // Cart operations
   void addToCart(Product product, {int quantity = 1}) {
-    // Check if product is out of stock
-    if (product.quantity <= 0) {
-      return; // Don't add out of stock products
-    }
-    
-    final existingIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
-    
-    if (existingIndex != -1) {
-      // Fix: Always update quantity when adding same product
-      _cartItems[existingIndex].quantity += quantity;
-    } else {
+    if (product.quantity <= 0) return;
+    final existingIndex = _cartItems.indexWhere(
+      (item) => item.product.id == product.id,
+    );
+    if (existingIndex == -1) {
       _cartItems.add(CartItem(product: product, quantity: quantity));
+    } else {
+      _cartItems[existingIndex].quantity += quantity;
     }
     notifyListeners();
   }
 
   void updateCartItemQuantity(int productId, int quantity) {
     final index = _cartItems.indexWhere((item) => item.product.id == productId);
-    if (index != -1) {
-      if (quantity <= 0) {
-        _cartItems.removeAt(index);
-      } else {
-        _cartItems[index].quantity = quantity;
-      }
-      notifyListeners();
+    if (index == -1) return;
+    if (quantity <= 0) {
+      _cartItems.removeAt(index);
+    } else {
+      _cartItems[index].quantity = quantity;
     }
+    notifyListeners();
   }
 
   void removeFromCart(int productId) {
@@ -210,508 +145,319 @@ class AppProvider extends ChangeNotifier {
     _cartItems.clear();
     notifyListeners();
   }
-  
-  // Notification management methods
+
   void markNotificationAsRead(int notificationId) {
-    final index = _notifications.indexWhere((n) => n['id'] == notificationId);
-    if (index != -1) {
-      _notifications[index]['isRead'] = true;
-      notifyListeners();
-    }
+    final index = _notifications.indexWhere(
+      (notification) => notification['id'] == notificationId,
+    );
+    if (index == -1) return;
+    _notifications[index]['isRead'] = true;
+    notifyListeners();
   }
-  
+
   void markAllNotificationsAsRead() {
-    for (var notification in _notifications) {
+    for (final notification in _notifications) {
       notification['isRead'] = true;
     }
     notifyListeners();
   }
-  
+
   void clearNotifications() {
     _notifications.clear();
     notifyListeners();
   }
-  
+
   void removeNotification(int notificationId) {
-    _notifications.removeWhere((n) => n['id'] == notificationId);
+    _notifications.removeWhere(
+      (notification) => notification['id'] == notificationId,
+    );
     notifyListeners();
   }
 
-  // Persistent cart operations
   Future<void> saveCartItemToDatabase(int userId, CartItem cartItem) async {
-    try {
-      await DatabaseHelper.instance.saveCartItem(userId, cartItem);
-    } catch (e) {
-      debugPrint('Failed to save cart item to database: $e');
+    final productId = cartItem.product.id;
+    if (productId == null) {
+      throw ArgumentError.value(productId, 'cartItem.product.id');
     }
+    await _runRequest(
+      () => _repository.setCartQuantity(productId, cartItem.quantity),
+    );
   }
 
   Future<void> removeCartItemFromDatabase(int userId, int productId) async {
-    try {
-      await DatabaseHelper.instance.removeCartItem(userId, productId);
-    } catch (e) {
-      debugPrint('Failed to remove cart item from database: $e');
-    }
+    await _runRequest(() => _repository.setCartQuantity(productId, 0));
   }
 
   Future<void> clearCartInDatabase(int userId) async {
-    try {
-      await DatabaseHelper.instance.clearCartItems(userId);
-    } catch (e) {
-      debugPrint('Failed to clear cart items in database: $e');
-    }
+    await _runRequest(_repository.clearCart);
   }
 
-  // Enhanced cart operations with database persistence
-  void addToCartWithPersistence(int userId, Product product, {int quantity = 1}) {
-    // Check if product is out of stock
-    if (product.quantity <= 0) {
-      return; // Don't add out of stock products
+  Future<void> addToCartWithPersistence(
+    int userId,
+    Product product, {
+    int quantity = 1,
+  }) async {
+    if (product.quantity <= 0) return;
+    final productId = product.id;
+    if (productId == null) {
+      throw ArgumentError.value(productId, 'product.id');
     }
-    
-    final existingIndex = _cartItems.indexWhere((item) => item.product.id == product.id);
-    CartItem cartItem;
-    
-    if (existingIndex != -1) {
-      // Fix: Always update quantity when adding same product
-      _cartItems[existingIndex].quantity += quantity;
-      cartItem = _cartItems[existingIndex];
-    } else {
-      cartItem = CartItem(product: product, quantity: quantity);
-      _cartItems.add(cartItem);
-    }
-    
-    // Save to database
-    saveCartItemToDatabase(userId, cartItem);
-    notifyListeners();
-  }
-
-  void updateCartItemQuantityWithPersistence(int userId, int productId, int quantity) {
     final index = _cartItems.indexWhere((item) => item.product.id == productId);
-    if (index != -1) {
-      if (quantity <= 0) {
-        _cartItems.removeAt(index);
-        removeCartItemFromDatabase(userId, productId);
-      } else {
-        _cartItems[index].quantity = quantity;
-        saveCartItemToDatabase(userId, _cartItems[index]);
-      }
-      notifyListeners();
+    final newQuantity =
+        (index == -1 ? 0 : _cartItems[index].quantity) + quantity;
+    await _runRequest(
+      () => _repository.setCartQuantity(productId, newQuantity),
+    );
+    if (index == -1) {
+      _cartItems.add(CartItem(product: product, quantity: newQuantity));
+    } else {
+      _cartItems[index].quantity = newQuantity;
     }
-  }
-
-  void removeFromCartWithPersistence(int userId, int productId) {
-    _cartItems.removeWhere((item) => item.product.id == productId);
-    removeCartItemFromDatabase(userId, productId);
+    _error = null;
     notifyListeners();
   }
 
-  void clearCartWithPersistence(int userId) {
-    _cartItems.clear();
-    clearCartInDatabase(userId);
-    notifyListeners();
+  Future<void> updateCartItemQuantityWithPersistence(
+    int userId,
+    int productId,
+    int quantity,
+  ) async {
+    await _runRequest(() => _repository.setCartQuantity(productId, quantity));
+    updateCartItemQuantity(productId, quantity);
+    _error = null;
   }
 
-  // Sale operations
-  Future<bool> completeSale(int userId, String username, {String paymentMethod = 'QR'}) async {
-    // Removed debug prints for security
-    
-    if (_cartItems.isEmpty) {
-      return false;
-    }
+  Future<void> removeFromCartWithPersistence(int userId, int productId) async {
+    await _runRequest(() => _repository.setCartQuantity(productId, 0));
+    removeFromCart(productId);
+    _error = null;
+  }
 
+  Future<void> clearCartWithPersistence(int userId) async {
+    await _runRequest(_repository.clearCart);
+    clearCart();
+    _error = null;
+  }
+
+  Future<bool> completeSale(
+    int userId,
+    String username, {
+    String paymentMethod = 'QR',
+  }) async {
+    if (_cartItems.isEmpty) return false;
     try {
-      final receiptNumber = AppUtils.generateReceiptNumber(username);
-      
-      final sale = Sale(
-        userId: userId,
-        saleDate: AppUtils.toThaiTime(DateTime.now()), // Use Thai time
-        totalAmount: cartTotal,
-        receiptNumber: receiptNumber,
-        paymentStatus: 'Completed',
-        paymentMethod: paymentMethod, // Fix: Use the actual payment method
-      );
+      final sale = await _repository.checkout(paymentMethod: paymentMethod);
+      _sales = [sale, ..._sales.where((item) => item.id != sale.id)];
+      _cartItems.clear();
+      _error = null;
+      notifyListeners();
 
-      final saleItems = _cartItems.map((cartItem) => 
-        SaleItem.fromCartItem(cartItem, 0) // saleId will be set in database
-      ).toList();
-
-      await DatabaseHelper.instance.createSale(sale, saleItems);
-      
-      // Update local product quantities and sync to database
-      for (var cartItem in _cartItems) {
-        final productIndex = _products.indexWhere((p) => p.id == cartItem.product.id);
-        if (productIndex != -1) {
-          final oldQuantity = _products[productIndex].quantity;
-          final newQuantity = oldQuantity - cartItem.quantity;
-          
-          // Add inventory record for the sale
-          await addInventoryRecord(
-            userId: userId,
-            productId: cartItem.product.id!,
-            changeType: 'SALE',
-            stockBefore: oldQuantity,
-            stockAfter: newQuantity,
-            notes: 'Sold ${cartItem.quantity} items of ${cartItem.product.name}',
-          );
-          
-          final updatedProduct = _products[productIndex].copyWith(
-            quantity: newQuantity,
-          );
-          
-          // Check if product just went out of stock
-          bool wasLowStock = oldQuantity <= updatedProduct.lowStock;
-          bool isNowOutOfStock = newQuantity <= 0;
-          
-          // Update in local list
-          _products[productIndex] = updatedProduct;
-          
-          // Update in database
-          await DatabaseHelper.instance.updateProduct(updatedProduct);
-          
-          // Notify if product just went out of stock
-          if (!wasLowStock && isNowOutOfStock) {
-            _notifyProductOutOfStock(updatedProduct);
-          } else if (!wasLowStock && newQuantity <= updatedProduct.lowStock) {
-            _notifyProductLowStock(updatedProduct);
-          }
-        }
+      try {
+        _products = await _repository.getProducts();
+        _error = null;
+      } catch (error) {
+        _recordError(error);
       }
-      
-      // Sync sale to server in background
-      _syncSaleToServer(sale, saleItems);
-
-      clearCartWithPersistence(userId); // Clear cart with persistence
-      await loadSales(userId);
-      notifyListeners();
-      
       return true;
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
+    } catch (error) {
+      _recordError(error);
       return false;
     }
   }
 
   Future<void> loadSales(int userId) async {
-    try {
-      // Test MySQL connection first
-      final connectionAvailable = await _connectDB.testMySQLConnection();
-      if (!connectionAvailable) {
-        _error = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ - ทำงานในโหมดจำกัด'; // Cannot connect to server - working in limited mode
-        _sales = []; // Empty list when offline
-        notifyListeners();
-        return;
-      }
-      
-      _sales = await DatabaseHelper.instance.getSales(userId);
-      notifyListeners();
-    } catch (e) {
-      _error = 'เกิดข้อผิดพลาดในการโหลดข้อมูลการขาย: ${e.toString()}'; // Error loading sales data
-      _sales = []; // Empty list on error
-      notifyListeners();
-      debugPrint('❌ Sales loading failed: $e');
-    }
+    await _runRequest(() async {
+      _sales = await _repository.getSales();
+    });
   }
 
-  Future<List<Product>> getLowStockProducts(int userId) async {
-    try {
-      return await DatabaseHelper.instance.getLowStockProducts(userId);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
+  Future<List<Product>> getLowStockProducts(int userId) =>
+      _runRequest(_repository.getLowStockProducts);
 
-  Future<List<Sale>> getSalesByDateRange(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getSalesByDateRange(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
+  Future<List<Sale>> getSalesByDateRange(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(() => _repository.getSalesByDateRange(startDate, endDate));
 
-  // Advanced Analytics Methods
+  Future<Map<String, dynamic>> getSalesByHour(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async => (await _repository.getSalesByHour(startDate, endDate)).toMap(),
+  );
 
-  /// Get sales data grouped by hour for peak hour analysis
-  Future<Map<String, dynamic>> getSalesByHour(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getSalesByHour(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {'hourlyData': []};
-    }
-  }
+  Future<Map<String, dynamic>> getSalesByDay(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async => (await _repository.getSalesByDay(startDate, endDate)).toMap(),
+  );
 
-  /// Get sales data grouped by day for trend analysis
-  Future<Map<String, dynamic>> getSalesByDay(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getSalesByDay(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {'dailyData': []};
-    }
-  }
+  Future<List<Map<String, dynamic>>> getTopSellingProducts(
+    int userId,
+    DateTime startDate,
+    DateTime endDate, {
+    int limit = 10,
+  }) => _runRequest(
+    () async => (await _repository.getTopSellingProducts(
+      startDate,
+      endDate,
+      limit: limit,
+    )).map((row) => row.toMap()).toList(),
+  );
 
-  /// Get top selling products by revenue
-  Future<List<Map<String, dynamic>>> getTopSellingProducts(int userId, DateTime startDate, DateTime endDate, {int limit = 10}) async {
-    try {
-      return await DatabaseHelper.instance.getTopSellingProducts(userId, startDate, endDate, limit: limit);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
+  Future<List<Map<String, dynamic>>> getCustomerPurchaseHistory(
+    int userId, {
+    int limit = 50,
+  }) => _runRequest(
+    () async => (await _repository.getCustomerPurchaseHistory(
+      limit: limit,
+    )).map((row) => row.toMap()).toList(),
+  );
 
-  /// Get customer purchase history
-  Future<List<Map<String, dynamic>>> getCustomerPurchaseHistory(int userId, {int limit = 50}) async {
-    try {
-      return await DatabaseHelper.instance.getCustomerPurchaseHistory(userId, limit: limit);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
+  Future<List<SaleItem>> getSaleItemsWithProducts(int saleId) =>
+      _runRequest(() => _repository.getSaleItems(saleId));
 
-  /// Get sale items with product details for a specific sale
-  Future<List<SaleItem>> getSaleItemsWithProducts(int saleId) async {
-    try {
-      return await DatabaseHelper.instance.getSaleItemsWithProducts(saleId);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
-
-  /// Add inventory record for stock movement tracking
   Future<bool> addInventoryRecord({
     required int userId,
     required int productId,
     required String changeType,
     required int stockBefore,
     required int stockAfter,
-    int? referenceId,
     String? notes,
   }) async {
     try {
-      return await DatabaseHelper.instance.addInventoryRecord(
-        userId: userId,
-        productId: productId,
+      await _repository.adjustStock(
+        productId,
+        stockAfter,
         changeType: changeType,
-        stockBefore: stockBefore,
-        stockAfter: stockAfter,
-        referenceId: referenceId,
         notes: notes,
       );
-    } catch (e) {
-      _error = e.toString();
+      final index = _products.indexWhere((product) => product.id == productId);
+      if (index != -1) {
+        _products[index] = _products[index].copyWith(quantity: stockAfter);
+      }
+      _error = null;
       notifyListeners();
+      return true;
+    } catch (error) {
+      _recordError(error);
       return false;
     }
   }
 
-  /// Get inventory movement data for stock analysis
-  Future<Map<String, dynamic>> getInventoryMovement(int userId, DateTime startDate, DateTime endDate) async {
+  Future<Map<String, dynamic>> getInventoryMovement(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async =>
+        (await _repository.getInventoryMovement(startDate, endDate)).toMap(),
+  );
+
+  Future<List<Map<String, dynamic>>> getReorderSuggestions(int userId) =>
+      _runRequest(
+        () async => (await _repository.getReorderSuggestions())
+            .map((row) => row.toMap())
+            .toList(),
+      );
+
+  Future<Map<String, dynamic>> getSalesTrends(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async => (await _repository.getSalesTrends(startDate, endDate)).toMap(),
+  );
+
+  Future<List<Map<String, dynamic>>> getProductPerformance(
+    int userId,
+    DateTime startDate,
+    DateTime endDate, {
+    int limit = 20,
+  }) => _runRequest(
+    () async => (await _repository.getProductPerformance(
+      startDate,
+      endDate,
+      limit: limit,
+    )).map((row) => row.toMap()).toList(),
+  );
+
+  Future<Map<String, dynamic>> getCustomerSegmentation(
+    int userId, {
+    int limit = 100,
+  }) => _runRequest(
+    () async =>
+        (await _repository.getCustomerSegmentation(limit: limit)).toMap(),
+  );
+
+  Future<Map<String, dynamic>> getDomesticExportSales(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async =>
+        (await _repository.getDomesticExportSales(startDate, endDate)).toMap(),
+  );
+
+  Future<Map<String, dynamic>> getHistoricalProjectedRevenue(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async => (await _repository.getHistoricalProjectedRevenue(
+      startDate,
+      endDate,
+    )).toMap(),
+  );
+
+  Future<List<Map<String, dynamic>>> getPaymentMethodDistribution(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async => (await _repository.getPaymentMethodDistribution(
+      startDate,
+      endDate,
+    )).map((row) => row.toMap()).toList(),
+  );
+
+  Future<List<Map<String, dynamic>>> getCategoryPerformanceForRadar(
+    int userId,
+    DateTime startDate,
+    DateTime endDate,
+  ) => _runRequest(
+    () async => (await _repository.getCategoryPerformance(
+      startDate,
+      endDate,
+    )).map((row) => row.toMap()).toList(),
+  );
+
+  Future<DashboardReport> getDashboardReport() =>
+      _runRequest(_repository.getDashboard);
+
+  Future<double> getTodaySales(int userId) async =>
+      (await getDashboardReport()).todayTotal;
+
+  Future<int> getTodaySalesCount(int userId) async =>
+      (await getDashboardReport()).todayCount;
+
+  Future<T> _runRequest<T>(Future<T> Function() request) async {
     try {
-      return await DatabaseHelper.instance.getInventoryMovement(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {'inventoryData': []};
+      final result = await request();
+      _error = null;
+      return result;
+    } catch (error) {
+      _recordError(error);
+      rethrow;
     }
   }
 
-  /// Get reorder suggestions based on sales velocity
-  Future<List<Map<String, dynamic>>> getReorderSuggestions(int userId) async {
-    try {
-      return await DatabaseHelper.instance.getReorderSuggestions(userId);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
-
-  /// Get sales trends and growth analysis
-  Future<Map<String, dynamic>> getSalesTrends(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      // Get current period data
-      final currentPeriodData = await DatabaseHelper.instance.getSalesByDay(userId, startDate, endDate);
-      
-      // Calculate previous period dates (same duration but one period back)
-      final duration = endDate.difference(startDate);
-      final previousStartDate = startDate.subtract(duration);
-      final previousEndDate = endDate.subtract(duration);
-      
-      // Get previous period data
-      final previousPeriodData = await DatabaseHelper.instance.getSalesByDay(userId, previousStartDate, previousEndDate);
-      
-      // Calculate growth
-      final currentRevenue = (currentPeriodData['dailyData'] as List)
-          .fold<double>(0.0, (sum, item) => sum + (item['total_revenue'] as double));
-      
-      final previousRevenue = (previousPeriodData['dailyData'] as List)
-          .fold<double>(0.0, (sum, item) => sum + (item['total_revenue'] as double));
-      
-      final growthRate = previousRevenue > 0 
-          ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 
-          : 0.0;
-      
-      return {
-        'currentPeriodData': currentPeriodData,
-        'previousPeriodData': previousPeriodData,
-        'currentRevenue': currentRevenue,
-        'previousRevenue': previousRevenue,
-        'growthRate': growthRate,
-      };
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {
-        'currentPeriodData': {'dailyData': []},
-        'previousPeriodData': {'dailyData': []},
-        'currentRevenue': 0.0,
-        'previousRevenue': 0.0,
-        'growthRate': 0.0,
-      };
-    }
-  }
-
-  /// Get product performance analysis
-  Future<List<Map<String, dynamic>>> getProductPerformance(int userId, DateTime startDate, DateTime endDate, {int limit = 20}) async {
-    try {
-      return await DatabaseHelper.instance.getTopSellingProducts(userId, startDate, endDate, limit: limit);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
-
-  /// Get customer segmentation data
-  Future<Map<String, dynamic>> getCustomerSegmentation(int userId, {int limit = 100}) async {
-    try {
-      final customerData = await DatabaseHelper.instance.getCustomerPurchaseHistory(userId, limit: limit);
-      
-      // Segment customers by spending
-      double highValueThreshold = 5000; // High value customers spend more than this
-      double mediumValueThreshold = 1000; // Medium value customers spend more than this
-      
-      int highValueCount = 0;
-      int mediumValueCount = 0;
-      int lowValueCount = 0;
-      
-      double totalSpent = 0;
-      
-      for (var customer in customerData) {
-        final spent = customer['total_spent'] as double? ?? 0.0;
-        totalSpent += spent;
-        
-        if (spent >= highValueThreshold) {
-          highValueCount++;
-        } else if (spent >= mediumValueThreshold) {
-          mediumValueCount++;
-        } else {
-          lowValueCount++;
-        }
-      }
-      
-      return {
-        'segments': {
-          'highValue': highValueCount,
-          'mediumValue': mediumValueCount,
-          'lowValue': lowValueCount,
-        },
-        'totalCustomers': customerData.length,
-        'averageSpentPerCustomer': customerData.isNotEmpty ? totalSpent / customerData.length : 0.0,
-        'totalRevenue': totalSpent,
-      };
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {
-        'segments': {
-          'highValue': 0,
-          'mediumValue': 0,
-          'lowValue': 0,
-        },
-        'totalCustomers': 0,
-        'averageSpentPerCustomer': 0.0,
-        'totalRevenue': 0.0,
-      };
-    }
-  }
-
-  /// Get domestic vs export sales data
-  Future<Map<String, dynamic>> getDomesticExportSales(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getDomesticExportSales(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {'dailyData': []};
-    }
-  }
-
-  /// Get historical and projected revenue data
-  Future<Map<String, dynamic>> getHistoricalProjectedRevenue(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getHistoricalProjectedRevenue(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return {'historicalData': [], 'projectionAverage': 0.0};
-    }
-  }
-
-  /// Get payment method distribution data
-  Future<List<Map<String, dynamic>>> getPaymentMethodDistribution(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getPaymentMethodDistribution(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
-
-  /// Get category performance data for radar chart
-  Future<List<Map<String, dynamic>>> getCategoryPerformanceForRadar(int userId, DateTime startDate, DateTime endDate) async {
-    try {
-      return await DatabaseHelper.instance.getCategoryPerformance(userId, startDate, endDate);
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      return [];
-    }
-  }
-
-  // Background sync methods
-  Future<void> _syncProductToServer(Product product) async {
-    try {
-      // In a real implementation, you would send the product to your server
-      // This is a placeholder for the sync functionality
-      debugPrint('Syncing product ${product.name} to server');
-    } catch (e) {
-      debugPrint('Failed to sync product to server: $e');
-    }
-  }
-
-  Future<void> _syncSaleToServer(Sale sale, List<SaleItem> saleItems) async {
-    try {
-      // In a real implementation, you would send the sale and sale items to your server
-      // This is a placeholder for the sync functionality
-      debugPrint('Syncing sale ${sale.receiptNumber} to server');
-    } catch (e) {
-      debugPrint('Failed to sync sale to server: $e');
-    }
+  void _recordError(Object error) {
+    _error = error.toString();
+    notifyListeners();
   }
 }

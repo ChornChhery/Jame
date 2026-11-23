@@ -431,12 +431,29 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _updateCartItemQuantity(AppProvider app, CartItem cartItem, int newQuantity) {
+  Future<void> _updateCartItemQuantity(
+    AppProvider app,
+    CartItem cartItem,
+    int newQuantity,
+  ) async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.currentUser?.id != null) {
-      app.updateCartItemQuantityWithPersistence(auth.currentUser!.id!, cartItem.product.id!, newQuantity);
-    } else {
-      app.updateCartItemQuantity(cartItem.product.id!, newQuantity);
+    try {
+      if (auth.currentUser?.id != null) {
+        await app.updateCartItemQuantityWithPersistence(
+          auth.currentUser!.id!,
+          cartItem.product.id!,
+          newQuantity,
+        );
+      } else {
+        app.updateCartItemQuantity(cartItem.product.id!, newQuantity);
+      }
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: AppConstants.errorRed,
+        ),
+      );
     }
   }
 
@@ -454,14 +471,27 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
               final scaffoldMessenger = ScaffoldMessenger.of(context);
               
-              if (auth.currentUser?.id != null) {
-                app.removeFromCartWithPersistence(auth.currentUser!.id!, cartItem.product.id!);
-              } else {
-                app.removeFromCart(cartItem.product.id!);
+              try {
+                if (auth.currentUser?.id != null) {
+                  await app.removeFromCartWithPersistence(
+                    auth.currentUser!.id!,
+                    cartItem.product.id!,
+                  );
+                } else {
+                  app.removeFromCart(cartItem.product.id!);
+                }
+              } catch (error) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(error.toString()),
+                    backgroundColor: AppConstants.errorRed,
+                  ),
+                );
+                return;
               }
               Navigator.pop(context);
               
@@ -504,14 +534,24 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             child: const Text('ยกเลิก'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
               final scaffoldMessenger = ScaffoldMessenger.of(context);
               
-              if (auth.currentUser?.id != null) {
-                app.clearCartWithPersistence(auth.currentUser!.id!);
-              } else {
-                app.clearCart();
+              try {
+                if (auth.currentUser?.id != null) {
+                  await app.clearCartWithPersistence(auth.currentUser!.id!);
+                } else {
+                  app.clearCart();
+                }
+              } catch (error) {
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Text(error.toString()),
+                    backgroundColor: AppConstants.errorRed,
+                  ),
+                );
+                return;
               }
               Navigator.pop(context);
               
