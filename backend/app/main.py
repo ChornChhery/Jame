@@ -7,7 +7,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Settings, get_settings
 from app.routers.auth import router as auth_router
+from app.routers.inventory import router as inventory_router
 from app.routers.profile import router as profile_router
+from app.routers.products import router as products_router
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -23,6 +25,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = application_settings
     app.state.engine = engine
     app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(products_router, prefix="/api/v1")
+    app.include_router(inventory_router, prefix="/api/v1")
     app.include_router(profile_router, prefix="/api/v1")
     app.add_middleware(
         CORSMiddleware,

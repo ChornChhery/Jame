@@ -99,3 +99,8 @@ def smtp_failure_client(auth_settings, clean_auth_db):
     )
     with TestClient(create_app(failing_settings)) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def auth_client_factory(auth_settings):
+    return lambda: TestClient(create_app(auth_settings))
