@@ -6,7 +6,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mysql1/mysql1.dart';
-import '../models/user.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
 
@@ -247,57 +246,6 @@ class ConnectDB {
   }
 
   /// Sync individual user to MySQL with parameterized queries
-  Future<bool> syncUserToMySQL(User user) async {
-    MySqlConnection? connection;
-    try {
-      // Get fresh connection for sync operation
-      connection = await MySqlConnection.connect(_connectionSettings)
-          .timeout(Duration(seconds: 10));
-      
-      // Use parameterized query to prevent SQL injection
-      // Remove id from INSERT to let MySQL auto-increment assign it
-      final result = await connection.query(
-        '''
-        INSERT INTO users (username, email, password, first_name, last_name, 
-                          shop_name, shop_address, shop_phone, shop_email, 
-                          currency, payment_qr, profile_image, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-        username=VALUES(username), email=VALUES(email), 
-        first_name=VALUES(first_name), last_name=VALUES(last_name),
-        shop_name=VALUES(shop_name), updated_at=VALUES(updated_at)
-        ''',
-        [
-          user.username,
-          user.email,
-          user.password,
-          user.firstName,
-          user.lastName,
-          user.shopName,
-          user.shopAddress ?? '',
-          user.shopPhone ?? '',
-          user.shopEmail ?? '',
-          user.currency,
-          user.paymentQr ?? '',
-          user.profileImage ?? '',
-          user.createdAt != null ? user.createdAt!.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null,
-          user.updatedAt != null ? user.updatedAt!.toUtc().toIso8601String().split('.')[0].replaceAll('T', ' ').replaceAll('Z', '') : null,
-        ],
-      );
-      
-      return result.affectedRows != null && result.affectedRows! > 0;
-      
-    } catch (e) {
-      return false;
-    } finally {
-      try {
-        await connection?.close();
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-    }
-  }
-
   /// Sync individual product to MySQL with parameterized queries
   Future<bool> syncProductToMySQL(Product product) async {
     MySqlConnection? connection;

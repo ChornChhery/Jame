@@ -138,7 +138,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         id: authProvider.currentUser?.id,
         username: authProvider.currentUser?.username ?? '',
         email: _emailController.text.trim(),
-        password: authProvider.currentUser?.password ?? '',
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         shopName: _shopNameController.text.trim(),

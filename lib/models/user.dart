@@ -3,7 +3,6 @@ class User {
   final int? id;
   final String username;
   final String email;
-  final String password;
   final String firstName;
   final String lastName;
   final String shopName;
@@ -20,7 +19,6 @@ class User {
     this.id,
     required this.username,
     required this.email,
-    required this.password,
     required this.firstName,
     required this.lastName,
     required this.shopName,
@@ -39,7 +37,6 @@ class User {
       'id': id,
       'username': username,
       'email': email,
-      'password': password,
       'first_name': firstName,
       'last_name': lastName,
       'shop_name': shopName,
@@ -59,7 +56,6 @@ class User {
       id: map['id'],
       username: _safeStringFromMap(map, 'username') ?? '',
       email: _safeStringFromMap(map, 'email') ?? '',
-      password: _safeStringFromMap(map, 'password') ?? '',
       firstName: _safeStringFromMap(map, 'first_name') ?? '',
       lastName: _safeStringFromMap(map, 'last_name') ?? '',
       shopName: _safeStringFromMap(map, 'shop_name') ?? '',
@@ -69,26 +65,30 @@ class User {
       currency: _safeStringFromMap(map, 'currency') ?? 'THB',
       paymentQr: _safeStringFromMap(map, 'payment_qr'),
       profileImage: _safeStringFromMap(map, 'profile_image'),
-      createdAt: map['created_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'created_at')!) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.parse(_safeStringFromMap(map, 'updated_at')!) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(_safeStringFromMap(map, 'created_at')!)
+          : null,
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(_safeStringFromMap(map, 'updated_at')!)
+          : null,
     );
   }
-  
+
   /// Safely extract string from map, handling Blob types from MySQL
   static String? _safeStringFromMap(Map<String, dynamic> map, String key) {
     final value = map[key];
     if (value == null) return null;
-    
+
     // Handle Blob type from MySQL
     if (value is List<int>) {
       return String.fromCharCodes(value);
     }
-    
+
     // Handle regular string
     if (value is String) {
       return value.isEmpty ? null : value;
     }
-    
+
     // Convert other types to string
     return value.toString();
   }
@@ -97,7 +97,6 @@ class User {
     int? id,
     String? username,
     String? email,
-    String? password,
     String? firstName,
     String? lastName,
     String? shopName,
@@ -114,7 +113,6 @@ class User {
       id: id ?? this.id,
       username: username ?? this.username,
       email: email ?? this.email,
-      password: password ?? this.password,
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       shopName: shopName ?? this.shopName,

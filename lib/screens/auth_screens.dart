@@ -516,10 +516,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
-    // Start background connection test (non-blocking)
-    auth.testServerConnectionBackground();
-    
+
     final success = await auth.login(
       email,
       _passwordController.text,
@@ -529,40 +526,47 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     if (success) {
       Navigator.pushReplacementNamed(context, AppConstants.dashboardRoute);
     } else {
+      final loginError = auth.error;
       // Check if it's a Gmail restriction or other login issue
       bool isGmail = lowercaseEmail.endsWith('@gmail.com');
-      
+
       // Check connection status after login attempt
       final serverConnected = await auth.testServerConnection();
-      
-      String errorMessage = isGmail && serverConnected 
-          ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' // Email or password incorrect
-          : !isGmail 
+
+      String errorMessage =
+          loginError ??
+          (isGmail && serverConnected
+              ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' // Email or password incorrect
+              : !isGmail
               ? 'เฉพาะบัญชี Gmail เท่านั้นที่สามารถเข้าสู่ระบบได้' // Only Gmail accounts can log in
-              : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'; // Cannot login, try again
-      
+              : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'); // Cannot login, try again
+
       // Check for common Gmail typing mistakes
       if (!isGmail && lowercaseEmail.contains('@gmail')) {
         // Check for common mistakes
-        if (lowercaseEmail.contains('gmali') || 
-            lowercaseEmail.contains('gmal') || 
+        if (lowercaseEmail.contains('gmali') ||
+            lowercaseEmail.contains('gmal') ||
             lowercaseEmail.contains('gmail.')) {
           errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
         }
         // Check for .con instead of .com
-        else if (lowercaseEmail.endsWith('@gmail.con') || 
-                 lowercaseEmail.endsWith('@gmail.co') ||
-                 lowercaseEmail.endsWith('@gmail.cm')) {
+        else if (lowercaseEmail.endsWith('@gmail.con') ||
+            lowercaseEmail.endsWith('@gmail.co') ||
+            lowercaseEmail.endsWith('@gmail.cm')) {
           errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
         }
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
-          backgroundColor: !isGmail ? Colors.orange : (serverConnected ? AppConstants.errorRed : Colors.orange),
+          backgroundColor: !isGmail
+              ? Colors.orange
+              : (serverConnected ? AppConstants.errorRed : Colors.orange),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: EdgeInsets.all(16),
         ),
       );
@@ -1223,10 +1227,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     if (!_formKey.currentState!.validate()) return;
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
-    // Start background connection test (non-blocking)
-    auth.testServerConnectionBackground();
-    
+
     final error = await auth.signup(
       username: _usernameController.text.trim(),
       email: _emailController.text.trim(),

@@ -42,59 +42,13 @@ class DatabaseHelper {
   }
 
   // User operations - Direct MySQL with parameterized queries
-  Future<User> createUser(User user) async {
-    try {
-      // Use executeSelectQuery to insert and get the generated ID
-      final result = await _mysqlDB.executeUpdateQuery(
-        '''
-        INSERT INTO users (username, email, password, first_name, last_name, 
-                          shop_name, shop_address, shop_phone, shop_email, 
-                          currency, payment_qr, profile_image, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''',
-        [
-          user.username,
-          user.email,
-          user.password,
-          user.firstName,
-          user.lastName,
-          user.shopName,
-          user.shopAddress ?? '',
-          user.shopPhone ?? '',
-          user.shopEmail ?? '',
-          user.currency,
-          user.paymentQr ?? '',
-          user.profileImage ?? '',
-          user.createdAt?.toIso8601String(),
-          user.updatedAt?.toIso8601String(),
-        ],
-      );
-      
-      if (result) {
-        // Get the created user by email to retrieve the generated ID
-        final createdUser = await getUserByEmail(user.email);
-        if (createdUser != null) {
-          debugPrint('✅ User created successfully with ID: ${createdUser.id}');
-          return createdUser;
-        } else {
-          throw Exception('Failed to retrieve created user from MySQL');
-        }
-      } else {
-        throw Exception('Failed to insert user into MySQL');
-      }
-    } catch (e) {
-      debugPrint('❌ User creation failed: $e');
-      throw Exception('User creation failed: $e');
-    }
-  }
-
   Future<User?> getUserByEmail(String email) async {
     try {
       final results = await _mysqlDB.executeSelectQuery(
         'SELECT * FROM users WHERE email = ? LIMIT 1',
-        [email]
+        [email],
       );
-      
+
       if (results.isNotEmpty) {
         return User.fromMap(results.first);
       }

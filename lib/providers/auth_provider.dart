@@ -1,143 +1,87 @@
-// FILE: lib/providers/auth_provider.dart
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/user.dart';
-import '../database/database_helper.dart';
-import '../core/utils.dart';
-import '../core/connectdb.dart';
+import '../services/api_client.dart';
+import '../services/jame_api.dart';
 
 class AuthProvider extends ChangeNotifier {
+  AuthProvider({JameApi? api}) : _api = api ?? JameApi() {
+    initialization = restoreSession();
+  }
+
+  final JameApi _api;
+  late final Future<void> initialization;
   User? _currentUser;
   bool _isAuthenticated = false;
   bool _isLoading = false;
   bool _rememberMe = false;
-  final ConnectDB _connectDB = ConnectDB(); // Add server connection
+  String? _error;
+  bool? _lastConnectionStatus;
+  DateTime? _lastConnectionTest;
 
   User? get currentUser => _currentUser;
   bool get isAuthenticated => _isAuthenticated;
   bool get isLoading => _isLoading;
   bool get rememberMe => _rememberMe;
-  
+  String? get error => _error;
+
   set rememberMe(bool value) {
     _rememberMe = value;
     notifyListeners();
   }
 
-  AuthProvider() {
-    _loadSavedSession();
-  }
-
-  /// Load saved session from SharedPreferences
-  Future<void> _loadSavedSession() async {
+  Future<void> restoreSession() async {
+    _isLoading = true;
+    notifyListeners();
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _rememberMe = prefs.getBool('remember_me') ?? false;
-      
-      if (_rememberMe) {
-        final userId = prefs.getInt('user_id');
-        if (userId != null) {
-          final user = await DatabaseHelper.instance.getUser(userId);
-          if (user != null) {
-            _currentUser = user;
-            _isAuthenticated = true;
-            debugPrint('✅ Restored user session for: ${user.username}');
-          }
-        }
-      }
-      
+      _currentUser = await _api.restoreSession();
+      _isAuthenticated = true;
+      _error = null;
+    } on ApiException catch (error) {
+      _currentUser = null;
+      _isAuthenticated = false;
+      _error = error.statusCode == 401 ? null : error.message;
+    } on Exception catch (error) {
+      _currentUser = null;
+      _isAuthenticated = false;
+      _error = error.toString();
+    } finally {
+      _isLoading = false;
       notifyListeners();
-    } catch (e) {
-      debugPrint('❌ Error loading saved session: $e');
     }
   }
 
-  /// Save session to SharedPreferences
-  Future<void> _saveSession() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (_rememberMe && _currentUser != null) {
-        await prefs.setBool('remember_me', true);
-        await prefs.setInt('user_id', _currentUser!.id!);
-      } else {
-        await prefs.setBool('remember_me', false);
-        await prefs.remove('user_id');
-      }
-    } catch (e) {
-      debugPrint('❌ Error saving session: $e');
-    }
-  }
-
-  /// Clear saved session
-  Future<void> _clearSession() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('remember_me', false);
-      await prefs.remove('user_id');
-    } catch (e) {
-      debugPrint('❌ Error clearing session: $e');
-    }
-  }
-
-  Future<bool> login(String email, String password, {bool rememberMe = false}) async {
+  Future<bool> login(
+    String email,
+    String password, {
+    bool rememberMe = false,
+  }) async {
     _isLoading = true;
     _rememberMe = rememberMe;
+    _error = null;
     notifyListeners();
-
     try {
-      // Check if email is a Gmail address
-      final lowercaseEmail = email.toLowerCase();
-      if (!lowercaseEmail.endsWith('@gmail.com')) {
-        // Check for common Gmail typing mistakes
-        if (lowercaseEmail.contains('@gmail')) {
-          // Check for common mistakes
-          if (lowercaseEmail.contains('gmali') || 
-              lowercaseEmail.contains('gmal') || 
-              lowercaseEmail.contains('gmail.')) {
-            debugPrint('❌ Login failed: Did you mean @gmail.com?');
-          }
-          // Check for .con instead of .com
-          else if (lowercaseEmail.endsWith('@gmail.con') || 
-                   lowercaseEmail.endsWith('@gmail.co') ||
-                   lowercaseEmail.endsWith('@gmail.cm')) {
-            debugPrint('❌ Login failed: Did you mean @gmail.com?');
-          }
-        }
-        debugPrint('❌ Login failed: Only Gmail accounts are allowed');
-        _isLoading = false;
-        notifyListeners();
+      final normalizedEmail = email.trim().toLowerCase();
+      if (!normalizedEmail.endsWith('@gmail.com')) {
+        _error = 'Only Gmail accounts are allowed.';
         return false;
       }
-
-      // Direct MySQL authentication - no local fallback
-      final hashedPassword = AppUtils.hashPassword(password);
-      final user = await DatabaseHelper.instance.getUserByEmail(email);
-
-      if (user != null && user.password == hashedPassword) {
-        _currentUser = user;
-        _isAuthenticated = true;
-        
-        // Save session if "Remember Me" is enabled
-        if (rememberMe) {
-          await _saveSession();
-        }
-        
-        debugPrint('✅ User login successful: ${user.username}');
-        
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-
-      debugPrint('❌ Login failed: Invalid credentials for $email');
+      _currentUser = await _api.login(
+        email: normalizedEmail,
+        password: password,
+      );
+      _isAuthenticated = true;
+      return true;
+    } on Exception catch (error) {
+      _error = _errorMessage(error);
+      _currentUser = null;
+      _isAuthenticated = false;
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
-    } catch (e) {
-      debugPrint('❌ Login error: $e');
-      _isLoading = false;
-      notifyListeners();
-      return false;
     }
   }
 
@@ -152,129 +96,130 @@ class AuthProvider extends ChangeNotifier {
     String? shopPhone,
   }) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
-
     try {
-      // Check if user already exists in MySQL
-      final existingUserByEmail = await DatabaseHelper.instance.getUserByEmail(email);
-      if (existingUserByEmail != null) {
-        _isLoading = false;
-        notifyListeners();
-        return 'อีเมลนี้ถูกใช้แล้ว'; // Email already used
-      }
-
-      final existingUserByUsername = await DatabaseHelper.instance.getUserByUsername(username);
-      if (existingUserByUsername != null) {
-        _isLoading = false;
-        notifyListeners();
-        return 'ชื่อผู้ใช้นี้ถูกใช้แล้ว'; // Username already used
-      }
-
-      // Create new user directly in MySQL
-      final hashedPassword = AppUtils.hashPassword(password);
-      final newUser = User(
+      _currentUser = await _api.register(
         username: username,
-        email: email,
-        password: hashedPassword,
+        email: email.trim().toLowerCase(),
+        password: password,
         firstName: firstName,
         lastName: lastName,
         shopName: shopName,
         shopAddress: shopAddress,
         shopPhone: shopPhone,
-        currency: 'THB', // Thai market focus
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
       );
-
-      final createdUser = await DatabaseHelper.instance.createUser(newUser);
-      _currentUser = createdUser;
       _isAuthenticated = true;
-      
-      debugPrint('✅ User registration successful: ${createdUser.username}');
-      
+      return null;
+    } on Exception catch (error) {
+      _error = _errorMessage(error);
+      _currentUser = null;
+      _isAuthenticated = false;
+      return _error;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return null; // Success
-    } catch (e) {
-      debugPrint('❌ Registration error: $e');
-      _isLoading = false;
-      notifyListeners();
-      return 'เกิดข้อผิดพลาด: ${e.toString()}';
     }
   }
 
   Future<void> logout() async {
-    _currentUser = null;
-    _isAuthenticated = false;
-    _rememberMe = false;
-    await _clearSession();
+    _isLoading = true;
     notifyListeners();
+    try {
+      await _api.logout();
+      _error = null;
+    } on Exception catch (error) {
+      _error = _errorMessage(error);
+    } finally {
+      _currentUser = null;
+      _isAuthenticated = false;
+      _rememberMe = false;
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> updateProfile(User updatedUser) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
-
     try {
-      await DatabaseHelper.instance.updateUser(updatedUser);
-      _currentUser = updatedUser;
-      await _saveSession(); // Save updated user info
-      _isLoading = false;
-      notifyListeners();
+      _currentUser = await _api.updateProfile(updatedUser);
       return true;
-    } catch (e) {
+    } on Exception catch (error) {
+      _error = _errorMessage(error);
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
   }
 
-  // ==================== MYSQL CONNECTION TESTING ====================
-  
-  /// Test MySQL connection for debugging (non-blocking with caching)
-  bool? _lastConnectionStatus;
-  DateTime? _lastConnectionTest;
-  
-  Future<bool> testServerConnection() async {
+  Future<void> requestPasswordReset(String email) async {
     try {
-      // Cache connection status for 30 seconds to avoid blocking UI
-      final now = DateTime.now();
-      if (_lastConnectionTest != null && 
-          _lastConnectionStatus != null &&
-          now.difference(_lastConnectionTest!).inSeconds < 30) {
-        return _lastConnectionStatus!;
-      }
-      
-      // Test with reduced retries for faster response
-      final result = await _connectDB.testMySQLConnection(maxRetries: 1);
-      
-      _lastConnectionStatus = result;
-      _lastConnectionTest = now;
-      
-      debugPrint(result ? '✅ MySQL connection test: SUCCESS' : '❌ MySQL connection test: FAILED');
-      return result;
-    } catch (e) {
-      debugPrint('❌ MySQL connection test error: $e');
-      _lastConnectionStatus = false;
-      _lastConnectionTest = DateTime.now();
-      return false;
+      await _api.requestPasswordReset(email);
+      _error = null;
+    } on Exception catch (error) {
+      _error = _errorMessage(error);
+      rethrow;
+    } finally {
+      notifyListeners();
     }
   }
-  
-  /// Background connection test (fire and forget)
-  void testServerConnectionBackground() {
-    // Run in background without blocking UI
-    testServerConnection().catchError((e) {
-      debugPrint('Background connection test failed: $e');
-    });
+
+  Future<void> confirmPasswordReset({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      await _api.confirmPasswordReset(
+        email: email,
+        code: code,
+        newPassword: newPassword,
+      );
+      _error = null;
+    } on Exception catch (error) {
+      _error = _errorMessage(error);
+      rethrow;
+    } finally {
+      notifyListeners();
+    }
   }
-  
-  /// Get MySQL server status for debugging
+
+  Future<bool> testServerConnection() async {
+    final now = DateTime.now();
+    if (_lastConnectionTest != null &&
+        _lastConnectionStatus != null &&
+        now.difference(_lastConnectionTest!).inSeconds < 30) {
+      return _lastConnectionStatus!;
+    }
+    try {
+      await _api.checkReadiness();
+      _lastConnectionStatus = true;
+      _error = null;
+    } on Exception catch (error) {
+      _lastConnectionStatus = false;
+      _error = _errorMessage(error);
+    }
+    _lastConnectionTest = now;
+    notifyListeners();
+    return _lastConnectionStatus!;
+  }
+
+  void testServerConnectionBackground() {
+    unawaited(testServerConnection());
+  }
+
   Future<Map<String, dynamic>> getServerStatus() async {
     try {
-      return await _connectDB.getServerStatus();
-    } catch (e) {
-      return {'error': e.toString()};
+      return await _api.checkReadiness();
+    } on Exception catch (error) {
+      return {'error': _errorMessage(error)};
     }
+  }
+
+  String _errorMessage(Exception error) {
+    return error is ApiException ? error.message : error.toString();
   }
 }

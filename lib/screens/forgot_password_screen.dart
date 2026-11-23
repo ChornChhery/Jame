@@ -1,33 +1,35 @@
-// FILE: lib/screens/forgot_password_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import '../core/constants.dart';
+import '../core/translations.dart';
 import '../core/utils.dart';
-import '../database/database_helper.dart';
-import '../models/user.dart';
+import '../providers/auth_provider.dart';
+import '../widgets/language_switch_button.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
+
   @override
-  _ForgotPasswordScreenState createState() => _ForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _shopNameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _verificationCodeController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
+  bool _isVerificationStep = true;
+  bool _isLoading = false;
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
-  bool _isVerificationStep = true; // true for verification, false for password reset
-  User? _verifiedUser;
-  
+
   @override
   void dispose() {
-    _usernameController.dispose();
-    _shopNameController.dispose();
     _emailController.dispose();
+    _verificationCodeController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
@@ -40,31 +42,46 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       appBar: AppBar(
         backgroundColor: AppConstants.primaryDarkBlue,
         foregroundColor: Colors.white,
-        title: Text(_isVerificationStep ? 'ลืมรหัสผ่าน' : 'รีเซ็ตรหัสผ่าน'),
+        title: Text(
+          _isVerificationStep
+              ? context.tr('forgot_password_title')
+              : context.tr('reset_password'),
+        ),
+        actions: const [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: LanguageSwitchButton(
+                isDarkBackground: true,
+                compact: true,
+              ),
+            ),
+          ),
+        ],
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (_isVerificationStep) {
               Navigator.pop(context);
             } else {
-              setState(() {
-                _isVerificationStep = true;
-              });
+              setState(() => _isVerificationStep = true);
             }
           },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
-          child: _isVerificationStep ? _buildVerificationStep() : _buildResetPasswordStep(),
+          child: _isVerificationStep
+              ? _buildRequestCodeStep()
+              : _buildResetPasswordStep(),
         ),
       ),
     );
   }
 
-  Widget _buildVerificationStep() {
+  Widget _buildRequestCodeStep() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -76,96 +93,38 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             color: AppConstants.primaryDarkBlue,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
-          'กรุณากรอกข้อมูลด้านล่างเพื่อยืนยันตัวตนของคุณ',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppConstants.textDarkGray,
-          ),
+          'กรอกอีเมลของคุณเพื่อรับรหัสยืนยันแบบใช้ครั้งเดียว',
+          style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray),
         ),
-        SizedBox(height: 32),
-
-        _buildTextField(
-          controller: _usernameController,
-          label: 'ชื่อผู้ใช้',
-          icon: Icons.account_circle_outlined,
-          validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อผู้ใช้' : null,
-        ),
-        SizedBox(height: 20),
-
-        _buildTextField(
-          controller: _shopNameController,
-          label: 'ชื่อร้าน',
-          icon: Icons.store_outlined,
-          validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
-        ),
-        SizedBox(height: 20),
-
+        const SizedBox(height: 32),
         _buildTextField(
           controller: _emailController,
           label: 'อีเมล',
           icon: Icons.email_outlined,
+          key: const ValueKey('reset-email'),
           keyboardType: TextInputType.emailAddress,
           validator: (value) {
-            if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
-            if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+            final email = value?.trim() ?? '';
+            if (email.isEmpty) return 'กรุณากรอกอีเมล';
+            if (!AppUtils.isValidEmail(email)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+            if (!email.toLowerCase().endsWith('@gmail.com')) {
+              return 'กรุณาใช้บัญชี Gmail เท่านั้น';
+            }
             return null;
           },
         ),
-        SizedBox(height: 32),
-
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppConstants.primaryYellow.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppConstants.primaryYellow.withOpacity(0.3),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.info_outline,
-                color: AppConstants.primaryDarkBlue,
-                size: 20,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'เราจะตรวจสอบข้อมูลที่คุณกรอกกับข้อมูลในระบบ หากข้อมูลถูกต้อง คุณจะสามารถตั้งรหัสผ่านใหม่ได้',
-                  style: TextStyle(
-                    color: AppConstants.primaryDarkBlue,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: 24),
+        _infoBox(
+          'หากบัญชีนี้มีอยู่ เราจะส่งรหัสยืนยันไปยังอีเมลของคุณ',
+          Icons.info_outline,
         ),
-        SizedBox(height: 32),
-
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _verifyUser,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppConstants.primaryDarkBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              'ยืนยันข้อมูล',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+        const SizedBox(height: 32),
+        _actionButton(
+          key: const ValueKey('request-reset-code'),
+          label: 'ส่งรหัสยืนยัน',
+          onPressed: _requestResetCode,
         ),
       ],
     );
@@ -183,115 +142,80 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             color: AppConstants.primaryDarkBlue,
           ),
         ),
-        SizedBox(height: 8),
+        const SizedBox(height: 8),
         Text(
-          'กรุณาตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppConstants.textDarkGray,
-          ),
+          'กรอกรหัสที่ส่งไปยัง ${_emailController.text.trim()}',
+          style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray),
         ),
-        SizedBox(height: 32),
-
+        const SizedBox(height: 32),
+        _buildTextField(
+          controller: _verificationCodeController,
+          label: 'รหัสยืนยัน 6 หลัก',
+          icon: Icons.pin_outlined,
+          key: const ValueKey('verification-code'),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || !RegExp(r'^\d{6}$').hasMatch(value.trim())) {
+              return 'กรุณากรอกรหัสยืนยัน 6 หลัก';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 20),
         _buildTextField(
           controller: _newPasswordController,
           label: 'รหัสผ่านใหม่',
           icon: Icons.lock_outline,
+          key: const ValueKey('new-password'),
           obscureText: _obscureNewPassword,
           suffixIcon: IconButton(
             icon: Icon(
               _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
               color: AppConstants.textDarkGray,
             ),
-            onPressed: () {
-              setState(() {
-                _obscureNewPassword = !_obscureNewPassword;
-              });
-            },
+            onPressed: () =>
+                setState(() => _obscureNewPassword = !_obscureNewPassword),
           ),
           validator: (value) {
-            if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
-            if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+            if (value == null || value.length < 8) {
+              return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+            }
             return null;
           },
         ),
-        SizedBox(height: 20),
-
+        const SizedBox(height: 20),
         _buildTextField(
           controller: _confirmPasswordController,
           label: 'ยืนยันรหัสผ่านใหม่',
           icon: Icons.lock_outline,
+          key: const ValueKey('confirm-password'),
           obscureText: _obscureConfirmPassword,
           suffixIcon: IconButton(
             icon: Icon(
               _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
               color: AppConstants.textDarkGray,
             ),
-            onPressed: () {
-              setState(() {
-                _obscureConfirmPassword = !_obscureConfirmPassword;
-              });
-            },
+            onPressed: () => setState(
+              () => _obscureConfirmPassword = !_obscureConfirmPassword,
+            ),
           ),
           validator: (value) {
-            if (value?.isEmpty ?? true) return 'กรุณายืนยันรหัสผ่าน';
-            if (value != _newPasswordController.text) return 'รหัสผ่านไม่ตรงกัน';
+            if (value != _newPasswordController.text) {
+              return 'รหัสผ่านไม่ตรงกัน';
+            }
             return null;
           },
         ),
-        SizedBox(height: 32),
-
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppConstants.primaryYellow.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppConstants.primaryYellow.withOpacity(0.3),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.security_outlined,
-                color: AppConstants.primaryDarkBlue,
-                size: 20,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'รหัสผ่านควรมีความยาวอย่างน้อย 6 ตัวอักษร และควรมีทั้งตัวอักษรและตัวเลขเพื่อความปลอดภัย',
-                  style: TextStyle(
-                    color: AppConstants.primaryDarkBlue,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        const SizedBox(height: 24),
+        _infoBox(
+          'รหัสยืนยันใช้ได้ครั้งเดียวและหมดอายุภายในเวลาที่กำหนด',
+          Icons.security_outlined,
         ),
-        SizedBox(height: 32),
-
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton(
-            onPressed: _resetPassword,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppConstants.primaryDarkBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              'รีเซ็ตรหัสผ่าน',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
+        const SizedBox(height: 32),
+        _actionButton(
+          key: const ValueKey('confirm-password-reset'),
+          label: 'รีเซ็ตรหัสผ่าน',
+          onPressed: _resetPassword,
         ),
       ],
     );
@@ -301,12 +225,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
+    Key? key,
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
+      key: key,
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
@@ -315,9 +241,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         labelText: label,
         prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
         suffixIcon: suffixIcon,
-        labelStyle: TextStyle(
-          color: AppConstants.textDarkGray,
-        ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -326,233 +249,124 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.grey.withOpacity(0.1),
-          ),
+          borderSide: BorderSide(color: Colors.grey.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppConstants.primaryDarkBlue,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: AppConstants.primaryDarkBlue, width: 2),
         ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppConstants.errorRed,
-          ),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: AppConstants.errorRed,
-            width: 2,
-          ),
-        ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }
 
-  Future<void> _verifyUser() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: CircularProgressIndicator(
-          color: AppConstants.primaryYellow,
-        ),
+  Widget _infoBox(String message, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppConstants.primaryYellow.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppConstants.primaryYellow.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppConstants.primaryDarkBlue, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: AppConstants.primaryDarkBlue,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
 
-    try {
-      // Verify user by username, shop name, and email
-      final user = await DatabaseHelper.instance.getUserByUsername(_usernameController.text.trim());
-      
-      if (user != null) {
-        // Check if shop name and email match
-        if (user.shopName == _shopNameController.text.trim() && 
-            user.email == _emailController.text.trim()) {
-          // Verification successful
-          Navigator.pop(context); // Remove loading indicator
-          setState(() {
-            _verifiedUser = user;
-            _isVerificationStep = false;
-          });
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('ยืนยันข้อมูลสำเร็จ กรุณาตั้งรหัสผ่านใหม่'),
-              backgroundColor: AppConstants.successGreen,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: EdgeInsets.all(16),
-            ),
-          );
-        } else {
-          // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
-          final scaffoldMessenger = ScaffoldMessenger.of(context);
-          
-          Navigator.pop(context); // Remove loading indicator
-          
-          // Use a delayed callback to show snackbar after dialog is completely dismissed
-          Future.delayed(Duration(milliseconds: 100), () {
-            // Show snackbar using the stored scaffold messenger reference
-            scaffoldMessenger.showSnackBar(
-              SnackBar(
-                content: Text('ข้อมูลไม่ตรงกับบันทึกในระบบ'),
-                backgroundColor: AppConstants.errorRed,
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                margin: EdgeInsets.all(16),
-              ),
-            );
-          });
-        }
-      } else {
-        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        
-        Navigator.pop(context); // Remove loading indicator
-        
-        // Use a delayed callback to show snackbar after dialog is completely dismissed
-        Future.delayed(Duration(milliseconds: 100), () {
-          // Show snackbar using the stored scaffold messenger reference
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text('ไม่พบผู้ใช้งานในระบบ'),
-              backgroundColor: AppConstants.errorRed,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: EdgeInsets.all(16),
-            ),
-          );
-        });
-      }
-    } catch (e) {
-      // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-      
-      Navigator.pop(context); // Remove loading indicator
-      
-      // Use a delayed callback to show snackbar after dialog is completely dismissed
-      Future.delayed(Duration(milliseconds: 100), () {
-        // Show snackbar using the stored scaffold messenger reference
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-            backgroundColor: AppConstants.errorRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: EdgeInsets.all(16),
+  Widget _actionButton({
+    required Key key,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: ElevatedButton(
+        key: key,
+        onPressed: _isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppConstants.primaryDarkBlue,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
-        );
-      });
+        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _requestResetCode() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+    try {
+      await context.read<AuthProvider>().requestPasswordReset(
+        _emailController.text.trim(),
+      );
+      if (!mounted) return;
+      setState(() => _isVerificationStep = false);
+      _showMessage(
+        'หากบัญชีนี้มีอยู่ เราจะส่งรหัสยืนยันไปยังอีเมลของคุณ',
+        AppConstants.successGreen,
+      );
+    } on Exception catch (error) {
+      if (mounted) _showMessage(error.toString(), AppConstants.errorRed);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_verifiedUser == null) return;
+    setState(() => _isLoading = true);
+    try {
+      await context.read<AuthProvider>().confirmPasswordReset(
+        email: _emailController.text.trim(),
+        code: _verificationCodeController.text.trim(),
+        newPassword: _newPasswordController.text,
+      );
+      if (!mounted) return;
+      _verificationCodeController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+      setState(() => _isVerificationStep = true);
+      _showMessage('รีเซ็ตรหัสผ่านสำเร็จ', AppConstants.successGreen);
+    } on Exception catch (error) {
+      if (mounted) _showMessage(error.toString(), AppConstants.errorRed);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: CircularProgressIndicator(
-          color: AppConstants.primaryYellow,
-        ),
+  void _showMessage(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
       ),
     );
-
-    try {
-      // Hash the new password
-      final hashedPassword = AppUtils.hashPassword(_newPasswordController.text);
-      
-      // Update user password
-      final result = await DatabaseHelper.instance.updateUserPassword(
-        _verifiedUser!.id!, 
-        hashedPassword
-      );
-      
-      Navigator.pop(context); // Remove loading indicator
-      
-      if (result > 0) {
-        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('รีเซ็ตรหัสผ่านสำเร็จ'),
-            backgroundColor: AppConstants.successGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: EdgeInsets.all(16),
-          ),
-        );
-        
-        // Navigate back to login screen after a delay to ensure snackbar is shown
-        Future.delayed(Duration(seconds: 2), () {
-          Navigator.pop(context);
-          Navigator.pop(context);
-        });
-      } else {
-        // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
-        final scaffoldMessenger = ScaffoldMessenger.of(context);
-        
-        // Use a delayed callback to show snackbar after dialog is completely dismissed
-        Future.delayed(Duration(milliseconds: 100), () {
-          // Show snackbar using the stored scaffold messenger reference
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text('ไม่สามารถรีเซ็ตรหัสผ่านได้'),
-              backgroundColor: AppConstants.errorRed,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: EdgeInsets.all(16),
-            ),
-          );
-        });
-      }
-    } catch (e) {
-      // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-      
-      Navigator.pop(context); // Remove loading indicator
-      
-      // Use a delayed callback to show snackbar after dialog is completely dismissed
-      Future.delayed(Duration(milliseconds: 100), () {
-        // Show snackbar using the stored scaffold messenger reference
-        scaffoldMessenger.showSnackBar(
-          SnackBar(
-            content: Text('เกิดข้อผิดพลาด: ${e.toString()}'),
-            backgroundColor: AppConstants.errorRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: EdgeInsets.all(16),
-          ),
-        );
-      });
-    }
   }
 }
