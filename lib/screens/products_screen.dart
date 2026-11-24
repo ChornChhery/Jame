@@ -11,6 +11,7 @@ import '../providers/settings_provider.dart';
 import '../core/translations.dart';
 import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
+import '../widgets/product_form_dialog.dart';
 
 class ProductsScreen extends StatefulWidget {
   final Map<String, dynamic>? arguments;
@@ -1570,15 +1571,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
 
   void _showProductFormDialog(Product? product, String? prefilledCode) {
     final isEditing = product != null;
-    final nameController = TextEditingController(text: product?.name ?? '');
-    final priceController = TextEditingController(text: product?.price.toString() ?? '');
-    final quantityController = TextEditingController(text: product?.quantity.toString() ?? '');
-    final lowStockController = TextEditingController(text: product?.lowStock.toString() ?? '5');
-    final unitController = TextEditingController(text: product?.unit ?? 'pcs');
-    final categoryController = TextEditingController(text: product?.category ?? '');
-    final imageController = TextEditingController(text: product?.image ?? '');
-    
-    final List<String> categories = [
+    const categories = <String>[
       'Food & Beverage',
       'Household Items',
       'Stationery',
@@ -1586,232 +1579,29 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       'Clothing & Apparel',
       'Electronics',
       'Kitchenware',
-      'Other'
+      'Other',
     ];
-    
-    String? selectedCategory = product?.category;
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
-          return Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            child: Container(
-              constraints: const BoxConstraints(maxHeight: 600),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: isEditing 
-                        ? AppConstants.primaryDarkBlue 
-                        : AppConstants.primaryYellow,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isEditing ? Icons.edit_rounded : Icons.add_rounded,
-                          color: isEditing ? Colors.white : AppConstants.primaryDarkBlue,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            isEditing ? AppTranslations.t('ui_edit_product') : AppTranslations.t('ui_add_new_product'),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: isEditing ? Colors.white : AppConstants.primaryDarkBlue,
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(
-                            Icons.close_rounded,
-                            color: isEditing ? Colors.white : AppConstants.primaryDarkBlue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: [
-                          _buildFormField(
-                            controller: nameController,
-                            label: AppTranslations.t('ui_product_name'),
-                            icon: Icons.inventory_2_rounded,
-                            required: true,
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: priceController,
-                                  label: AppTranslations.t('ui_price'),
-                                  icon: Icons.attach_money_rounded,
-                                  keyboardType: TextInputType.number,
-                                  required: true,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: quantityController,
-                                  label: AppTranslations.t('ui_qty'),
-                                  icon: Icons.numbers_rounded,
-                                  keyboardType: TextInputType.number,
-                                  required: true,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: lowStockController,
-                                  label: AppTranslations.t('ui_low_stock_threshold'),
-                                  icon: Icons.warning_rounded,
-                                  keyboardType: TextInputType.number,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildFormField(
-                                  controller: unitController,
-                                  label: AppTranslations.t('ui_unit_2'),
-                                  icon: Icons.scale_rounded,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppConstants.lightGray,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[300]!),
-                            ),
-                            child: DropdownButtonFormField<String>(
-                              value: selectedCategory,
-                              hint: Text(AppTranslations.t('ui_select_category')),
-                              decoration: InputDecoration(
-                                labelText: AppTranslations.t('ui_category'),
-                                prefixIcon: Icon(Icons.category_rounded, 
-                                  color: AppConstants.primaryDarkBlue),
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 16),
-                              ),
-                              items: categories.map((String category) {
-                                return DropdownMenuItem(
-                                  value: category,
-                                  child: Text(AppTranslations.label(category)),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                setState(() {
-                                  selectedCategory = newValue;
-                                  categoryController.text = newValue ?? '';
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFormField(
-                            controller: imageController,
-                            label: AppTranslations.t('ui_image_link'),
-                            icon: Icons.image_rounded,
-                            maxLines: 2,
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: AppConstants.primaryDarkBlue.withOpacity(0.3),
-                                style: BorderStyle.solid,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: TextButton.icon(
-                              onPressed: () => _showImageUploadOptions(context, imageController),
-                              icon: const Icon(Icons.cloud_upload_rounded),
-                              label: Text(AppTranslations.t('ui_upload_image')),
-                              style: TextButton.styleFrom(
-                                foregroundColor: AppConstants.primaryDarkBlue,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(AppTranslations.t('ui_cancel')),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _saveProduct(
-                              isEditing, product, nameController, priceController,
-                              quantityController, lowStockController, unitController, 
-                              categoryController, imageController,
-                            ),
-                            icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
-                            label: Text(isEditing ? AppTranslations.t('ui_save') : AppTranslations.t('ui_add_products')),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isEditing 
-                                ? AppConstants.primaryDarkBlue 
-                                : AppConstants.primaryYellow,
-                              foregroundColor: isEditing 
-                                ? Colors.white 
-                                : AppConstants.primaryDarkBlue,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              textStyle: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      builder: (dialogContext) => ProductFormDialog(
+        product: product,
+        prefilledCode: prefilledCode,
+        categories: categories,
+        onPickImage: (imageController) =>
+            _showImageUploadOptions(dialogContext, imageController),
+        onSave: (v) => _saveProduct(
+          isEditing,
+          product,
+          TextEditingController(text: v.name),
+          TextEditingController(text: v.price.toString()),
+          TextEditingController(text: v.quantity.toString()),
+          TextEditingController(text: v.lowStock.toString()),
+          TextEditingController(text: v.unit),
+          TextEditingController(text: v.category),
+          TextEditingController(text: v.image),
+          code: v.code.isEmpty ? null : v.code,
+        ),
       ),
     );
   }
@@ -2017,7 +1807,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       TextEditingController nameController, TextEditingController priceController,
       TextEditingController quantityController, TextEditingController lowStockController,
       TextEditingController unitController, TextEditingController categoryController, 
-      TextEditingController imageController) async {
+      TextEditingController imageController, {String? code}) async {
     
     final auth = Provider.of<AuthProvider>(context, listen: false);
     final app = Provider.of<AppProvider>(context, listen: false);
@@ -2028,7 +1818,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       id: isEditing ? existingProduct!.id : null,
       userId: auth.currentUser!.id!,
       name: nameController.text,
-      code: existingProduct?.code ?? 'P${DateTime.now().millisecondsSinceEpoch}',
+      code: existingProduct?.code ?? code ?? 'P${DateTime.now().millisecondsSinceEpoch}',
       price: double.tryParse(priceController.text) ?? 0,
       quantity: int.tryParse(quantityController.text) ?? 0,
       lowStock: int.tryParse(lowStockController.text) ?? 5,

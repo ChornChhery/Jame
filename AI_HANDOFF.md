@@ -80,6 +80,17 @@ Android emulator: `http://10.0.2.2:8000/api/v1`. Tests: `flutter test` and `cd b
 
 ---
 
+### Round 3: Add/Edit product redesign
+- New widget `lib/widgets/product_form_dialog.dart` (`ProductFormDialog`) replaces the old inline dialog in `products_screen.dart` (`_showProductFormDialog` now just opens it and calls the existing `_saveProduct`).
+- Wide screens: photo + live preview card on the left, form on the right. Narrow screens: single column.
+- Category = tappable chips, quantity and low-stock alert = +/- steppers, unit dropdown, price with currency prefix, inline validation, spinner while saving.
+- Product code is now honored (scanner passes `prefilledCode`; blank = auto `P<timestamp>`; read-only when editing).
+- New keys use the `ui_pf_` prefix in both language maps.
+- Not compiled here: verify visually in Chrome (add + edit, English + Khmer, narrow window).
+- `lib/widgets/add_edit_product_dialog.dart` is an older unused widget; can be deleted.
+
+---
+
 ## 3. How to add or change UI text
 
 1. Add the key to **both** `'en'` and `'km'` in `lib/core/translations.dart`.
