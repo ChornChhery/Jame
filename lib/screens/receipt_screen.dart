@@ -10,6 +10,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/sale.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
@@ -267,21 +270,21 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ใบเสร็จรับเงิน',
-                  style: TextStyle(
+                  context.tr('receipt_title'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  'การชำระเงินเสร็จสิ้น',
-                  style: TextStyle(
+                  context.tr('payment_success'),
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                   ),
@@ -289,6 +292,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
               ],
             ),
           ),
+          const LanguageSwitchButton(isDarkBackground: true, compact: true),
         ],
       ),
     );

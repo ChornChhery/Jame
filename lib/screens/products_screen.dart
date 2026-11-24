@@ -7,6 +7,9 @@ import '../core/constants.dart';
 import '../core/utils.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
 
 class ProductsScreen extends StatefulWidget {
@@ -187,9 +190,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       backgroundColor: AppConstants.primaryDarkBlue,
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'จัดการสินค้า',
-          style: TextStyle(
+        title: Text(
+          context.tr('nav_products'),
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -221,10 +224,16 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         ),
       ),
       actions: [
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: LanguageSwitchButton(isDarkBackground: true, compact: true),
+          ),
+        ),
         IconButton(
           onPressed: _loadData,
           icon: const Icon(Icons.refresh_rounded),
-          tooltip: 'รีเฟรช',
+          tooltip: 'Refresh',
         ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert_rounded),

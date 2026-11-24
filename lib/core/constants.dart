@@ -5,10 +5,10 @@ class AppConstants {
   // App Info
   static const String appName = 'Jame';
   static const String appVersion = '1.0.0';
-  static const String currency = 'THB';
-  static const String currencySymbol = '฿';
+  static const String currency = 'USD';
+  static const String currencySymbol = '\$';
   
-  // Colors - Thai Market Theme
+  // Colors
   static const Color primaryYellow = Color(0xFFFFC928);
   static const Color primaryDarkBlue = Color(0xFF1E3A8A);
   static const Color primaryWhite = Color(0xFFFFFFFF);
@@ -19,22 +19,22 @@ class AppConstants {
   static const Color textDarkGray = Color(0xFF1F2937);
   static const Color errorRed = Color(0xFFDC2626);
   
-  // Strings
-  static const String loginTitle = 'เข้าสู่ระบบ';
-  static const String signupTitle = 'สมัครสมาชิก';
-  static const String email = 'อีเมล';
-  static const String password = 'รหัสผ่าน';
-  static const String shopName = 'ชื่อร้าน';
-  static const String login = 'เข้าสู่ระบบ';
-  static const String signup = 'สมัครสมาชิก';
-  static const String dashboard = 'หน้าหลัก';
-  static const String products = 'สินค้า';
-  static const String scanner = 'สแกน';
-  static const String cart = 'ตะกร้า';
-  static const String payment = 'ชำระเงิน';
-  static const String receipt = 'ใบเสร็จ';
-  static const String reports = 'รายงาน';
-  static const String profile = 'โปรไฟล์';
+  // Strings (English defaults)
+  static const String loginTitle = 'Sign In';
+  static const String signupTitle = 'Sign Up';
+  static const String email = 'Email';
+  static const String password = 'Password';
+  static const String shopName = 'Shop Name';
+  static const String login = 'Sign In';
+  static const String signup = 'Sign Up';
+  static const String dashboard = 'Dashboard';
+  static const String products = 'Products';
+  static const String scanner = 'Scanner';
+  static const String cart = 'Cart';
+  static const String payment = 'Payment';
+  static const String receipt = 'Receipt';
+  static const String reports = 'Reports';
+  static const String profile = 'Profile';
   
   // Routes
   static const String loginRoute = '/login';

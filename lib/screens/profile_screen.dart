@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/user.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -14,7 +17,8 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   late TabController _tabController;
   bool _isEditing = false;
@@ -35,11 +39,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   // Payment Information Controllers
   final _promptPayController = TextEditingController();
   String _selectedCurrency = 'THB';
-  
+
   // Profile image
   XFile? _profileImage;
   String? _profileImagePath;
-  final _imageUrlController = TextEditingController(); // New controller for image URL
+  final _imageUrlController =
+      TextEditingController(); // New controller for image URL
   bool _useImageUrl = false; // Flag to indicate if using URL instead of file
 
   @override
@@ -60,7 +65,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     _shopPhoneController.addListener(_onFieldChanged);
     _shopEmailController.addListener(_onFieldChanged);
     _promptPayController.addListener(_onFieldChanged);
-    _imageUrlController.addListener(_onFieldChanged); // Add listener for image URL
+    _imageUrlController.addListener(
+      _onFieldChanged,
+    ); // Add listener for image URL
   }
 
   void _onFieldChanged() {
@@ -87,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   void _loadUserData() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.currentUser;
-    
+
     if (user != null) {
       _firstNameController.text = user.firstName ?? '';
       _lastNameController.text = user.lastName ?? '';
@@ -99,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       _promptPayController.text = user.paymentQr ?? '';
       _selectedCurrency = user.currency ?? 'THB';
       _profileImagePath = user.profileImage;
-      
+
       // If the profile image is a URL, set the URL controller and flag
       if (_profileImagePath != null && _profileImagePath!.startsWith('http')) {
         _imageUrlController.text = _profileImagePath!;
@@ -118,11 +125,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
     try {
       String? imagePath = _profileImagePath;
-      
+
       // If using image URL, use that instead
       if (_useImageUrl && _imageUrlController.text.isNotEmpty) {
         imagePath = _imageUrlController.text.trim();
-      } 
+      }
       // If local image is selected, save it
       else if (_profileImage != null) {
         imagePath = await AppUtils.saveImageToDocuments(_profileImage!);
@@ -150,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       );
 
       await authProvider.updateProfile(updatedUser);
-      
+
       if (mounted) {
         setState(() {
           _isEditing = false;
@@ -176,7 +183,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange),
@@ -184,7 +193,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               Text('ยกเลิกการแก้ไข'),
             ],
           ),
-          content: const Text('คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก\nต้องการยกเลิกการแก้ไขหรือไม่?'),
+          content: const Text(
+            'คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก\nต้องการยกเลิกการแก้ไขหรือไม่?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -256,7 +267,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.errorRed,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Text('ออกจากระบบ'),
           ),
@@ -327,18 +340,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             const SizedBox(height: 20),
             const Text(
               'เลือกรูปโปรไฟล์',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
               'เลือกวิธีการอัปโหลดรูปภาพของคุณ',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
             Padding(
@@ -437,10 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               child: Icon(icon, color: Colors.white, size: 32),
             ),
             const SizedBox(height: 12),
@@ -527,10 +531,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           icon: const Icon(Icons.check, color: Colors.white),
           label: const Text(
             'บันทึก',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           heroTag: 'save',
         ),
@@ -553,7 +554,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       backgroundColor: AppConstants.primaryDarkBlue,
       flexibleSpace: FlexibleSpaceBar(
         title: Text(
-          'โปรไฟล์',
+          context.tr('nav_profile'),
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -614,7 +615,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: Image.asset(
                   'assets/pattern.png', // Add a subtle pattern if available
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox(),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const SizedBox(),
                 ),
               ),
             ),
@@ -622,13 +624,19 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
       ),
       actions: [
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: LanguageSwitchButton(isDarkBackground: true, compact: true),
+          ),
+        ),
         if (!_isEditing)
           Container(
             margin: const EdgeInsets.only(right: 8),
             child: ElevatedButton.icon(
               onPressed: () => setState(() => _isEditing = true),
               icon: const Icon(Icons.edit, size: 18),
-              label: const Text('แก้ไข'),
+              label: Text(context.tr('edit')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppConstants.primaryYellow,
                 foregroundColor: AppConstants.primaryDarkBlue,
@@ -645,18 +653,24 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           ),
         PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: Colors.white),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           onSelected: (value) {
             if (value == 'logout') _logout();
           },
           itemBuilder: (context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'logout',
               child: Row(
                 children: [
-                  Icon(Icons.logout, color: AppConstants.errorRed, size: 20),
-                  SizedBox(width: 12),
-                  Text('ออกจากระบบ'),
+                  const Icon(
+                    Icons.logout,
+                    color: AppConstants.errorRed,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(context.tr('logout')),
                 ],
               ),
             ),
@@ -690,18 +704,18 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               fontWeight: FontWeight.normal,
               fontSize: 12,
             ),
-            tabs: const [
+            tabs: [
               Tab(
-                icon: Icon(Icons.person, size: 20),
-                text: 'ส่วนตัว',
+                icon: const Icon(Icons.person, size: 20),
+                text: context.tr('personal_info'),
               ),
               Tab(
-                icon: Icon(Icons.store, size: 20),
-                text: 'ร้านค้า',
+                icon: const Icon(Icons.store, size: 20),
+                text: context.tr('shop_info'),
               ),
               Tab(
-                icon: Icon(Icons.payment, size: 20),
-                text: 'ชำระเงิน',
+                icon: const Icon(Icons.payment, size: 20),
+                text: context.tr('nav_payment'),
               ),
             ],
           ),
@@ -745,10 +759,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           const SizedBox(height: 8),
           Text(
             'กรุณารอสักครู่',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -770,9 +781,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
   }
 
   Widget _buildProfilePictureSection() {
-    final displayName = '${_firstNameController.text} ${_lastNameController.text}'.trim();
+    final displayName =
+        '${_firstNameController.text} ${_lastNameController.text}'.trim();
     final email = _emailController.text;
-    
+
     return Container(
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -917,10 +929,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   Expanded(
                     child: Text(
                       'กดไอคอนกล้องเพื่อเปลี่ยนรูปโปรไฟล์',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.blue[700],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.blue[700]),
                     ),
                   ),
                 ],
@@ -955,10 +964,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
             const Text(
               'ใช้ลิงก์รูปภาพ',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -1009,7 +1015,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
       );
     }
-    
+
     // If local image is selected, display it
     if (_profileImage != null) {
       return ClipOval(
@@ -1021,7 +1027,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
       );
     }
-    
+
     // If there's a saved image path, display it
     if (_profileImagePath != null && _profileImagePath!.isNotEmpty) {
       // Check if it's a URL or local path
@@ -1052,7 +1058,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         );
       }
     }
-    
+
     // Default avatar
     return _buildDefaultAvatar();
   }
@@ -1079,7 +1085,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   label: 'ชื่อ',
                   icon: Icons.badge_outlined,
                   enabled: _isEditing,
-                  validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อ' : null,
+                  validator: (value) =>
+                      value?.isEmpty ?? true ? 'กรุณากรอกชื่อ' : null,
                 ),
               ),
               const SizedBox(width: 16),
@@ -1089,7 +1096,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   label: 'นามสกุล',
                   icon: Icons.badge_outlined,
                   enabled: _isEditing,
-                  validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกนามสกุล' : null,
+                  validator: (value) =>
+                      value?.isEmpty ?? true ? 'กรุณากรอกนามสกุล' : null,
                 ),
               ),
             ],
@@ -1103,7 +1111,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             enabled: _isEditing,
             validator: (value) {
               if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
-              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value!)) {
+              if (!RegExp(
+                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+              ).hasMatch(value!)) {
                 return 'รูปแบบอีเมลไม่ถูกต้อง';
               }
               return null;
@@ -1119,6 +1129,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+          _buildLanguageCard(),
+          const SizedBox(height: 20),
           _buildShopInfoCard(),
           const SizedBox(height: 20),
           _buildCurrencyCard(),
@@ -1130,9 +1142,41 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
+  Widget _buildLanguageCard() {
+    return _buildCard(
+      title: context.tr('language'),
+      icon: Icons.language,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey[50],
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Consumer<SettingsProvider>(
+              builder: (context, settings, child) {
+                return Text(
+                  settings.isKhmer ? 'ភាសាខ្មែរ (Khmer)' : 'English',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                );
+              },
+            ),
+            const LanguageSwitchButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildShopInfoCard() {
     return _buildCard(
-      title: 'ข้อมูลร้านค้า',
+      title: context.tr('shop_info'),
       icon: Icons.store_outlined,
       child: Column(
         children: [
@@ -1141,7 +1185,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             label: 'ชื่อร้าน',
             icon: Icons.store,
             enabled: _isEditing,
-            validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
+            validator: (value) =>
+                value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
           ),
           const SizedBox(height: 20),
           _buildModernTextField(
@@ -1165,7 +1210,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   hint: '0812345678',
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
-                      if (!RegExp(r'^[0-9]{9,10}$').hasMatch(value.replaceAll('-', ''))) {
+                      if (!RegExp(
+                        r'^[0-9]{9,10}$',
+                      ).hasMatch(value.replaceAll('-', ''))) {
                         return 'เบอร์โทรไม่ถูกต้อง';
                       }
                     }
@@ -1184,7 +1231,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   hint: 'shop@example.com',
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
-                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                      if (!RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      ).hasMatch(value)) {
                         return 'อีเมลไม่ถูกต้อง';
                       }
                     }
@@ -1201,13 +1250,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
   Widget _buildCurrencyCard() {
     return _buildCard(
-      title: 'สกุลเงิน',
+      title: context.tr('currency'),
       icon: Icons.attach_money,
       child: Container(
         decoration: BoxDecoration(
           color: _isEditing ? Colors.white : Colors.grey[50],
           border: Border.all(
-            color: _isEditing ? AppConstants.primaryDarkBlue : Colors.grey[300]!,
+            color: _isEditing
+                ? AppConstants.primaryDarkBlue
+                : Colors.grey[300]!,
             width: _isEditing ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -1223,26 +1274,48 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               ),
             ),
             border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
           items: const [
-            DropdownMenuItem(
-              value: 'THB',
-              child: Row(
-                children: [
-                  Text('฿', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(width: 12),
-                  Text('บาทไทย (THB)'),
-                ],
-              ),
-            ),
             DropdownMenuItem(
               value: 'USD',
               child: Row(
                 children: [
-                  Text('\$', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    '\$',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   SizedBox(width: 12),
-                  Text('ดอลลาร์สหรัฐ (USD)'),
+                  Text('US Dollar (USD)'),
+                ],
+              ),
+            ),
+            DropdownMenuItem(
+              value: 'KHR',
+              child: Row(
+                children: [
+                  Text(
+                    '៛',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Khmer Riel (KHR)'),
+                ],
+              ),
+            ),
+            DropdownMenuItem(
+              value: 'THB',
+              child: Row(
+                children: [
+                  Text(
+                    '฿',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Thai Baht (THB)'),
                 ],
               ),
             ),
@@ -1273,7 +1346,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppConstants.primaryDarkBlue.withOpacity(0.1)),
+        border: Border.all(
+          color: AppConstants.primaryDarkBlue.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1356,13 +1431,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ],
       ),
     );
@@ -1391,10 +1460,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppConstants.primaryYellow.withOpacity(0.15),
-            Colors.white,
-          ],
+          colors: [AppConstants.primaryYellow.withOpacity(0.15), Colors.white],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
@@ -1456,10 +1522,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     const SizedBox(height: 2),
                     Text(
                       'รับชำระเงินผ่าน QR Code',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
                 ),
@@ -1575,7 +1638,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                   color: AppConstants.primaryDarkBlue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: AppConstants.primaryDarkBlue, size: 22),
+                child: Icon(
+                  icon,
+                  color: AppConstants.primaryDarkBlue,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Text(
@@ -1640,7 +1707,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppConstants.errorRed, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppConstants.errorRed,
+            width: 1.5,
+          ),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -1652,15 +1722,15 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         ),
         filled: true,
         fillColor: enabled ? Colors.white : Colors.grey[50],
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
         labelStyle: TextStyle(
           color: enabled ? AppConstants.primaryDarkBlue : Colors.grey[500],
           fontSize: 14,
         ),
-        hintStyle: TextStyle(
-          color: Colors.grey[400],
-          fontSize: 13,
-        ),
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
       ),
     );
   }
@@ -1678,10 +1748,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            backgroundColor,
-            Colors.white,
-          ],
+          colors: [backgroundColor, Colors.white],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: accentColor.withOpacity(0.2)),
@@ -1724,7 +1791,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
             final index = entry.key;
             final item = entry.value;
             final isLast = index == items.length - 1;
-            
+
             return Padding(
               padding: EdgeInsets.only(bottom: isLast ? 0 : 12),
               child: Row(

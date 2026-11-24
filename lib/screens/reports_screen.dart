@@ -7,6 +7,9 @@ import '../core/constants.dart';
 import '../core/utils.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
 
@@ -265,10 +268,18 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       pinned: true,
       backgroundColor: AppConstants.primaryDarkBlue,
       elevation: 0,
+      actions: const [
+        Center(
+          child: Padding(
+            padding: EdgeInsets.only(right: 8),
+            child: LanguageSwitchButton(isDarkBackground: true, compact: true),
+          ),
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'รายงานการขาย',
-          style: TextStyle(
+        title: Text(
+          context.tr('reports_title'),
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 20,

@@ -9,9 +9,11 @@ import '../widgets/add_edit_product_dialog.dart';
 import '../widgets/product_details_dialog.dart';
 import '../widgets/manual_sale_dialog.dart';
 import '../models/sale.dart';
-import '../database/database_helper.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -314,9 +316,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ),
                 Row(
                   children: [
+                    // Language Switch Button (EN / KH)
+                    LanguageSwitchButton(isDarkBackground: true, compact: true),
+                    SizedBox(width: 8),
                     // Connection status indicator
                     Consumer<AuthProvider>(
                       builder: (context, auth, child) {
+                        final isKm = Provider.of<SettingsProvider>(context).isKhmer;
                         return Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
@@ -337,7 +343,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                               ),
                               SizedBox(width: 4),
                               Text(
-                                'พร้อมใช้',
+                                isKm ? 'រួចរាល់' : 'Ready',
                                 style: TextStyle(
                                   color: Colors.blue,
                                   fontSize: 10,
@@ -510,7 +516,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ภาพรวมยอดขาย',
+          context.tr('overview'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -549,7 +555,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'ยอดขายวันนี้',
+                      context.tr('today_sales'),
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 14,
@@ -621,7 +627,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           children: [
             Expanded(
               child: _buildStatCard(
-                'สินค้าทั้งหมด',
+                context.tr('nav_products'),
                 '${app.products.length}',
                 Icons.inventory_2_outlined,
                 AppConstants.softBlue,
@@ -636,7 +642,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ? snapshot.error.toString()
                       : '${snapshot.data ?? 0}';
                   return _buildStatCard(
-                    '?????????????',
+                    context.tr('today_orders'),
                     salesCount,
                     Icons.receipt_outlined,
                     AppConstants.accentOrange,
@@ -647,7 +653,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
-                'ในตะกร้า',
+                context.tr('nav_cart'),
                 '${app.cartItemCount}',
                 Icons.shopping_cart_outlined,
                 AppConstants.primaryYellow,
@@ -713,42 +719,43 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   Widget _buildQuickActionsGrid() {
+    final isKm = Provider.of<SettingsProvider>(context).isKhmer;
     final actions = [
       {
-        'title': 'สแกนสินค้า',
-        'subtitle': 'สแกนบาร์โค้ดสินค้า',
+        'title': context.tr('scan_product'),
+        'subtitle': isKm ? 'ស្កេនបាកូដទំនិញ' : 'Scan product barcode',
         'icon': Icons.qr_code_scanner,
         'color': AppConstants.primaryYellow,
         'route': AppConstants.scannerRoute,
         'gradient': [AppConstants.primaryYellow, AppConstants.primaryYellow.withOpacity(0.7)],
       },
       {
-        'title': 'จัดการสินค้า',
-        'subtitle': 'เพิ่ม-แก้ไขสินค้า',
+        'title': context.tr('nav_products'),
+        'subtitle': isKm ? 'បន្ថែម-កែប្រែទំនិញ' : 'Add & edit products',
         'icon': Icons.inventory_2_outlined,
         'color': AppConstants.softBlue,
         'route': AppConstants.productsRoute,
         'gradient': [AppConstants.softBlue, AppConstants.softBlue.withOpacity(0.7)],
       },
       {
-        'title': 'ตะกร้าสินค้า',
-        'subtitle': 'จัดการคำสั่งซื้อ',
+        'title': context.tr('nav_cart'),
+        'subtitle': isKm ? 'គ្រប់គ្រងការបញ្ជាទិញ' : 'Manage orders & checkout',
         'icon': Icons.shopping_cart_outlined,
         'color': AppConstants.accentOrange,
         'route': AppConstants.cartRoute,
         'gradient': [AppConstants.accentOrange, AppConstants.accentOrange.withOpacity(0.7)],
       },
       {
-        'title': 'รายงานขาย',
-        'subtitle': 'วิเคราะห์ยอดขาย',
+        'title': context.tr('nav_reports'),
+        'subtitle': isKm ? 'វិភាគស្ថិតិការលក់' : 'Sales analytics & trends',
         'icon': Icons.analytics_outlined,
         'color': AppConstants.successGreen,
         'route': AppConstants.reportsRoute,
         'gradient': [AppConstants.successGreen, AppConstants.successGreen.withOpacity(0.7)],
       },
       {
-        'title': 'ประวัติการชำระเงิน',
-        'subtitle': 'ดูรายการขายทั้งหมด',
+        'title': context.tr('sales_history'),
+        'subtitle': isKm ? 'មើលប្រវត្តិការលក់ទាំងអស់' : 'View all sales transactions',
         'icon': Icons.history,
         'color': AppConstants.primaryDarkBlue,
         'route': AppConstants.paymentHistoryRoute,
@@ -760,7 +767,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'เมนูหลัก',
+          context.tr('quick_actions'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -1360,7 +1367,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       // Show error dialog if user ID is not available
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('ไม่สามารถโหลดข้อมูลได้'),
+          content: const Text('ไม่สามารถโหลดข้อมูลได้'),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -2182,11 +2189,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
   Widget _buildModernBottomNav() {
     final items = [
-      {'icon': Icons.dashboard, 'label': 'แดชบอร์ด', 'route': null},
-      {'icon': Icons.inventory_2_outlined, 'label': 'สินค้า', 'route': AppConstants.productsRoute},
-      {'icon': Icons.qr_code_scanner, 'label': 'สแกน', 'route': AppConstants.scannerRoute},
-      {'icon': Icons.shopping_cart_outlined, 'label': 'ตะกร้า', 'route': AppConstants.cartRoute},
-      {'icon': Icons.analytics_outlined, 'label': 'รายงาน', 'route': AppConstants.reportsRoute},
+      {'icon': Icons.dashboard, 'label': context.tr('nav_dashboard'), 'route': null},
+      {'icon': Icons.inventory_2_outlined, 'label': context.tr('nav_products'), 'route': AppConstants.productsRoute},
+      {'icon': Icons.qr_code_scanner, 'label': context.tr('nav_scanner'), 'route': AppConstants.scannerRoute},
+      {'icon': Icons.shopping_cart_outlined, 'label': context.tr('nav_cart'), 'route': AppConstants.cartRoute},
+      {'icon': Icons.analytics_outlined, 'label': context.tr('nav_reports'), 'route': AppConstants.reportsRoute},
     ];
 
     return Container(
@@ -2306,18 +2313,25 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   String _getGreeting() {
+    final isKm = Provider.of<SettingsProvider>(context, listen: false).isKhmer;
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'สวัสดีตอนเช้า';
-    if (hour < 17) return 'สวัสดีตอนบ่าย';
-    return 'สวัสดีตอนเย็น';
+    if (hour < 12) return isKm ? 'អរុណសួស្តី' : 'Good Morning';
+    if (hour < 17) return isKm ? 'ទិវាសួស្តី' : 'Good Afternoon';
+    return isKm ? 'សាយ័ណ្ហសួស្តី' : 'Good Evening';
   }
 
   String _formatDate(DateTime date) {
-    final months = [
-      'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-      'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+    final isKm = Provider.of<SettingsProvider>(context, listen: false).isKhmer;
+    final kmMonths = [
+      'មករា', 'កុម្ភៈ', 'មីនា', 'មេសា', 'ឧសភា', 'មិថុនា',
+      'កក្កដា', 'សីហា', 'កញ្ញា', 'តុលា', 'វិច្ឆិកា', 'ធ្នូ'
     ];
-    return '${date.day} ${months[date.month - 1]} ${date.year + 543}';
+    final enMonths = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final months = isKm ? kmMonths : enMonths;
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   bool _isToday(DateTime date) {

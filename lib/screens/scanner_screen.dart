@@ -6,6 +6,9 @@ import '../core/constants.dart';
 import '../core/utils.dart';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
 
 class ScannerScreen extends StatefulWidget {
@@ -137,9 +140,9 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                 color: Colors.black.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Text(
-                'สแกน QR Code สินค้า',
-                style: TextStyle(
+              child: Text(
+                context.tr('nav_scanner'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -149,6 +152,10 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
             
             const Spacer(),
             
+            // Language Switch
+            const LanguageSwitchButton(isDarkBackground: true, compact: true),
+            const SizedBox(width: 8),
+
             // Flash toggle
             Container(
               width: 44,

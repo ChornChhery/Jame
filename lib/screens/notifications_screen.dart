@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
 
@@ -26,10 +29,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
     return Scaffold(
       backgroundColor: AppConstants.lightGray,
       appBar: AppBar(
-        title: Text('การแจ้งเตือน'),
+        title: Text(context.tr('nav_notifications')),
         backgroundColor: AppConstants.primaryDarkBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: const [
+          Center(
+            child: Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: LanguageSwitchButton(isDarkBackground: true, compact: true),
+            ),
+          ),
+        ],
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),

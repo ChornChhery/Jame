@@ -4,14 +4,16 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
-import '../screens/forgot_password_screen.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -30,9 +32,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
+    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutBack,
+          ),
+        );
     _animationController.forward();
   }
 
@@ -43,7 +49,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       body: SafeArea(
         child: SingleChildScrollView(
           child: Container(
-            height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top,
+            height:
+                MediaQuery.of(context).size.height -
+                MediaQuery.of(context).padding.top,
             child: Column(
               children: [
                 // Header Section with Background
@@ -65,58 +73,69 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                         bottomRight: Radius.circular(40),
                       ),
                     ),
-                    child: FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            // Logo with modern design
-                            Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: AppConstants.primaryYellow,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 20,
-                                    offset: Offset(0, 10),
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: 16,
+                          right: 16,
+                          child: LanguageSwitchButton(isDarkBackground: true),
+                        ),
+                        Center(
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: SlideTransition(
+                              position: _slideAnimation,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Logo with modern design
+                                  Container(
+                                    width: 80,
+                                    height: 80,
+                                    decoration: BoxDecoration(
+                                      color: AppConstants.primaryYellow,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 20,
+                                          offset: Offset(0, 10),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.store_rounded,
+                                      size: 40,
+                                      color: AppConstants.primaryDarkBlue,
+                                    ),
+                                  ),
+                                  SizedBox(height: 16),
+
+                                  // App Name
+                                  Text(
+                                    AppConstants.appName,
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    context.tr('login_title'),
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontWeight: FontWeight.w300,
+                                    ),
                                   ),
                                 ],
                               ),
-                              child: Icon(
-                                Icons.store_rounded,
-                                size: 40,
-                                color: AppConstants.primaryDarkBlue,
-                              ),
                             ),
-                            SizedBox(height: 16),
-                            
-                            // App Name
-                            Text(
-                              AppConstants.appName,
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 1.2,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              AppConstants.loginTitle,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white.withOpacity(0.8),
-                                fontWeight: FontWeight.w300,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ),
@@ -136,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             children: [
                             // Welcome text
                             Text(
-                              'ยินดีต้อนรับกลับ',
+                              context.tr('welcome_back'),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -144,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               ),
                             ),
                             Text(
-                              'เข้าสู่ระบบเพื่อดำเนินการต่อ',
+                              context.tr('sign_in_to_continue'),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: AppConstants.textDarkGray,
@@ -156,10 +175,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: AppConstants.primaryYellow.withOpacity(0.1),
+                                color: AppConstants.primaryYellow.withOpacity(
+                                  0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: AppConstants.primaryYellow.withOpacity(0.3),
+                                  color: AppConstants.primaryYellow.withOpacity(
+                                    0.3,
+                                  ),
                                 ),
                               ),
                               child: Row(
@@ -187,26 +210,28 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             // Email field with modern design
                             _buildModernTextField(
                               controller: _emailController,
-                              label: AppConstants.email,
+                              label: context.tr('email'),
                               icon: Icons.email_outlined,
                               keyboardType: TextInputType.emailAddress,
                               validator: (value) {
-                                if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
-                                if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
-                                
+                                if (value?.isEmpty ?? true)
+                                  return context.trRead('email_required');
+                                if (!AppUtils.isValidEmail(value!))
+                                  return context.trRead('email_invalid');
+
                                 // Only validate Gmail format if the user has typed enough characters
                                 final lowercaseEmail = value.toLowerCase();
                                 if (!lowercaseEmail.endsWith('@gmail.com')) {
                                   // Check for common Gmail typing mistakes
                                   if (lowercaseEmail.contains('@gmail')) {
                                     // Check for common mistakes
-                                    if (lowercaseEmail.contains('gmali') || 
-                                        lowercaseEmail.contains('gmal') || 
+                                    if (lowercaseEmail.contains('gmali') ||
+                                        lowercaseEmail.contains('gmal') ||
                                         lowercaseEmail.contains('gmail.')) {
                                       return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
                                     }
                                     // Check for .con instead of .com
-                                    if (lowercaseEmail.endsWith('@gmail.con') || 
+                                    if (lowercaseEmail.endsWith('@gmail.con') ||
                                         lowercaseEmail.endsWith('@gmail.co') ||
                                         lowercaseEmail.endsWith('@gmail.cm')) {
                                       return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
@@ -226,19 +251,25 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             // Password field
                             _buildModernTextField(
                               controller: _passwordController,
-                              label: AppConstants.password,
+                              label: context.tr('password'),
                               icon: Icons.lock_outline,
                               obscureText: _obscurePassword,
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                  _obscurePassword
+                                      ? Icons.visibility_off
+                                      : Icons.visibility,
                                   color: AppConstants.textDarkGray,
                                 ),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
                               ),
                               validator: (value) {
-                                if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
-                                if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                                if (value?.isEmpty ?? true)
+                                  return context.trRead('password_required');
+                                if (!AppUtils.isValidPassword(value!))
+                                  return context.trRead('password_short');
                                 return null;
                               },
                             ),
@@ -253,15 +284,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                       value: auth.rememberMe,
                                       onChanged: (value) {
                                         // Update the auth provider directly
-                                        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                                        authProvider.rememberMe = value ?? false;
+                                        final authProvider =
+                                            Provider.of<AuthProvider>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        authProvider.rememberMe =
+                                            value ?? false;
                                       },
                                       activeColor: AppConstants.primaryDarkBlue,
                                     );
                                   },
                                 ),
                                 Text(
-                                  'จดจำฉันไว้ในระบบ',
+                                  context.tr('remember_me'),
                                   style: TextStyle(
                                     color: AppConstants.textDarkGray,
                                     fontSize: 14,
@@ -276,15 +312,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () {
-                                  Navigator.pushNamed(context, '/forgot-password');
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/forgot-password',
+                                  );
                                 },
                                 style: TextButton.styleFrom(
                                   padding: EdgeInsets.zero,
                                   minimumSize: Size.zero,
-                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                 ),
                                 child: Text(
-                                  'ลืมรหัสผ่าน?',
+                                  context.tr('forgot_password_prompt'),
                                   style: TextStyle(
                                     color: AppConstants.primaryDarkBlue,
                                     fontSize: 14,
@@ -302,9 +342,12 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                   width: double.infinity,
                                   height: 56,
                                   child: ElevatedButton(
-                                    onPressed: auth.isLoading ? null : _handleLogin,
+                                    onPressed: auth.isLoading
+                                        ? null
+                                        : _handleLogin,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppConstants.primaryDarkBlue,
+                                      backgroundColor:
+                                          AppConstants.primaryDarkBlue,
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shadowColor: Colors.transparent,
@@ -322,7 +365,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                             ),
                                           )
                                         : Text(
-                                            AppConstants.login,
+                                            context.tr('sign_in'),
                                             style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w600,
@@ -339,21 +382,25 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'ยังไม่มีบัญชี? ',
+                                  context.tr('dont_have_account') + ' ',
                                   style: TextStyle(
                                     color: AppConstants.textDarkGray,
                                     fontSize: 14,
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () => Navigator.pushNamed(context, AppConstants.signupRoute),
+                                  onPressed: () => Navigator.pushNamed(
+                                    context,
+                                    AppConstants.signupRoute,
+                                  ),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size.zero,
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
-                                    'สมัครสมาชิก',
+                                    context.tr('sign_up'),
                                     style: TextStyle(
                                       color: AppConstants.primaryDarkBlue,
                                       fontSize: 14,
@@ -390,7 +437,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }) {
     // Special handling for email field to show helper text
     bool isEmailField = label == AppConstants.email;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -400,10 +447,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
           obscureText: obscureText,
           validator: validator,
           maxLines: maxLines,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppConstants.primaryDarkBlue,
-          ),
+          style: TextStyle(fontSize: 16, color: AppConstants.primaryDarkBlue),
           decoration: InputDecoration(
             labelText: label,
             prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
@@ -434,17 +478,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppConstants.errorRed,
-                width: 1,
-              ),
+              borderSide: BorderSide(color: AppConstants.errorRed, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppConstants.errorRed,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppConstants.errorRed, width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             // Add helper text for email field
@@ -485,32 +523,34 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     // Check if email is a Gmail address before attempting login
     final email = _emailController.text.trim();
     final lowercaseEmail = email.toLowerCase();
-    
+
     if (!lowercaseEmail.endsWith('@gmail.com')) {
       String errorMessage = 'เฉพาะบัญชี Gmail เท่านั้นที่สามารถเข้าสู่ระบบได้';
-      
+
       // Check for common Gmail typing mistakes
       if (lowercaseEmail.contains('@gmail')) {
         // Check for common mistakes
-        if (lowercaseEmail.contains('gmali') || 
-            lowercaseEmail.contains('gmal') || 
+        if (lowercaseEmail.contains('gmali') ||
+            lowercaseEmail.contains('gmal') ||
             lowercaseEmail.contains('gmail.')) {
           errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
         }
         // Check for .con instead of .com
-        else if (lowercaseEmail.endsWith('@gmail.con') || 
-                 lowercaseEmail.endsWith('@gmail.co') ||
-                 lowercaseEmail.endsWith('@gmail.cm')) {
+        else if (lowercaseEmail.endsWith('@gmail.con') ||
+            lowercaseEmail.endsWith('@gmail.co') ||
+            lowercaseEmail.endsWith('@gmail.cm')) {
           errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
         }
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
           backgroundColor: AppConstants.errorRed,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: EdgeInsets.all(16),
         ),
       );
@@ -589,7 +629,8 @@ class SignupScreen extends StatefulWidget {
   _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMixin {
+class _SignupScreenState extends State<SignupScreen>
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -600,7 +641,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   final _shopNameController = TextEditingController();
   final _shopAddressController = TextEditingController();
   final _shopPhoneController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   int _currentStep = 0;
@@ -648,7 +689,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                       ),
                       Expanded(
                         child: Text(
-                          AppConstants.signupTitle,
+                          context.tr('signup_title'),
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -657,17 +698,20 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      SizedBox(width: 48), // Balance the back button
+                      LanguageSwitchButton(
+                        isDarkBackground: true,
+                        compact: true,
+                      ),
                     ],
                   ),
                   SizedBox(height: 16),
-                  
+
                   // Progress indicator
                   Row(
                     children: [
-                      _buildStepIndicator(0, 'ข้อมูลส่วนตัว'),
+                      _buildStepIndicator(0, context.tr('personal_info')),
                       Expanded(child: _buildStepLine(0 < _currentStep)),
-                      _buildStepIndicator(1, 'ข้อมูลร้าน'),
+                      _buildStepIndicator(1, context.tr('shop_info')),
                     ],
                   ),
                 ],
@@ -682,7 +726,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                   padding: EdgeInsets.all(24),
                   child: Form(
                     key: _formKey,
-                    child: _currentStep == 0 ? _buildPersonalInfoStep() : _buildShopInfoStep(),
+                    child: _currentStep == 0
+                        ? _buildPersonalInfoStep()
+                        : _buildShopInfoStep(),
                   ),
                 ),
               ),
@@ -709,7 +755,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                           ),
                           padding: EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: Text('ย้อนกลับ'),
+                        child: Text(context.tr('back')),
                       ),
                     ),
                     SizedBox(width: 16),
@@ -718,7 +764,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                     child: Consumer<AuthProvider>(
                       builder: (context, auth, child) {
                         return ElevatedButton(
-                          onPressed: auth.isLoading ? null : (_currentStep == 0 ? _nextStep : _handleSignup),
+                          onPressed: auth.isLoading
+                              ? null
+                              : (_currentStep == 0 ? _nextStep : _handleSignup),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppConstants.primaryDarkBlue,
                             foregroundColor: Colors.white,
@@ -739,7 +787,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                                   ),
                                 )
                               : Text(
-                                  _currentStep == 0 ? 'ถัดไป' : AppConstants.signup,
+                                  _currentStep == 0
+                                      ? context.tr('next')
+                                      : context.tr('sign_up'),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -761,16 +811,20 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   Widget _buildStepIndicator(int step, String label) {
     bool isActive = step <= _currentStep;
     bool isCurrent = step == _currentStep;
-    
+
     return Column(
       children: [
         Container(
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: isActive ? AppConstants.primaryYellow : Colors.white.withOpacity(0.3),
+            color: isActive
+                ? AppConstants.primaryYellow
+                : Colors.white.withOpacity(0.3),
             shape: BoxShape.circle,
-            border: isCurrent ? Border.all(color: Colors.white, width: 2) : null,
+            border: isCurrent
+                ? Border.all(color: Colors.white, width: 2)
+                : null,
           ),
           child: Center(
             child: Text(
@@ -801,7 +855,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       height: 2,
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: isCompleted ? AppConstants.primaryYellow : Colors.white.withOpacity(0.3),
+        color: isCompleted
+            ? AppConstants.primaryYellow
+            : Colors.white.withOpacity(0.3),
         borderRadius: BorderRadius.circular(1),
       ),
     );
@@ -812,7 +868,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ข้อมูลส่วนตัว',
+          context.tr('personal_info'),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -820,11 +876,8 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           ),
         ),
         Text(
-          'กรอกข้อมูลส่วนตัวของคุณ',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppConstants.textDarkGray,
-          ),
+          context.tr('personal_info'),
+          style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray),
         ),
         SizedBox(height: 32),
 
@@ -833,18 +886,21 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
             Expanded(
               child: _buildModernTextField(
                 controller: _firstNameController,
-                label: 'ชื่อ',
+                label: context.tr('first_name'),
                 icon: Icons.person_outline,
-                validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อ' : null,
+                validator: (value) => value?.isEmpty ?? true
+                    ? context.trRead('first_name')
+                    : null,
               ),
             ),
             SizedBox(width: 16),
             Expanded(
               child: _buildModernTextField(
                 controller: _lastNameController,
-                label: 'นามสกุล',
+                label: context.tr('last_name'),
                 icon: Icons.person_outline,
-                validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกนามสกุล' : null,
+                validator: (value) =>
+                    value?.isEmpty ?? true ? context.trRead('last_name') : null,
               ),
             ),
           ],
@@ -853,11 +909,11 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
         _buildModernTextField(
           controller: _usernameController,
-          label: 'ชื่อผู้ใช้',
+          label: context.tr('username'),
           icon: Icons.account_circle_outlined,
           validator: (value) {
-            if (value?.isEmpty ?? true) return 'กรุณากรอกชื่อผู้ใช้';
-            if (value!.length < 3) return 'ชื่อผู้ใช้ต้องมีอย่างน้อย 3 ตัวอักษร';
+            if (value?.isEmpty ?? true) return context.trRead('username');
+            if (value!.length < 3) return context.trRead('username');
             return null;
           },
         ),
@@ -871,23 +927,23 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           validator: (value) {
             if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
             if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
-            
+
             // Only validate Gmail format if the user has typed enough characters
             final lowercaseEmail = value.toLowerCase();
             if (!lowercaseEmail.endsWith('@gmail.com')) {
               // Don't show error if user is still typing
               if (!lowercaseEmail.contains('@')) return null;
-              
+
               // Check for common Gmail typing mistakes
               if (lowercaseEmail.contains('@gmail')) {
                 // Check for common mistakes
-                if (lowercaseEmail.contains('gmali') || 
-                    lowercaseEmail.contains('gmal') || 
+                if (lowercaseEmail.contains('gmali') ||
+                    lowercaseEmail.contains('gmal') ||
                     lowercaseEmail.contains('gmail.')) {
                   return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
                 }
                 // Check for .con instead of .com
-                if (lowercaseEmail.endsWith('@gmail.con') || 
+                if (lowercaseEmail.endsWith('@gmail.con') ||
                     lowercaseEmail.endsWith('@gmail.co') ||
                     lowercaseEmail.endsWith('@gmail.cm')) {
                   return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
@@ -913,11 +969,13 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               _obscurePassword ? Icons.visibility_off : Icons.visibility,
               color: AppConstants.textDarkGray,
             ),
-            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            onPressed: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
           ),
           validator: (value) {
             if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
-            if (!AppUtils.isValidPassword(value!)) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+            if (!AppUtils.isValidPassword(value!))
+              return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
             return null;
           },
         ),
@@ -925,7 +983,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
         _buildModernTextField(
           controller: _confirmPasswordController,
-          label: 'ยืนยันรหัสผ่าน',
+          label: context.tr('confirm_password'),
           icon: Icons.lock_outline,
           obscureText: _obscureConfirmPassword,
           suffixIcon: IconButton(
@@ -933,10 +991,13 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
               _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
               color: AppConstants.textDarkGray,
             ),
-            onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+            onPressed: () => setState(
+              () => _obscureConfirmPassword = !_obscureConfirmPassword,
+            ),
           ),
           validator: (value) {
-            if (value != _passwordController.text) return 'รหัสผ่านไม่ตรงกัน';
+            if (value != _passwordController.text)
+              return context.trRead('passwords_not_match');
             return null;
           },
         ),
@@ -980,7 +1041,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ข้อมูลร้าน',
+          context.tr('shop_info'),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -988,25 +1049,24 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           ),
         ),
         Text(
-          'กรอกข้อมูลร้านค้าของคุณ',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppConstants.textDarkGray,
-          ),
+          context.tr('shop_info'),
+          style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray),
         ),
         SizedBox(height: 32),
 
         _buildModernTextField(
           controller: _shopNameController,
-          label: AppConstants.shopName,
+          label: context.tr('shop_name'),
           icon: Icons.store_outlined,
-          validator: (value) => value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
+          validator: (value) => value?.isEmpty ?? true
+              ? context.trRead('shop_name_required')
+              : null,
         ),
         SizedBox(height: 20),
 
         _buildModernTextField(
           controller: _shopAddressController,
-          label: 'ที่อยู่ร้าน',
+          label: context.tr('shop_address'),
           icon: Icons.location_on_outlined,
           maxLines: 3,
         ),
@@ -1014,7 +1074,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
         _buildModernTextField(
           controller: _shopPhoneController,
-          label: 'เบอร์โทรร้าน',
+          label: context.tr('shop_phone'),
           icon: Icons.phone_outlined,
           keyboardType: TextInputType.phone,
         ),
@@ -1056,11 +1116,8 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              'มีบัญชีแล้ว? ',
-              style: TextStyle(
-                color: AppConstants.textDarkGray,
-                fontSize: 14,
-              ),
+              context.tr('already_have_account') + ' ',
+              style: TextStyle(color: AppConstants.textDarkGray, fontSize: 14),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -1070,7 +1127,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
-                'เข้าสู่ระบบ',
+                context.tr('sign_in'),
                 style: TextStyle(
                   color: AppConstants.primaryDarkBlue,
                   fontSize: 14,
@@ -1096,7 +1153,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }) {
     // Special handling for email field to show helper text
     bool isEmailField = label == AppConstants.email;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1106,10 +1163,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           obscureText: obscureText,
           validator: validator,
           maxLines: maxLines,
-          style: TextStyle(
-            fontSize: 16,
-            color: AppConstants.primaryDarkBlue,
-          ),
+          style: TextStyle(fontSize: 16, color: AppConstants.primaryDarkBlue),
           decoration: InputDecoration(
             labelText: label,
             prefixIcon: Icon(icon, color: AppConstants.textDarkGray),
@@ -1140,17 +1194,11 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppConstants.errorRed,
-                width: 1,
-              ),
+              borderSide: BorderSide(color: AppConstants.errorRed, width: 1),
             ),
             focusedErrorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: AppConstants.errorRed,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppConstants.errorRed, width: 2),
             ),
             contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             // Add helper text for email field
@@ -1187,7 +1235,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
   void _nextStep() {
     if (!_validateCurrentStep()) return;
-    
+
     setState(() => _currentStep = 1);
     _animationController.reset();
     _animationController.forward();
@@ -1204,18 +1252,27 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       bool isValid = true;
       if (_firstNameController.text.trim().isEmpty) isValid = false;
       if (_lastNameController.text.trim().isEmpty) isValid = false;
-      if (_usernameController.text.trim().isEmpty || _usernameController.text.trim().length < 3) isValid = false;
-      if (_emailController.text.trim().isEmpty || !AppUtils.isValidEmail(_emailController.text.trim())) isValid = false;
-      if (_passwordController.text.isEmpty || !AppUtils.isValidPassword(_passwordController.text)) isValid = false;
-      if (_confirmPasswordController.text != _passwordController.text) isValid = false;
-      
+      if (_usernameController.text.trim().isEmpty ||
+          _usernameController.text.trim().length < 3)
+        isValid = false;
+      if (_emailController.text.trim().isEmpty ||
+          !AppUtils.isValidEmail(_emailController.text.trim()))
+        isValid = false;
+      if (_passwordController.text.isEmpty ||
+          !AppUtils.isValidPassword(_passwordController.text))
+        isValid = false;
+      if (_confirmPasswordController.text != _passwordController.text)
+        isValid = false;
+
       if (!isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง'),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             margin: EdgeInsets.all(16),
           ),
         );
@@ -1237,8 +1294,12 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       firstName: _firstNameController.text.trim(),
       lastName: _lastNameController.text.trim(),
       shopName: _shopNameController.text.trim(),
-      shopAddress: _shopAddressController.text.trim().isEmpty ? null : _shopAddressController.text.trim(),
-      shopPhone: _shopPhoneController.text.trim().isEmpty ? null : _shopPhoneController.text.trim(),
+      shopAddress: _shopAddressController.text.trim().isEmpty
+          ? null
+          : _shopAddressController.text.trim(),
+      shopPhone: _shopPhoneController.text.trim().isEmpty
+          ? null
+          : _shopPhoneController.text.trim(),
     );
 
     if (error == null) {
@@ -1246,18 +1307,23 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     } else {
       // Check connection status after signup attempt
       final serverConnected = await auth.testServerConnection();
-      
+
       String message = error;
       if (!serverConnected) {
-        message = '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ไม่สามารถสมัครสมาชิกได้'; // Cannot connect to server, cannot register
+        message =
+            '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ไม่สามารถสมัครสมาชิกได้'; // Cannot connect to server, cannot register
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: serverConnected ? AppConstants.errorRed : Colors.orange,
+          backgroundColor: serverConnected
+              ? AppConstants.errorRed
+              : Colors.orange,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: EdgeInsets.all(16),
         ),
       );

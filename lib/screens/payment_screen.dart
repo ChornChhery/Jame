@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
 import '../core/constants.dart';
 
@@ -162,21 +165,21 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
             ),
           ),
           const SizedBox(width: 12),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ชำระเงิน',
-                  style: TextStyle(
+                  context.tr('nav_payment'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  'เลือกวิธีชำระเงินที่ต้องการ',
-                  style: TextStyle(
+                  context.tr('payment_method'),
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                   ),
@@ -184,6 +187,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
               ],
             ),
           ),
+          const LanguageSwitchButton(isDarkBackground: true, compact: true),
+          const SizedBox(width: 8),
           if (_isProcessing)
             const SizedBox(
               width: 24,

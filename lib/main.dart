@@ -36,12 +36,15 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
-      child: Consumer<AuthProvider>(
-        builder: (context, auth, child) {
+      child: Consumer2<AuthProvider, SettingsProvider>(
+        builder: (context, auth, settings, child) {
           return MaterialApp(
             title: AppConstants.appName,
             theme: AppTheme.lightTheme,
-            initialRoute: auth.isAuthenticated ? AppConstants.dashboardRoute : AppConstants.loginRoute,
+            locale: Locale(settings.language),
+            initialRoute: auth.isAuthenticated
+                ? AppConstants.dashboardRoute
+                : AppConstants.loginRoute,
             onGenerateRoute: AppRoutes.generateRoute,
             debugShowCheckedModeBanner: false,
           );

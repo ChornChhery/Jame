@@ -11,6 +11,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/sale.dart';
 import '../core/constants.dart';
 import '../core/utils.dart';
@@ -184,9 +187,9 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       backgroundColor: AppConstants.primaryDarkBlue,
       foregroundColor: Colors.white,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'ประวัติการชำระเงิน',
-          style: TextStyle(
+        title: Text(
+          context.tr('sales_history'),
+          style: const TextStyle(
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
@@ -218,10 +221,16 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
         ),
       ),
       actions: [
+        const Center(
+          child: Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: LanguageSwitchButton(isDarkBackground: true, compact: true),
+          ),
+        ),
         IconButton(
           onPressed: _loadSalesData,
           icon: const Icon(Icons.refresh),
-          tooltip: 'รีเฟรชข้อมูล',
+          tooltip: 'Refresh',
         ),
       ],
     );

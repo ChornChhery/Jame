@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
+import '../core/translations.dart';
+import '../widgets/language_switch_button.dart';
 import '../models/product.dart';
 import '../core/constants.dart';
 
@@ -108,9 +111,9 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'ตะกร้าสินค้า',
-                  style: TextStyle(
+                Text(
+                  context.tr('shopping_cart'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -121,7 +124,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   builder: (context) {
                     final app = Provider.of<AppProvider>(context, listen: false);
                     return Text(
-                      '${app.cartItems.length} รายการ',
+                      '${app.cartItems.length} ${context.tr('items_in_cart')}',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.8),
                         fontSize: 14,
@@ -132,6 +135,8 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
+          const LanguageSwitchButton(isDarkBackground: true, compact: true),
+          const SizedBox(width: 8),
           // Fixed: Remove Consumer to prevent setState during build
           Builder(
             builder: (context) {

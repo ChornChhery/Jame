@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../models/product.dart';
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/settings_provider.dart';
 import '../core/constants.dart';
+import '../core/translations.dart';
 
 class AddEditProductDialog extends StatefulWidget {
   final Product? product;
