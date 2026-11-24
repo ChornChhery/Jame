@@ -91,7 +91,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       debugPrint('Error loading sales data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}'),
+          content: Text(AppTranslations.t('ui_error_loading_data', [e.toString()])),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -116,7 +116,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       // Apply date filter
       if (_startDate != null && _endDate != null) {
         filtered = filtered.where((sale) {
-          final saleDate = AppUtils.toThaiTime(sale.saleDate);
+          final saleDate = AppUtils.toShopTime(sale.saleDate);
           return saleDate.isAfter(_startDate!) && saleDate.isBefore(_endDate!.add(Duration(days: 1)));
         }).toList();
       }
@@ -249,7 +249,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
             ),
             const SizedBox(height: 16),
             Text(
-              'กำลังโหลดข้อมูล...',
+              AppTranslations.t('ui_loading_data'),
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 16,
@@ -286,7 +286,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                 _applyFiltersAndSorting();
               },
               decoration: InputDecoration(
-                hintText: 'ค้นหาเลขที่ใบเสร็จหรือชื่อลูกค้า...',
+                hintText: AppTranslations.t('ui_search_by_receipt_number_or_customer'),
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 prefixIcon: Icon(Icons.search, color: AppConstants.primaryDarkBlue),
                 suffixIcon: _searchQuery.isNotEmpty
@@ -322,10 +322,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                     isExpanded: true,
                     underline: const SizedBox(),
                     icon: Icon(Icons.filter_list, color: AppConstants.primaryDarkBlue),
-                    items: const [
-                      DropdownMenuItem(value: 'all', child: Text('ทั้งหมด')),
-                      DropdownMenuItem(value: 'QR', child: Text('พร้อมเพย์')),
-                      DropdownMenuItem(value: 'Cash', child: Text('เงินสด')),
+                    items: [
+                      DropdownMenuItem(value: 'all', child: Text(AppTranslations.t('ui_all'))),
+                      DropdownMenuItem(value: 'QR', child: Text(AppTranslations.t('ui_promptpay'))),
+                      DropdownMenuItem(value: 'Cash', child: Text(AppTranslations.t('ui_cash'))),
                     ],
                     onChanged: (value) {
                       setState(() => _filterOption = value!);
@@ -350,13 +350,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                     isExpanded: true,
                     underline: const SizedBox(),
                     icon: Icon(Icons.sort, color: AppConstants.primaryDarkBlue),
-                    items: const [
-                      DropdownMenuItem(value: 'date_desc', child: Text('วันที่ใหม่สุด')),
-                      DropdownMenuItem(value: 'date_asc', child: Text('วันที่เก่าสุด')),
-                      DropdownMenuItem(value: 'amount_desc', child: Text('จำนวนเงินมากสุด')),
-                      DropdownMenuItem(value: 'amount_asc', child: Text('จำนวนเงินน้อยสุด')),
-                      DropdownMenuItem(value: 'receipt_asc', child: Text('เลขที่ใบเสร็จ A-Z')),
-                      DropdownMenuItem(value: 'receipt_desc', child: Text('เลขที่ใบเสร็จ Z-A')),
+                    items: [
+                      DropdownMenuItem(value: 'date_desc', child: Text(AppTranslations.t('ui_newest_first'))),
+                      DropdownMenuItem(value: 'date_asc', child: Text(AppTranslations.t('ui_oldest_first'))),
+                      DropdownMenuItem(value: 'amount_desc', child: Text(AppTranslations.t('ui_highest_amount'))),
+                      DropdownMenuItem(value: 'amount_asc', child: Text(AppTranslations.t('ui_lowest_amount'))),
+                      DropdownMenuItem(value: 'receipt_asc', child: Text(AppTranslations.t('ui_receipt_number_a_z'))),
+                      DropdownMenuItem(value: 'receipt_desc', child: Text(AppTranslations.t('ui_receipt_number_z_a'))),
                     ],
                     onChanged: (value) {
                       setState(() => _sortOption = value!);
@@ -375,7 +375,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               Expanded(
                 child: _buildDateButton(
                   _startDate,
-                  'วันที่เริ่มต้น',
+                  AppTranslations.t('ui_start_date'),
                   _selectStartDate,
                 ),
               ),
@@ -386,7 +386,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               Expanded(
                 child: _buildDateButton(
                   _endDate,
-                  'วันที่สิ้นสุด',
+                  AppTranslations.t('ui_end_date'),
                   _selectEndDate,
                 ),
               ),
@@ -425,7 +425,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    date != null ? AppUtils.formatDateThai(date) : 'เลือกวันที่',
+                    date != null ? AppUtils.formatDate(date) : AppTranslations.t('ui_select_date'),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -448,7 +448,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       initialDate: _startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      locale: const Locale('th', 'TH'),
+      locale: const Locale('en', 'US'),
     );
     
     if (picked != null) {
@@ -463,7 +463,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       initialDate: _endDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      locale: const Locale('th', 'TH'),
+      locale: const Locale('en', 'US'),
     );
     
     if (picked != null) {
@@ -497,7 +497,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               child: Column(
                 children: [
                   Text(
-                    'จำนวนการขาย',
+                    AppTranslations.t('ui_number_of_sales'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -514,7 +514,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'รายการ',
+                    AppTranslations.t('ui_items'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -542,7 +542,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               child: Column(
                 children: [
                   Text(
-                    'ยอดขายรวม',
+                    AppTranslations.t('ui_total_sales'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -559,7 +559,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'บาท',
+                    AppTranslations.t('ui_baht'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -590,8 +590,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               const SizedBox(height: 16),
               Text(
                 _searchQuery.isNotEmpty || _startDate != null || _filterOption != 'all'
-                    ? 'ไม่พบข้อมูลที่ตรงกับเงื่อนไข'
-                    : 'ยังไม่มีประวัติการชำระเงิน',
+                    ? AppTranslations.t('ui_no_data_matches_the_filters')
+                    : AppTranslations.t('ui_no_payment_history_yet'),
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -600,8 +600,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               const SizedBox(height: 8),
               Text(
                 _searchQuery.isNotEmpty || _startDate != null || _filterOption != 'all'
-                    ? 'ลองเปลี่ยนเงื่อนไขการค้นหา'
-                    : 'การทำธุรกรรมจะแสดงที่นี่',
+                    ? AppTranslations.t('ui_try_changing_your_search_filters')
+                    : AppTranslations.t('ui_transactions_will_appear_here'),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[500],
@@ -687,7 +687,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                             border: Border.all(color: Colors.green.shade200),
                           ),
                           child: Text(
-                            'มูลค่าสูง',
+                            AppTranslations.t('ui_high_value'),
                             style: TextStyle(
                               fontSize: 10,
                               color: Colors.green.shade700,
@@ -703,7 +703,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                     children: [
                       const SizedBox(height: 4),
                       Text(
-                        AppUtils.formatDateTimeThai(sale.saleDate),
+                        AppUtils.formatDateTime(sale.saleDate),
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 4),
@@ -716,7 +716,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            sale.paymentMethod == 'Cash' ? 'เงินสด' : 'พร้อมเพย์',
+                            sale.paymentMethod == 'Cash' ? AppTranslations.t('ui_cash') : AppTranslations.t('ui_promptpay'),
                             style: TextStyle(
                               fontSize: 11,
                               color: sale.paymentMethod == 'Cash' ? AppConstants.accentOrange : AppConstants.softBlue,
@@ -728,7 +728,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              sale.customerName ?? 'ลูกค้าทั่วไป',
+                              sale.customerName ?? AppTranslations.t('ui_walk_in_customer'),
                               style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -764,13 +764,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       TextButton.icon(
                         onPressed: () => _printReceipt(sale),
                         icon: const Icon(Icons.print, size: 16),
-                        label: const Text('พรินต์'),
+                        label: Text(AppTranslations.t('ui_print')),
                       ),
                       const SizedBox(width: 8),
                       TextButton.icon(
                         onPressed: () => _shareReceipt(sale),
                         icon: const Icon(Icons.share, size: 16),
-                        label: const Text('แชร์'),
+                        label: Text(AppTranslations.t('ui_share')),
                       ),
                     ],
                   ),
@@ -790,29 +790,29 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('รายละเอียดใบเสร็จ'),
+          title: Text(AppTranslations.t('ui_receipt_details')),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('เลขที่ใบเสร็จ: ${sale.receiptNumber}'),
+                Text(AppTranslations.t('ui_receipt_no', [sale.receiptNumber])),
                 const SizedBox(height: 8),
-                Text('วันที่: ${AppUtils.formatDateTimeThai(sale.saleDate)}'),
+                Text(AppTranslations.t('ui_date', [AppUtils.formatDateTime(sale.saleDate)])),
                 const SizedBox(height: 8),
-                Text('จำนวนเงิน: ${AppUtils.formatCurrency(sale.totalAmount)}'),
+                Text(AppTranslations.t('ui_amount', [AppUtils.formatCurrency(sale.totalAmount)])),
                 const SizedBox(height: 8),
-                Text('วิธีชำระเงิน: ${sale.paymentMethod == 'Cash' ? 'เงินสด' : 'พร้อมเพย์'}'),
+                Text(AppTranslations.t('ui_payment_method', [sale.paymentMethod == 'Cash' ? AppTranslations.t('ui_cash') : AppTranslations.t('ui_promptpay')])),
                 if (sale.customerName != null) ...[
                   const SizedBox(height: 8),
-                  Text('ลูกค้า: ${sale.customerName}'),
+                  Text(AppTranslations.t('ui_customer', [sale.customerName])),
                 ],
                 if (sale.customerPhone != null) ...[
                   const SizedBox(height: 8),
-                  Text('เบอร์โทร: ${sale.customerPhone}'),
+                  Text(AppTranslations.t('ui_phone', [sale.customerPhone])),
                 ],
                 const SizedBox(height: 16),
                 Text(
-                  'รายการสินค้า:',
+                  AppTranslations.t('ui_items_2'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -887,7 +887,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      item.product?.name ?? 'ไม่ระบุชื่อสินค้า',
+                                      item.product?.name ?? AppTranslations.t('ui_unnamed_product'),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 14,
@@ -897,7 +897,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text('${item.quantity} ${item.product?.unit ?? 'หน่วย'}'),
+                                        Text(AppTranslations.t('ui_text', [item.quantity, item.product?.unit ?? AppTranslations.t('ui_unit')])),
                                         Text(AppUtils.formatCurrency(item.totalPrice)),
                                       ],
                                     ),
@@ -914,7 +914,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                   Container(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      'ไม่มีข้อมูลรายการสินค้า',
+                      AppTranslations.t('ui_no_item_data'),
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontStyle: FontStyle.italic,
@@ -928,21 +928,21 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('ปิด'),
+              child: Text(AppTranslations.t('ui_close')),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _printReceipt(sale);
               },
-              child: const Text('พรินต์'),
+              child: Text(AppTranslations.t('ui_print')),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _shareReceipt(sale);
               },
-              child: const Text('แชร์'),
+              child: Text(AppTranslations.t('ui_share')),
             ),
           ],
         );
@@ -959,13 +959,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'ใบเสร็จรับเงิน เลขที่: ${sale.receiptNumber}',
+        text: AppTranslations.t('ui_receipt_no_2', [sale.receiptNumber]),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถแชร์ใบเสร็จได้: ${e.toString()}'),
+            content: Text(AppTranslations.t('ui_unable_to_share_the_receipt', [e.toString()])),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -984,7 +984,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถพรินต์ใบเสร็จได้: ${e.toString()}'),
+            content: Text(AppTranslations.t('ui_unable_to_print_the_receipt', [e.toString()])),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1031,7 +1031,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       ),
                     if (user.shopPhone != null && user.shopPhone!.isNotEmpty)
                       pw.Text(
-                        'โทร: ${user.shopPhone}',
+                        AppTranslations.t('ui_tel', [user.shopPhone]),
                         style: const pw.TextStyle(fontSize: 12),
                       ),
                     pw.SizedBox(height: 20),
@@ -1042,7 +1042,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                         borderRadius: pw.BorderRadius.circular(8),
                       ),
                       child: pw.Text(
-                        'ใบเสร็จรับเงิน',
+                        AppTranslations.t('ui_receipt'),
                         style: pw.TextStyle(
                           fontSize: 18,
                           fontWeight: pw.FontWeight.bold,
@@ -1062,11 +1062,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'เลขที่ใบเสร็จ: ${sale.receiptNumber}',
+                    AppTranslations.t('ui_receipt_no', [sale.receiptNumber]),
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(
-                    'วันที่: ${DateFormat('dd/MM/yyyy HH:mm').format(sale.saleDate)}',
+                    AppTranslations.t('ui_date', [DateFormat('dd/MM/yyyy HH:mm').format(sale.saleDate)]),
                   ),
                 ],
               ),
@@ -1074,7 +1074,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
               if (sale.customerName != null && 
                   sale.customerName!.isNotEmpty) ...[
                 pw.SizedBox(height: 5),
-                pw.Text('ลูกค้า: ${sale.customerName}'),
+                pw.Text(AppTranslations.t('ui_customer', [sale.customerName])),
               ],
               
               pw.SizedBox(height: 20),
@@ -1099,14 +1099,14 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'รายการ',
+                          AppTranslations.t('ui_items'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'จำนวน',
+                          AppTranslations.t('ui_qty'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           textAlign: pw.TextAlign.center,
                         ),
@@ -1114,7 +1114,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'ราคา/หน่วย',
+                          AppTranslations.t('ui_price_unit'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           textAlign: pw.TextAlign.right,
                         ),
@@ -1122,7 +1122,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'รวม',
+                          AppTranslations.t('ui_total'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           textAlign: pw.TextAlign.right,
                         ),
@@ -1137,11 +1137,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(
-                              item.product?.name ?? 'ไม่พบชื่อสินค้า',
+                              item.product?.name ?? AppTranslations.t('ui_product_name_not_found'),
                               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                             ),
                             pw.Text(
-                              'รหัส: ${item.product?.code ?? '-'}',
+                              AppTranslations.t('ui_code', [item.product?.code ?? '-']),
                               style: const pw.TextStyle(fontSize: 10),
                             ),
                           ],
@@ -1185,12 +1185,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('จำนวนรายการ:'),
+                      pw.Text(AppTranslations.t('ui_number_of_items')),
                       pw.SizedBox(height: 5),
-                      pw.Text('วิธีชำระเงิน:'),
+                      pw.Text(AppTranslations.t('ui_payment_method_2')),
                       pw.SizedBox(height: 10),
                       pw.Text(
-                        'รวมเป็นเงิน:',
+                        AppTranslations.t('ui_total_2'),
                         style: pw.TextStyle(
                           fontSize: 16,
                           fontWeight: pw.FontWeight.bold,
@@ -1202,11 +1202,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text('${saleItems.length} รายการ'),
+                      pw.Text(AppTranslations.t('ui_items_3', [saleItems.length])),
                       pw.SizedBox(height: 5),
                       pw.Text(
                         sale.paymentMethod == 'Cash' 
-                            ? 'เงินสด' 
+                            ? AppTranslations.t('ui_cash') 
                             : 'PromptPay',
                       ),
                       pw.SizedBox(height: 10),
@@ -1228,7 +1228,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      'ขอบคุณที่ใช้บริการ',
+                      AppTranslations.t('ui_thank_you_for_your_business'),
                       style: pw.TextStyle(
                         fontSize: 16,
                         fontWeight: pw.FontWeight.bold,

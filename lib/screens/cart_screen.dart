@@ -180,7 +180,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 24),
             Text(
-              'ตะกร้าสินค้าว่างเปล่า',
+              AppTranslations.t('ui_your_cart_is_empty'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
@@ -189,7 +189,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 8),
             Text(
-              'เริ่มเพิ่มสินค้าโดยการสแกน QR หรือเลือกจากรายการสินค้า',
+              AppTranslations.t('ui_start_adding_products_by_scanning_a'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -203,7 +203,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   child: ElevatedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, AppConstants.scannerRoute),
                     icon: const Icon(Icons.qr_code_scanner),
-                    label: const Text('สแกน QR'),
+                    label: Text(AppTranslations.t('ui_scan_qr')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppConstants.primaryDarkBlue,
                       foregroundColor: Colors.white,
@@ -219,7 +219,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, AppConstants.productsRoute),
                     icon: const Icon(Icons.inventory_2),
-                    label: const Text('เลือกสินค้า'),
+                    label: Text(AppTranslations.t('ui_choose_products')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppConstants.primaryDarkBlue,
                       side: const BorderSide(color: AppConstants.primaryDarkBlue),
@@ -281,7 +281,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'รหัส: ${cartItem.product.code}',
+                            AppTranslations.t('ui_code', [cartItem.product.code]),
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 12,
@@ -381,7 +381,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'รวม',
+                          AppTranslations.t('ui_total'),
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 12,
@@ -419,7 +419,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'สต็อกไม่เพียงพอ',
+                          AppTranslations.t('ui_insufficient_stock'),
                           style: TextStyle(
                             color: Colors.orange[700],
                             fontSize: 12,
@@ -468,12 +468,12 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ลบออกจากตะกร้า'),
-        content: Text('คุณต้องการลบ \"${cartItem.product.name}\" ออกจากตะกร้าหรือไม่?'),
+        title: Text(AppTranslations.t('ui_remove_from_cart')),
+        content: Text(AppTranslations.t('ui_do_you_want_to_remove_from', [cartItem.product.name])),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -505,7 +505,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 // Show snackbar using the stored scaffold messenger reference
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: Text('ลบ ${cartItem.product.name} ออกจากตะกร้าแล้ว'),
+                    content: Text(AppTranslations.t('ui_removed_from_the_cart', [cartItem.product.name])),
                     backgroundColor: AppConstants.successGreen,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -518,7 +518,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('ลบ'),
+            child: Text(AppTranslations.t('ui_delete')),
           ),
         ],
       ),
@@ -531,12 +531,12 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ล้างตะกร้าสินค้า'),
-        content: const Text('คุณต้องการล้างสินค้าทั้งหมดในตะกร้าหรือไม่?'),
+        title: Text(AppTranslations.t('ui_clear_cart')),
+        content: Text(AppTranslations.t('ui_do_you_want_to_remove_all')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -565,7 +565,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 // Show snackbar using the stored scaffold messenger reference
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: const Text('ล้างสินค้าในตะกร้าแล้ว'),
+                    content: Text(AppTranslations.t('ui_cart_cleared')),
                     backgroundColor: AppConstants.successGreen,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -578,7 +578,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('ล้างตะกร้า'),
+            child: Text(AppTranslations.t('ui_clear_cart')),
           ),
         ],
       ),
@@ -649,7 +649,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'รายการสินค้า (${app.cartItemCount} ชิ้น)',
+                  AppTranslations.t('ui_items_pcs', [app.cartItemCount]),
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -673,8 +673,8 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'ยอดรวมทั้งสิ้น',
+                Text(
+                  AppTranslations.t('ui_grand_total'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -699,7 +699,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   child: OutlinedButton.icon(
                     onPressed: () => Navigator.pushNamed(context, AppConstants.scannerRoute),
                     icon: const Icon(Icons.qr_code_scanner),
-                    label: const Text('เพิ่มสินค้า'),
+                    label: Text(AppTranslations.t('ui_add_products')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppConstants.primaryDarkBlue,
                       side: const BorderSide(color: AppConstants.primaryDarkBlue),
@@ -716,7 +716,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   child: ElevatedButton.icon(
                     onPressed: _canProceedToPayment(app) ? () => _proceedToPayment() : null,
                     icon: const Icon(Icons.payment),
-                    label: const Text('ชำระเงิน'),
+                    label: Text(AppTranslations.t('ui_payment')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppConstants.primaryDarkBlue,
                       foregroundColor: Colors.white,
@@ -750,7 +750,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'มีสินค้าบางรายการที่จำนวนในตะกร้าเกินสต็อกที่มี กรุณาปรับจำนวนก่อนชำระเงิน',
+                        AppTranslations.t('ui_some_items_in_the_cart_exceed'),
                         style: TextStyle(
                           color: Colors.orange[700],
                           fontSize: 12,

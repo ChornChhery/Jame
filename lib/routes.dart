@@ -14,7 +14,9 @@ import 'screens/scanner_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/payment_history_screen.dart' as payment_history;
 import 'providers/auth_provider.dart';
+import 'providers/settings_provider.dart';
 import 'core/constants.dart';
+import 'core/translations.dart';
 
 class AppRoutes {
   static Route<dynamic> generateRoute(RouteSettings settings) {
@@ -22,8 +24,8 @@ class AppRoutes {
       // Public routes (no authentication required)
       case AppConstants.loginRoute:
         return MaterialPageRoute(
-          builder: (context) => Consumer<AuthProvider>(
-            builder: (context, auth, child) {
+          builder: (context) => Consumer2<AuthProvider, SettingsProvider>(
+            builder: (context, auth, _, child) {
               // Redirect to dashboard if already logged in
               if (auth.isAuthenticated) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -37,13 +39,15 @@ class AppRoutes {
       
       case '/forgot-password':
         return MaterialPageRoute(
-          builder: (context) => ForgotPasswordScreen(),
+          builder: (context) => Consumer<SettingsProvider>(
+            builder: (context, _, child) => ForgotPasswordScreen(),
+          ),
         );
       
       case AppConstants.signupRoute:
         return MaterialPageRoute(
-          builder: (context) => Consumer<AuthProvider>(
-            builder: (context, auth, child) {
+          builder: (context) => Consumer2<AuthProvider, SettingsProvider>(
+            builder: (context, auth, _, child) {
               // Redirect to dashboard if already logged in
               if (auth.isAuthenticated) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -61,7 +65,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context, 
             () => DashboardScreen(),
-            'แดชบอร์ด',
+            AppTranslations.t('ui_dashboard'),
           ),
         );
       
@@ -70,7 +74,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => products.ProductsScreen(arguments: settings.arguments as Map<String, dynamic>?),
-            'สินค้า',
+            AppTranslations.t('ui_products'),
           ),
         );
       
@@ -79,7 +83,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => ScannerScreen(),
-            'สแกน',
+            AppTranslations.t('ui_scan'),
           ),
         );
       
@@ -88,7 +92,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => CartScreen(),
-            'ตะกร้า',
+            AppTranslations.t('ui_cart'),
           ),
         );
       
@@ -97,7 +101,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => PaymentScreen(),
-            'ชำระเงิน',
+            AppTranslations.t('ui_payment'),
           ),
         );
       
@@ -106,7 +110,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => ReceiptScreen(),
-            'ใบเสร็จ',
+            AppTranslations.t('ui_receipt'),
           ),
         );
       
@@ -115,7 +119,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => ReportsScreen(),
-            'รายงาน',
+            AppTranslations.t('ui_reports'),
           ),
         );
       
@@ -124,7 +128,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => ProfileScreen(),
-            'โปรไฟล์',
+            AppTranslations.t('ui_profile'),
           ),
         );
       
@@ -133,7 +137,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => payment_history.PaymentHistoryScreen(),
-            'ประวัติการชำระเงิน',
+            AppTranslations.t('ui_payment_history'),
           ),
         );
       
@@ -142,7 +146,7 @@ class AppRoutes {
           builder: (context) => _buildProtectedRoute(
             context,
             () => NotificationsScreen(),
-            'การแจ้งเตือน',
+            AppTranslations.t('ui_notifications'),
           ),
         );
       
@@ -160,7 +164,7 @@ class AppRoutes {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'ไม่พบหน้าที่ต้องการ',
+                    AppTranslations.t('ui_page_not_found'),
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -169,7 +173,7 @@ class AppRoutes {
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'หน้าที่คุณต้องการไม่มีอยู่ในระบบ',
+                    AppTranslations.t('ui_the_page_you_requested_does_not'),
                     style: TextStyle(
                       color: AppConstants.textDarkGray,
                     ),
@@ -184,7 +188,7 @@ class AppRoutes {
                       backgroundColor: AppConstants.primaryDarkBlue,
                       foregroundColor: Colors.white,
                     ),
-                    child: Text('กลับหน้าหลัก'),
+                    child: Text(AppTranslations.t('ui_back_to_home')),
                   ),
                 ],
               ),
@@ -201,8 +205,8 @@ class AppRoutes {
     Widget Function() screenBuilder,
     String screenName,
   ) {
-    return Consumer<AuthProvider>(
-      builder: (context, auth, child) {
+    return Consumer2<AuthProvider, SettingsProvider>(
+      builder: (context, auth, _, child) {
         // Check if user is authenticated
         if (!auth.isAuthenticated || auth.currentUser == null) {
           // Show loading while checking authentication
@@ -264,7 +268,7 @@ class AppRoutes {
             
             // Loading text
             Text(
-              'กำลังตรวจสอบการเข้าสู่ระบบ...',
+              AppTranslations.t('ui_checking_sign_in_status'),
               style: TextStyle(
                 fontSize: 16,
                 color: AppConstants.textDarkGray,
@@ -292,7 +296,7 @@ class AppRoutes {
             ),
             SizedBox(height: 16),
             Text(
-              'ต้องเข้าสู่ระบบ',
+              AppTranslations.t('ui_sign_in_required'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -301,7 +305,7 @@ class AppRoutes {
             ),
             SizedBox(height: 8),
             Text(
-              'กรุณาเข้าสู่ระบบเพื่อเข้าถึงหน้า$attemptedScreen',
+              AppTranslations.t('ui_please_sign_in_to_access_the', [attemptedScreen]),
               style: TextStyle(
                 color: AppConstants.textDarkGray,
               ),
@@ -342,7 +346,7 @@ class PlaceholderScreen extends StatelessWidget {
             ),
             SizedBox(height: 16),
             Text(
-              'หน้า$title',
+              AppTranslations.t('ui_page', [title]),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -350,7 +354,7 @@ class PlaceholderScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'กำลังพัฒนา...',
+              AppTranslations.t('ui_under_development'),
               style: TextStyle(
                 color: AppConstants.textDarkGray.withOpacity(0.7),
               ),
@@ -358,7 +362,7 @@ class PlaceholderScreen extends StatelessWidget {
             SizedBox(height: 32),
             ElevatedButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('กลับ'),
+              child: Text(AppTranslations.t('ui_back')),
             ),
           ],
         ),

@@ -10,6 +10,7 @@ import '../providers/auth_provider.dart';
 import '../providers/app_provider.dart';
 import '../models/product.dart';
 import '../models/sale.dart';
+import '../core/translations.dart';
 
 class ReportsScreen extends StatefulWidget {
   @override
@@ -22,7 +23,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   
-  String _selectedPeriod = 'วันนี้'; // Today
+  String _selectedPeriod = 'Today'; // Today
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
   bool _isLoading = true;
@@ -53,8 +54,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   List<Map<String, dynamic>> _topSellingThisYear = [];
   List<Map<String, dynamic>> _topSellingLastYear = [];
   
-  // Selected time period for top products tab - default to "วันนี้" (today)
-  String _selectedTopProductsPeriod = 'วันนี้';
+  // Selected time period for top products tab - default to "Today"
+  String _selectedTopProductsPeriod = 'Today';
 
   @override
   void initState() {
@@ -120,9 +121,9 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       final allSales = app.sales;
       final filteredSales = allSales.where((sale) {
         // Convert both dates to Thai time for comparison
-        final saleDateThai = AppUtils.toThaiTime(sale.saleDate);
-        final startDateThai = AppUtils.toThaiTime(_startDate);
-        final endDateThai = AppUtils.toThaiTime(_endDate.add(Duration(days: 1)));
+        final saleDateThai = AppUtils.toShopTime(sale.saleDate);
+        final startDateThai = AppUtils.toShopTime(_startDate);
+        final endDateThai = AppUtils.toShopTime(_endDate.add(Duration(days: 1)));
         
         // Fixed the date comparison logic
         // Include sales from start date 00:00:00 to end date 23:59:59
@@ -160,7 +161,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       await _loadAdvancedAnalytics(auth.currentUser!.id!);
       
     } catch (e) {
-      _showErrorMessage('เกิดข้อผิดพลาดในการโหลดข้อมูล: ${e.toString()}');
+      _showErrorMessage(AppTranslations.t('ui_error_loading_data', [e.toString()]));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -222,14 +223,14 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       totalCost += sale.totalAmount * 0.7;
       
       // Convert sale date to Thai time for analysis
-      final saleDateThai = AppUtils.toThaiTime(sale.saleDate);
+      final saleDateThai = AppUtils.toShopTime(sale.saleDate);
       
       // Hourly stats for Thai business hours analysis
       final hour = saleDateThai.hour;
       hourlyStats[hour.toString()] = (hourlyStats[hour.toString()] ?? 0) + 1;
       
       // Daily revenue for trend analysis
-      final dateKey = DateFormat('dd/MM', 'th_TH').format(saleDateThai);
+      final dateKey = DateFormat('dd/MM', 'en_US').format(saleDateThai);
       dailyRevenue[dateKey] = (dailyRevenue[dateKey] ?? 0) + sale.totalAmount;
     }
     
@@ -282,8 +283,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       pinned: true,
       backgroundColor: AppConstants.primaryDarkBlue,
       flexibleSpace: FlexibleSpaceBar(
-        title: const Text(
-          'รายงานการขาย',
+        title: Text(
+          AppTranslations.t('ui_sales_report'),
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -336,7 +337,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'เลือกช่วงเวลา',
+            AppTranslations.t('ui_select_period'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -362,15 +363,15 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 Row(
                   children: [
                     Expanded(
-                      child: _buildPeriodButton('วันนี้', 'วันนี้'),
+                      child: _buildPeriodButton(AppTranslations.t('ui_today'), AppTranslations.t('ui_today')),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildPeriodButton('สัปดาห์นี้', 'สัปดาห์นี้'),
+                      child: _buildPeriodButton(AppTranslations.t('ui_this_week'), AppTranslations.t('ui_this_week')),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: _buildPeriodButton('เดือนนี้', 'เดือนนี้'),
+                      child: _buildPeriodButton(AppTranslations.t('ui_this_month'), AppTranslations.t('ui_this_month')),
                     ),
                   ],
                 ),
@@ -382,7 +383,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                         onPressed: _selectStartDate,
                         icon: Icon(Icons.calendar_today, size: 16),
                         label: Text(
-                          AppUtils.formatDateThai(_startDate),
+                          AppUtils.formatDate(_startDate),
                           style: TextStyle(fontSize: 12),
                         ),
                         style: OutlinedButton.styleFrom(
@@ -394,14 +395,14 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Text('ถึง', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Text(AppTranslations.t('ui_to'), style: TextStyle(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: _selectEndDate,
                         icon: Icon(Icons.calendar_today, size: 16),
                         label: Text(
-                          AppUtils.formatDateThai(_endDate),
+                          AppUtils.formatDate(_endDate),
                           style: TextStyle(fontSize: 12),
                         ),
                         style: OutlinedButton.styleFrom(
@@ -448,16 +449,16 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     
     final now = DateTime.now();
     switch (period) {
-      case 'วันนี้':
+      case 'Today':
         _startDate = DateTime(now.year, now.month, now.day);
         _endDate = DateTime(now.year, now.month, now.day);
         break;
-      case 'สัปดาห์นี้':
+      case 'This week':
         final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
         _startDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
         _endDate = DateTime(now.year, now.month, now.day);
         break;
-      case 'เดือนนี้':
+      case 'This month':
         _startDate = DateTime(now.year, now.month, 1);
         _endDate = DateTime(now.year, now.month, now.day);
         break;
@@ -472,7 +473,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       initialDate: _startDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      locale: const Locale('th', 'TH'),
+      locale: const Locale('en', 'US'),
     );
     
     if (picked != null) {
@@ -490,7 +491,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
       initialDate: _endDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
-      locale: const Locale('th', 'TH'),
+      locale: const Locale('en', 'US'),
     );
     
     if (picked != null) {
@@ -518,21 +519,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  'รายได้ทั้งหมด',
+                  AppTranslations.t('ui_total_revenue'),
                   AppUtils.formatCurrency(totalRevenue),
                   Icons.account_balance_wallet,
                   Colors.blue,
-                  subtitle: '${totalSales} รายการขาย',
+                  subtitle: AppTranslations.t('ui_sales_2', [totalSales]),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildSummaryCard(
-                  'จำนวนการขาย',
-                  '$totalSales ครั้ง',
+                  AppTranslations.t('ui_number_of_sales'),
+                  AppTranslations.t('ui_times', [totalSales]),
                   Icons.shopping_cart,
                   Colors.green,
-                  subtitle: 'เฉลี่ย ${AppUtils.formatCurrency(averageSale)} ต่อรายการ',
+                  subtitle: AppTranslations.t('ui_average_per_sale_2', [AppUtils.formatCurrency(averageSale)]),
                 ),
               ),
             ],
@@ -542,21 +543,21 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             children: [
               Expanded(
                 child: _buildSummaryCard(
-                  'กำไรสุทธิ',
+                  AppTranslations.t('ui_net_profit'),
                   AppUtils.formatCurrency(totalProfit),
                   Icons.trending_up,
                   Colors.purple,
-                  subtitle: '${profitMargin.toStringAsFixed(1)}% ของรายได้',
+                  subtitle: AppTranslations.t('ui_of_revenue', [profitMargin.toStringAsFixed(1)]),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildSummaryCard(
-                  'จำนวนสินค้า',
-                  '$totalItems หน่วย',
+                  AppTranslations.t('ui_items_sold'),
+                  AppTranslations.t('ui_units', [totalItems]),
                   Icons.inventory,
                   Colors.orange,
-                  subtitle: 'เฉลี่ย ${(totalItems / totalSales).toStringAsFixed(1)} หน่วยต่อรายการ',
+                  subtitle: AppTranslations.t('ui_average_units_per_sale', [(totalItems / totalSales).toStringAsFixed(1)]),
                 ),
               ),
             ],
@@ -652,11 +653,11 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     color: AppConstants.primaryYellow.withOpacity(0.2),
                   ),
                   tabs: [
-                    Tab(text: 'ยอดขาย'),
-                    Tab(text: 'สินค้ายอดนิยม'),
-                    Tab(text: 'สต็อกต่ำ'),
-                    Tab(text: 'วิเคราะห์'),
-                    Tab(text: 'แนะนำการสั่งซื้อ'), // New tab for reorder suggestions
+                    Tab(text: AppTranslations.t('ui_sales')),
+                    Tab(text: AppTranslations.t('ui_top_products')),
+                    Tab(text: AppTranslations.t('ui_low_stock')),
+                    Tab(text: AppTranslations.t('ui_analytics')),
+                    Tab(text: AppTranslations.t('ui_reorder_recommendations')), // New tab for reorder suggestions
                   ],
                 ),
                 Container(
@@ -689,7 +690,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             Icon(Icons.receipt_long, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'ยังไม่มีข้อมูลการขาย',
+              AppTranslations.t('ui_no_sales_data_yet'),
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -767,7 +768,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppUtils.formatDateTimeThai(sale.saleDate), // Use Thai format
+                  AppUtils.formatDateTime(sale.saleDate), // Use Thai format
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -775,7 +776,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$itemCount รายการสินค้า',
+                  AppTranslations.t('ui_products_2', [itemCount]),
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
@@ -783,7 +784,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
                 if (sale.customerName != null && sale.customerName!.isNotEmpty)
                   Text(
-                    'ลูกค้า: ${sale.customerName}',
+                    AppTranslations.t('ui_customer', [sale.customerName]),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[700],
@@ -804,7 +805,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
                 if (isHighValue)
                   Text(
-                    'มูลค่าสูง',
+                    AppTranslations.t('ui_high_value'),
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.green[700],
@@ -822,13 +823,13 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
   Widget _buildTopProductsTab() {
     // Define time period options with Thai labels
     final Map<String, List<Map<String, dynamic>>> timePeriods = {
-      'วันนี้': _topSellingToday,
-      'เมื่อวาน': _topSellingYesterday,
-      'สัปดาห์นี้': _topSellingThisWeek,
-      'เดือนนี้': _topSellingThisMonth,
-      'เดือนที่แล้ว': _topSellingLastMonth,
-      'ปีนี้': _topSellingThisYear,
-      'ปีที่แล้ว': _topSellingLastYear,
+      'Today': _topSellingToday,
+      'Yesterday': _topSellingYesterday,
+      'This week': _topSellingThisWeek,
+      'This month': _topSellingThisMonth,
+      'Last month': _topSellingLastMonth,
+      'This year': _topSellingThisYear,
+      'Last year': _topSellingLastYear,
     };
     
     return SingleChildScrollView(
@@ -841,7 +842,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             child: Row(
               children: [
                 Text(
-                  'แสดงสินค้ายอดนิยมตามช่วงเวลา:',
+                  AppTranslations.t('ui_show_top_products_by_period'),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -855,7 +856,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     return DropdownMenuItem<String>(
                       value: period,
                       child: Text(
-                        period,
+                        AppTranslations.label(period),
                         style: TextStyle(
                           fontSize: 14,
                           color: AppConstants.primaryDarkBlue,
@@ -880,7 +881,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Display selected period's top products
           if (timePeriods[_selectedTopProductsPeriod]!.isNotEmpty)
-            _buildTopProductsSection('สินค้ายอดนิยม ($_selectedTopProductsPeriod)', timePeriods[_selectedTopProductsPeriod]!),
+            _buildTopProductsSection(AppTranslations.t('ui_top_products_2', [AppTranslations.label(_selectedTopProductsPeriod)]), timePeriods[_selectedTopProductsPeriod]!),
           
           if (timePeriods[_selectedTopProductsPeriod]!.isEmpty)
             Center(
@@ -890,7 +891,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   Icon(Icons.inventory_2, size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'ยังไม่มีข้อมูลสินค้ายอดนิยม',
+                    AppTranslations.t('ui_no_top_product_data_yet'),
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[600],
@@ -959,7 +960,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 return value.toString();
               }
               
-              final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+              final productName = _safeString(product['name']) ?? AppTranslations.t('ui_unspecified');
               final productCode = _safeString(product['code']) ?? '-';
               final productImage = _safeString(product['image']);
               final totalRevenue = product['total_revenue'] is int 
@@ -1030,14 +1031,14 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                             ),
                           ),
                           Text(
-                            'รหัส: $productCode',
+                            AppTranslations.t('ui_code', [productCode]),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
                             ),
                           ),
                           Text(
-                            '$saleCount ครั้งการขาย • ${totalQuantity} หน่วย',
+                            AppTranslations.t('ui_sales_units', [saleCount, totalQuantity]),
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -1078,7 +1079,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             Icon(Icons.check_circle, size: 48, color: Colors.green[400]),
             const SizedBox(height: 16),
             Text(
-              'สต็อกสินค้าเพียงพอ',
+              AppTranslations.t('ui_stock_is_sufficient'),
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -1171,7 +1172,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'เหลือ ${product.quantity} ${product.unit} (จุดเตือน: ${product.lowStock})',
+                  AppTranslations.t('ui_left_threshold', [product.quantity, product.unit, product.lowStock]),
                   style: TextStyle(
                     fontSize: 12,
                     color: isCritical ? Colors.red[700] : Colors.orange[700],
@@ -1179,7 +1180,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                 ),
                 if (isCritical)
                   Text(
-                    'ระดับวิกฤติ - ควรสั่งซื้อทันที',
+                    AppTranslations.t('ui_critical_level_order_immediately'),
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.red[700],
@@ -1188,7 +1189,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                   )
                 else if (stockPercentage < 50)
                   Text(
-                    'ระดับต่ำ - ควรพิจารณาสั่งซื้อ',
+                    AppTranslations.t('ui_low_level_consider_ordering'),
                     style: TextStyle(
                       fontSize: 10,
                       color: Colors.orange[700],
@@ -1261,8 +1262,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                     children: [
                       Text(
                         isGrowing 
-                            ? 'กำลังเติบโตอย่างดี' 
-                            : 'มีแนวโน้มลดลงเล็กน้อย',
+                            ? AppTranslations.t('ui_growing_well') 
+                            : AppTranslations.t('ui_slight_downward_trend'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           color: isGrowing ? Colors.green[700] : Colors.red[700],
@@ -1270,8 +1271,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       ),
                       Text(
                         isGrowing
-                            ? 'เพิ่มขึ้น ${growthRate.toStringAsFixed(1)}% เมื่อเทียบกับช่วงก่อน'
-                            : 'ลดลง ${growthRate.abs().toStringAsFixed(1)}% เมื่อเทียบกับช่วงก่อน',
+                            ? AppTranslations.t('ui_up_compared_with_the_previous_period', [growthRate.toStringAsFixed(1)])
+                            : AppTranslations.t('ui_down_compared_with_the_previous_period', [growthRate.abs().toStringAsFixed(1)]),
                         style: TextStyle(
                           fontSize: 12,
                           color: isGrowing ? Colors.green[700] : Colors.red[700],
@@ -1287,7 +1288,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Profit/Loss Summary Chart
           Text(
-            'ภาพรวมรายได้และกำไร',
+            AppTranslations.t('ui_revenue_and_profit_overview'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1308,7 +1309,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Peak Hours Analysis
           Text(
-            'วิเคราะห์ช่วงเวลาที่มียอดขายดี',
+            AppTranslations.t('ui_analyze_periods_with_strong_sales'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1326,7 +1327,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             child: hourlyStats.isEmpty
                 ? Center(
                     child: Text(
-                      'ยังไม่มีข้อมูล',
+                      AppTranslations.t('ui_no_data_yet'),
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   )
@@ -1337,7 +1338,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           tooltipBgColor: Colors.grey[800]!,
                           getTooltipItem: (group, groupIndex, rod, rodIndex) {
                             return BarTooltipItem(
-                              '${rod.toY.toInt()} รายการ',
+                              AppTranslations.t('ui_items_3', [rod.toY.toInt()]),
                               const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1397,7 +1398,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Daily Sales Trend
           Text(
-            'วิเคราะห์ยอดขายในแต่ละวัน',
+            AppTranslations.t('ui_analyze_daily_sales'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1415,7 +1416,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             child: dailyRevenue.isEmpty
                 ? Center(
                     child: Text(
-                      'ยังไม่มีข้อมูล',
+                      AppTranslations.t('ui_no_data_yet'),
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   )
@@ -1509,7 +1510,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Break-Even Analysis
           Text(
-            'วิเคราะห์จุดคุ้มทุน (Break-Even Analysis)',
+            AppTranslations.t('ui_break_even_analysis'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1530,7 +1531,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Customer Insights Section
           Text(
-            'วิเคราะห์พฤติกรรมลูกค้า',
+            AppTranslations.t('ui_customer_behavior_analysis'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1548,7 +1549,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             child: _customerHistory.isEmpty
                 ? Center(
                     child: Text(
-                      'ยังไม่มีข้อมูลลูกค้า',
+                      AppTranslations.t('ui_no_customer_data_yet'),
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   )
@@ -1569,7 +1570,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       
                       return ListTile(
                         title: Text(
-                          customer['customer_name'] as String? ?? 'ไม่ระบุชื่อ',
+                          customer['customer_name'] as String? ?? AppTranslations.t('ui_unnamed'),
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
@@ -1579,7 +1580,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '${purchaseCount} ครั้ง • ${AppUtils.formatCurrency(totalSpent)}',
+                              AppTranslations.t('ui_times_2', [purchaseCount, AppUtils.formatCurrency(totalSpent)]),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -1590,7 +1591,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           ],
                         ),
                         trailing: Text(
-                          'อันดับ ${index + 1}',
+                          AppTranslations.t('ui_rank', [index + 1]),
                           style: TextStyle(
                             color: AppConstants.primaryDarkBlue,
                             fontWeight: FontWeight.bold,
@@ -1605,7 +1606,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Inventory Movement Analysis
           Text(
-            'วิเคราะห์การเคลื่อนไหวของสต็อก',
+            AppTranslations.t('ui_stock_movement_analysis'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1624,7 +1625,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                    (_inventoryMovement['inventoryData'] as List).isEmpty
                 ? Center(
                     child: Text(
-                      'ยังไม่มีข้อมูลการเคลื่อนไหวของสต็อก',
+                      AppTranslations.t('ui_no_stock_movement_data_yet'),
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   )
@@ -1635,7 +1636,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                         : (_inventoryMovement['inventoryData'] as List).length,
                     itemBuilder: (context, index) {
                       final item = (_inventoryMovement['inventoryData'] as List)[index];
-                      final productName = item['name'] as String? ?? 'ไม่ระบุชื่อ';
+                      final productName = item['name'] as String? ?? AppTranslations.t('ui_unnamed');
                       // Fix type casting issue - handle both int and double types
                       final soldQuantity = item['sold_quantity'] is int 
                           ? item['sold_quantity'] as int? ?? 0
@@ -1657,14 +1658,14 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'ขาย: $soldQuantity หน่วย',
+                              AppTranslations.t('ui_sold_units_2', [soldQuantity]),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.red[700],
                               ),
                             ),
                             Text(
-                              'รับเข้า: $receivedQuantity หน่วย',
+                              AppTranslations.t('ui_received_units', [receivedQuantity]),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.green[700],
@@ -1705,7 +1706,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           
           // Customer Segmentation
           Text(
-            'การแบ่งกลุ่มลูกค้า',
+            AppTranslations.t('ui_customer_segmentation'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -1716,7 +1717,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           if (_customerSegmentation.isEmpty || _customerSegmentation['segments'] == null)
             Center(
               child: Text(
-                'ยังไม่มีข้อมูลการแบ่งกลุ่มลูกค้า',
+                AppTranslations.t('ui_no_customer_segmentation_data_yet'),
                 style: TextStyle(color: Colors.grey[600]),
               ),
             )
@@ -1740,7 +1741,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           : (_customerSegmentation['segments'] as Map)['highValue'] is String
                               ? double.tryParse((_customerSegmentation['segments'] as Map)['highValue'] as String) ?? 0
                               : 0) ?? 0,
-                      title: 'ลูกค้ามูลค่าสูง',
+                      title: AppTranslations.t('ui_high_value_customers'),
                       radius: 50,
                       titleStyle: TextStyle(
                         fontSize: 10,
@@ -1755,7 +1756,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           : (_customerSegmentation['segments'] as Map)['mediumValue'] is String
                               ? double.tryParse((_customerSegmentation['segments'] as Map)['mediumValue'] as String) ?? 0
                               : 0) ?? 0,
-                      title: 'ลูกค้ามูลค่าปานกลาง',
+                      title: AppTranslations.t('ui_medium_value_customers'),
                       radius: 50,
                       titleStyle: TextStyle(
                         fontSize: 10,
@@ -1770,7 +1771,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                           : (_customerSegmentation['segments'] as Map)['lowValue'] is String
                               ? double.tryParse((_customerSegmentation['segments'] as Map)['lowValue'] as String) ?? 0
                               : 0) ?? 0,
-                      title: 'ลูกค้ามูลค่าต่ำ',
+                      title: AppTranslations.t('ui_low_value_customers'),
                       radius: 50,
                       titleStyle: TextStyle(
                         fontSize: 10,
@@ -1796,7 +1797,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
             Icon(Icons.shopping_cart, size: 48, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
-              'ไม่มีคำแนะนำการสั่งซื้อในขณะนี้',
+              AppTranslations.t('ui_no_reorder_recommendations_right_now'),
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -1831,7 +1832,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           return value.toString();
         }
         
-        final productName = _safeString(product['name']) ?? 'ไม่ระบุชื่อ';
+        final productName = _safeString(product['name']) ?? AppTranslations.t('ui_unnamed');
         final productCode = _safeString(product['code']) ?? '';
         final productImage = _safeString(product['image']);
         // Fix type casting issue - handle both int and double types
@@ -1842,26 +1843,26 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
         final lowStockLevel = product['low_stock'] is int 
             ? product['low_stock'] as int? ?? 0
             : (product['low_stock'] as double? ?? 0.0).toInt();
-        final unit = _safeString(product['unit']) ?? 'หน่วย';
+        final unit = _safeString(product['unit']) ?? AppTranslations.t('ui_unit_2');
         final avgDailySales = product['avg_daily_sales'] as double? ?? 0.0;
         final daysUntilOutOfStock = product['days_until_out_of_stock'] as double? ?? 999.0;
         
         // Determine urgency level
         Color urgencyColor = Colors.green;
-        String urgencyText = 'ปลอดภัย';
+        String urgencyText = AppTranslations.t('ui_safe');
         IconData urgencyIcon = Icons.check_circle;
         
         if (daysUntilOutOfStock <= 3) {
           urgencyColor = Colors.red;
-          urgencyText = 'เร่งด่วน';
+          urgencyText = AppTranslations.t('ui_urgent');
           urgencyIcon = Icons.error;
         } else if (daysUntilOutOfStock <= 7) {
           urgencyColor = Colors.orange;
-          urgencyText = 'ควรสั่งซื้อ';
+          urgencyText = AppTranslations.t('ui_should_order');
           urgencyIcon = Icons.warning;
         } else if (daysUntilOutOfStock <= 14) {
           urgencyColor = Colors.blue;
-          urgencyText = 'ต้องเฝ้าระวัง';
+          urgencyText = AppTranslations.t('ui_watch');
           urgencyIcon = Icons.info;
         }
         
@@ -1912,7 +1913,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               ),
             ),
             subtitle: Text(
-              'รหัส: $productCode',
+              AppTranslations.t('ui_code', [productCode]),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -1935,7 +1936,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       children: [
                         Expanded(
                           child: _buildInfoCard(
-                            'สต็อกปัจจุบัน',
+                            AppTranslations.t('ui_current_stock_2'),
                             '$currentQuantity $unit',
                             Icons.inventory,
                             AppConstants.primaryDarkBlue,
@@ -1944,7 +1945,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildInfoCard(
-                            'จุดสั่งซื้อ',
+                            AppTranslations.t('ui_reorder_point'),
                             '$lowStockLevel $unit',
                             Icons.warning,
                             Colors.orange,
@@ -1957,7 +1958,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                       children: [
                         Expanded(
                           child: _buildInfoCard(
-                            'ขาย/วัน',
+                            AppTranslations.t('ui_sold_day'),
                             '${avgDailySales.toStringAsFixed(1)} $unit',
                             Icons.trending_up,
                             Colors.green,
@@ -1966,8 +1967,8 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
                         const SizedBox(width: 12),
                         Expanded(
                           child: _buildInfoCard(
-                            'หมดสต็อกใน',
-                            '${daysUntilOutOfStock.toStringAsFixed(0)} วัน',
+                            AppTranslations.t('ui_runs_out_in'),
+                            AppTranslations.t('ui_days', [daysUntilOutOfStock.toStringAsFixed(0)]),
                             Icons.calendar_today,
                             urgencyColor,
                           ),
@@ -2026,7 +2027,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     try {
       final date = DateTime.parse(dateString);
       return Text(
-        'ซื้อล่าสุด: ${AppUtils.formatDateThai(date)}',
+        AppTranslations.t('ui_last_purchase', [AppUtils.formatDate(date)]),
         style: TextStyle(
           fontSize: 10,
           color: Colors.grey[500],
@@ -2035,7 +2036,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     } catch (e) {
       // Handle parsing error gracefully
       return Text(
-        'ซื้อล่าสุด: ไม่สามารถแสดงวันที่ได้',
+        AppTranslations.t('ui_last_purchase_date_unavailable'),
         style: TextStyle(
           fontSize: 10,
           color: Colors.grey[500],
@@ -2049,7 +2050,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     if (totalRevenue == 0 && totalCost == 0 && totalProfit == 0) {
       return Center(
         child: Text(
-          'ยังไม่มีข้อมูลรายได้และกำไร',
+          AppTranslations.t('ui_no_revenue_and_profit_data_yet'),
           style: TextStyle(color: Colors.grey[600]),
         ),
       );
@@ -2064,13 +2065,13 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               String label = '';
               switch (groupIndex) {
                 case 0:
-                  label = 'รายได้';
+                  label = AppTranslations.t('ui_revenue');
                   break;
                 case 1:
-                  label = 'ต้นทุน';
+                  label = AppTranslations.t('ui_cost');
                   break;
                 case 2:
-                  label = 'กำไร';
+                  label = AppTranslations.t('ui_profit');
                   break;
               }
               return BarTooltipItem(
@@ -2091,11 +2092,11 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
               getTitlesWidget: (value, meta) {
                 switch (value.toInt()) {
                   case 0:
-                    return Text('รายได้', style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                    return Text(AppTranslations.t('ui_revenue'), style: TextStyle(fontSize: 10, color: Colors.grey[600]));
                   case 1:
-                    return Text('ต้นทุน', style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                    return Text(AppTranslations.t('ui_cost'), style: TextStyle(fontSize: 10, color: Colors.grey[600]));
                   case 2:
-                    return Text('กำไร', style: TextStyle(fontSize: 10, color: Colors.grey[600]));
+                    return Text(AppTranslations.t('ui_profit'), style: TextStyle(fontSize: 10, color: Colors.grey[600]));
                   default:
                     return const Text('');
                 }
@@ -2170,7 +2171,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
     if (totalRevenue == 0 && totalCost == 0) {
       return Center(
         child: Text(
-          'ยังไม่มีข้อมูลสำหรับการวิเคราะห์จุดคุ้มทุน',
+          AppTranslations.t('ui_no_data_available_for_break_even'),
           style: TextStyle(color: Colors.grey[600]),
         ),
       );
@@ -2188,7 +2189,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           PieChartSectionData(
             color: Colors.red,
             value: breakEvenPoint.toDouble(),
-            title: 'ต้นทุน\n${breakEvenPoint.toStringAsFixed(1)}%',
+            title: AppTranslations.t('ui_cost_2', [breakEvenPoint.toStringAsFixed(1)]),
             radius: 50,
             titleStyle: TextStyle(
               fontSize: 10,
@@ -2199,7 +2200,7 @@ class _ReportsScreenState extends State<ReportsScreen> with TickerProviderStateM
           PieChartSectionData(
             color: Colors.green,
             value: (100 - breakEvenPoint).toDouble(),
-            title: 'กำไร\n${profitMargin.toStringAsFixed(1)}%',
+            title: AppTranslations.t('ui_profit_2', [profitMargin.toStringAsFixed(1)]),
             radius: 50,
             titleStyle: TextStyle(
               fontSize: 10,

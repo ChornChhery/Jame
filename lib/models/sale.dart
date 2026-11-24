@@ -48,7 +48,7 @@ class Sale {
     return Sale(
       id: map['id'],
       userId: map['user_id'],
-      saleDate: AppUtils.toThaiTime(DateTime.parse(_safeStringFromMap(map, 'sale_date')!)),
+      saleDate: AppUtils.toShopTime(DateTime.parse(_safeStringFromMap(map, 'sale_date')!)),
       totalAmount: _numberFromMap(map, 'total_amount'),
       paymentStatus: _safeStringFromMap(map, 'payment_status') ?? 'Completed',
       receiptNumber: _safeStringFromMap(map, 'receipt_number') ?? '',

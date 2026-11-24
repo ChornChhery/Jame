@@ -195,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      'เฉพาะบัญชี Gmail เท่านั้น',
+                                      AppTranslations.t('ui_gmail_accounts_only'),
                                       style: TextStyle(
                                         color: AppConstants.primaryDarkBlue,
                                         fontSize: 11,
@@ -228,18 +228,18 @@ class _LoginScreenState extends State<LoginScreen>
                                     if (lowercaseEmail.contains('gmali') ||
                                         lowercaseEmail.contains('gmal') ||
                                         lowercaseEmail.contains('gmail.')) {
-                                      return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                                      return AppTranslations.t('ui_did_you_mean_gmail_com');
                                     }
                                     // Check for .con instead of .com
                                     if (lowercaseEmail.endsWith('@gmail.con') ||
                                         lowercaseEmail.endsWith('@gmail.co') ||
                                         lowercaseEmail.endsWith('@gmail.cm')) {
-                                      return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                                      return AppTranslations.t('ui_did_you_mean_gmail_com');
                                     }
                                   }
                                   // Only show this error if user has completed typing the domain
                                   if (lowercaseEmail.split('@').length > 1) {
-                                    return 'กรุณาใช้บัญชี Gmail เท่านั้น (@gmail.com)';
+                                    return AppTranslations.t('ui_please_use_a_gmail_account_only');
                                   }
                                 }
                                 return null;
@@ -505,7 +505,7 @@ class _LoginScreenState extends State<LoginScreen>
           Padding(
             padding: const EdgeInsets.only(top: 6.0, left: 4.0),
             child: Text(
-              'ระบบรองรับเฉพาะบัญชี Gmail เท่านั้น',
+              AppTranslations.t('ui_the_system_only_supports_gmail_accounts'),
               style: TextStyle(
                 color: AppConstants.textDarkGray.withOpacity(0.7),
                 fontSize: 12,
@@ -525,7 +525,7 @@ class _LoginScreenState extends State<LoginScreen>
     final lowercaseEmail = email.toLowerCase();
 
     if (!lowercaseEmail.endsWith('@gmail.com')) {
-      String errorMessage = 'เฉพาะบัญชี Gmail เท่านั้นที่สามารถเข้าสู่ระบบได้';
+      String errorMessage = AppTranslations.t('ui_only_gmail_accounts_can_sign_in');
 
       // Check for common Gmail typing mistakes
       if (lowercaseEmail.contains('@gmail')) {
@@ -533,13 +533,13 @@ class _LoginScreenState extends State<LoginScreen>
         if (lowercaseEmail.contains('gmali') ||
             lowercaseEmail.contains('gmal') ||
             lowercaseEmail.contains('gmail.')) {
-          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+          errorMessage = AppTranslations.t('ui_did_you_mean_gmail_com');
         }
         // Check for .con instead of .com
         else if (lowercaseEmail.endsWith('@gmail.con') ||
             lowercaseEmail.endsWith('@gmail.co') ||
             lowercaseEmail.endsWith('@gmail.cm')) {
-          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+          errorMessage = AppTranslations.t('ui_did_you_mean_gmail_com');
         }
       }
 
@@ -578,10 +578,10 @@ class _LoginScreenState extends State<LoginScreen>
       String errorMessage =
           loginError ??
           (isGmail && serverConnected
-              ? 'อีเมลหรือรหัสผ่านไม่ถูกต้อง' // Email or password incorrect
+              ? AppTranslations.t('ui_incorrect_email_or_password') // Email or password incorrect
               : !isGmail
-              ? 'เฉพาะบัญชี Gmail เท่านั้นที่สามารถเข้าสู่ระบบได้' // Only Gmail accounts can log in
-              : 'ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง'); // Cannot login, try again
+              ? AppTranslations.t('ui_only_gmail_accounts_can_sign_in') // Only Gmail accounts can log in
+              : AppTranslations.t('ui_unable_to_sign_in_please_try')); // Cannot login, try again
 
       // Check for common Gmail typing mistakes
       if (!isGmail && lowercaseEmail.contains('@gmail')) {
@@ -589,13 +589,13 @@ class _LoginScreenState extends State<LoginScreen>
         if (lowercaseEmail.contains('gmali') ||
             lowercaseEmail.contains('gmal') ||
             lowercaseEmail.contains('gmail.')) {
-          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+          errorMessage = AppTranslations.t('ui_did_you_mean_gmail_com');
         }
         // Check for .con instead of .com
         else if (lowercaseEmail.endsWith('@gmail.con') ||
             lowercaseEmail.endsWith('@gmail.co') ||
             lowercaseEmail.endsWith('@gmail.cm')) {
-          errorMessage = 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+          errorMessage = AppTranslations.t('ui_did_you_mean_gmail_com');
         }
       }
 
@@ -925,8 +925,8 @@ class _SignupScreenState extends State<SignupScreen>
           icon: Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
           validator: (value) {
-            if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
-            if (!AppUtils.isValidEmail(value!)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+            if (value?.isEmpty ?? true) return AppTranslations.t('ui_please_enter_your_email');
+            if (!AppUtils.isValidEmail(value!)) return AppTranslations.t('ui_invalid_email_format');
 
             // Only validate Gmail format if the user has typed enough characters
             final lowercaseEmail = value.toLowerCase();
@@ -940,18 +940,18 @@ class _SignupScreenState extends State<SignupScreen>
                 if (lowercaseEmail.contains('gmali') ||
                     lowercaseEmail.contains('gmal') ||
                     lowercaseEmail.contains('gmail.')) {
-                  return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                  return AppTranslations.t('ui_did_you_mean_gmail_com');
                 }
                 // Check for .con instead of .com
                 if (lowercaseEmail.endsWith('@gmail.con') ||
                     lowercaseEmail.endsWith('@gmail.co') ||
                     lowercaseEmail.endsWith('@gmail.cm')) {
-                  return 'คุณหมายถึง @gmail.com ใช่หรือไม่?';
+                  return AppTranslations.t('ui_did_you_mean_gmail_com');
                 }
               }
               // Only show this error if user has completed typing the domain
               if (lowercaseEmail.split('@').length > 1) {
-                return 'กรุณาใช้บัญชี Gmail เท่านั้น (@gmail.com)';
+                return AppTranslations.t('ui_please_use_a_gmail_account_only');
               }
             }
             return null;
@@ -973,9 +973,9 @@ class _SignupScreenState extends State<SignupScreen>
                 setState(() => _obscurePassword = !_obscurePassword),
           ),
           validator: (value) {
-            if (value?.isEmpty ?? true) return 'กรุณากรอกรหัสผ่าน';
+            if (value?.isEmpty ?? true) return AppTranslations.t('ui_please_enter_your_password');
             if (!AppUtils.isValidPassword(value!))
-              return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+              return AppTranslations.t('ui_password_must_be_at_least_6');
             return null;
           },
         ),
@@ -1022,7 +1022,7 @@ class _SignupScreenState extends State<SignupScreen>
               SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  'เฉพาะบัญชี Gmail เท่านั้น',
+                  AppTranslations.t('ui_gmail_accounts_only'),
                   style: TextStyle(
                     color: AppConstants.primaryDarkBlue,
                     fontSize: 11,
@@ -1100,7 +1100,7 @@ class _SignupScreenState extends State<SignupScreen>
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'ข้อมูลร้านค้าจะถูกใช้ในการออกใบเสร็จและเอกสารทางการเงิน',
+                  AppTranslations.t('ui_shop_information_is_used_for_receipts'),
                   style: TextStyle(
                     color: AppConstants.primaryDarkBlue,
                     fontSize: 12,
@@ -1221,7 +1221,7 @@ class _SignupScreenState extends State<SignupScreen>
           Padding(
             padding: const EdgeInsets.only(top: 6.0, left: 4.0),
             child: Text(
-              'ระบบรองรับเฉพาะบัญชี Gmail เท่านั้น',
+              AppTranslations.t('ui_the_system_only_supports_gmail_accounts'),
               style: TextStyle(
                 color: AppConstants.textDarkGray.withOpacity(0.7),
                 fontSize: 12,
@@ -1267,7 +1267,7 @@ class _SignupScreenState extends State<SignupScreen>
       if (!isValid) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('กรุณากรอกข้อมูลให้ครบถ้วนและถูกต้อง'),
+            content: Text(AppTranslations.t('ui_please_fill_in_all_information_completely')),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -1311,7 +1311,7 @@ class _SignupScreenState extends State<SignupScreen>
       String message = error;
       if (!serverConnected) {
         message =
-            '⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ ไม่สามารถสมัครสมาชิกได้'; // Cannot connect to server, cannot register
+            AppTranslations.t('ui_cannot_connect_to_the_server_sign'); // Cannot connect to server, cannot register
       }
 
       ScaffoldMessenger.of(context).showSnackBar(

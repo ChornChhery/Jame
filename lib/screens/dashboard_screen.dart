@@ -139,7 +139,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     Icon(Icons.warning_amber, color: Colors.white),
                     SizedBox(width: 8),
                     Expanded(
-                      child: Text('⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ แอปทำงานในโหมดจำกัด'), // Cannot connect to server, working in limited mode
+                      child: Text(AppTranslations.t('ui_cannot_connect_to_the_server_the')), // Cannot connect to server, working in limited mode
                     ),
                   ],
                 ),
@@ -922,7 +922,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'กิจกรรมล่าสุด',
+          AppTranslations.t('ui_recent_activity'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -994,7 +994,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 ),
                 SizedBox(width: 12),
                 Text(
-                  'แจ้งเตือนสินค้าใกล้หมด (${lowStockProducts.length})',
+                  AppTranslations.t('ui_low_stock_alerts', [lowStockProducts.length]),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1008,7 +1008,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       _showAllLowStockProducts(lowStockProducts.cast<Product>());
                     },
                     child: Text(
-                      'ดูทั้งหมด',
+                      AppTranslations.t('ui_view_all'),
                       style: TextStyle(
                         color: AppConstants.errorRed,
                         fontSize: 12,
@@ -1077,7 +1077,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         ),
                       ),
                       Text(
-                        'เหลือ ${product.quantity} ${product.unit}',
+                        AppTranslations.t('ui_left', [product.quantity, product.unit]),
                         style: TextStyle(
                           fontSize: 12,
                           color: AppConstants.textDarkGray,
@@ -1093,7 +1093,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'น้อยกว่า ${product.lowStock}',
+                    AppTranslations.t('ui_below', [product.lowStock]),
                     style: TextStyle(
                       color: AppConstants.errorRed,
                       fontSize: 10,
@@ -1167,9 +1167,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         // Update the title based on current sort option
         String titleText;
         if (_topProductsSort == 'quantity') {
-          titleText = 'สินค้ายอดนิยม (Top 5 ตามจำนวนขาย)';
+          titleText = AppTranslations.t('ui_top_products_top_5_by_quantity');
         } else {
-          titleText = 'สินค้ายอดนิยม (Top 5 ตามยอดขาย)';
+          titleText = AppTranslations.t('ui_top_products_top_5_by_sales');
         }
         
         return Container(
@@ -1219,11 +1219,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         return [
                           PopupMenuItem<String>(
                             value: 'quantity',
-                            child: Text('เรียงตามจำนวนขาย'),
+                            child: Text(AppTranslations.t('ui_sorted_by_quantity_sold')),
                           ),
                           PopupMenuItem<String>(
                             value: 'price',
-                            child: Text('เรียงตามยอดขาย'),
+                            child: Text(AppTranslations.t('ui_sorted_by_sales_amount')),
                           ),
                         ];
                       },
@@ -1234,7 +1234,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                         _showAllTopProducts(topProducts);
                       },
                       child: Text(
-                        'ดูทั้งหมด',
+                        AppTranslations.t('ui_view_all'),
                         style: TextStyle(
                           color: AppConstants.primaryDarkBlue,
                           fontSize: 12,
@@ -1263,7 +1263,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   return value.toString();
                 }
                 
-                final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+                final productName = _safeString(product['name']) ?? AppTranslations.t('ui_unspecified');
                 final productImage = _safeString(product['image']);
                 final totalRevenue = product['total_revenue'] is int 
                     ? product['total_revenue'].toDouble() 
@@ -1331,7 +1331,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                               ),
                             ),
                             Text(
-                              'ขายได้ $totalQuantity หน่วย',
+                              AppTranslations.t('ui_sold_units', [totalQuantity]),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppConstants.textDarkGray,
@@ -1367,7 +1367,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       // Show error dialog if user ID is not available
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('ไม่สามารถโหลดข้อมูลได้'),
+          content: Text(AppTranslations.t('ui_unable_to_load_data')),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -1407,7 +1407,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           ),
           SizedBox(height: 12),
           Text(
-            'ไม่มีการแจ้งเตือน',
+            AppTranslations.t('ui_no_notifications'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -1415,7 +1415,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             ),
           ),
           Text(
-            'สินค้าทั้งหมดมีสต็อกเพียงพอ',
+            AppTranslations.t('ui_all_products_have_sufficient_stock'),
             style: TextStyle(
               fontSize: 14,
               color: AppConstants.textDarkGray,
@@ -1449,7 +1449,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'การขายล่าสุด',
+                  AppTranslations.t('ui_recent_sales'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1459,7 +1459,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 TextButton(
                   onPressed: () => Navigator.pushNamed(context, AppConstants.reportsRoute),
                   child: Text(
-                    'ดูทั้งหมด',
+                    AppTranslations.t('ui_view_all'),
                     style: TextStyle(
                       color: AppConstants.primaryDarkBlue,
                       fontSize: 12,
@@ -1482,7 +1482,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'ยังไม่มีการขาย',
+                      AppTranslations.t('ui_no_sales_yet'),
                       style: TextStyle(
                         color: AppConstants.textDarkGray,
                         fontSize: 14,
@@ -1614,7 +1614,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ),
                     ),
                     Text(
-                      AppUtils.formatDateTimeThai(sale.saleDate),
+                      AppUtils.formatDateTime(sale.saleDate),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppConstants.textDarkGray,
@@ -1683,7 +1683,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       ),
                     ),
                     Text(
-                      AppUtils.formatDateTimeThai(sale.saleDate),
+                      AppUtils.formatDateTime(sale.saleDate),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppConstants.textDarkGray,
@@ -1734,7 +1734,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 children: [
                   Icon(Icons.notifications, color: AppConstants.primaryDarkBlue),
                   SizedBox(width: 8),
-                  Text('การแจ้งเตือน'),
+                  Text(AppTranslations.t('ui_notifications')),
                 ],
               ),
               content: Container(
@@ -1746,7 +1746,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     // System notifications
                     if (app.notifications.isNotEmpty) ...[
                       Text(
-                        'การแจ้งเตือนระบบ (${app.notifications.length})',
+                        AppTranslations.t('ui_system_notifications', [app.notifications.length]),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -1815,7 +1815,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                           ),
                                         ),
                                         Text(
-                                          AppUtils.formatDateTimeThai(notification['timestamp']),
+                                          AppUtils.formatDateTime(notification['timestamp']),
                                           style: TextStyle(
                                             fontSize: 10,
                                             color: Colors.grey,
@@ -1836,7 +1836,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     // Low stock notifications
                     if (lowStockProducts.isNotEmpty) ...[
                       Text(
-                        'แจ้งเตือนสินค้าใกล้หมด (${lowStockProducts.length})',
+                        AppTranslations.t('ui_low_stock_alerts', [lowStockProducts.length]),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -1905,7 +1905,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                           ),
                                         ),
                                         Text(
-                                          'เหลือ ${product.quantity} ${product.unit}',
+                                          AppTranslations.t('ui_left', [product.quantity, product.unit]),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: AppConstants.textDarkGray,
@@ -1921,7 +1921,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      'น้อยกว่า ${product.lowStock}',
+                                      AppTranslations.t('ui_below', [product.lowStock]),
                                       style: TextStyle(
                                         color: AppConstants.errorRed,
                                         fontSize: 10,
@@ -1941,7 +1941,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     // Cart items notifications
                     if (cartItems.isNotEmpty) ...[
                       Text(
-                        'สินค้าในตะกร้า (${cartItems.length})',
+                        AppTranslations.t('ui_items_in_cart', [cartItems.length]),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -2005,13 +2005,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          product?.name ?? 'ไม่ระบุสินค้า',
+                                          product?.name ?? AppTranslations.t('ui_unknown_product'),
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         Text(
-                                          '${cartItem.quantity} ${product?.unit ?? 'หน่วย'} x ${AppUtils.formatCurrency(product?.price ?? 0)}',
+                                          AppTranslations.t('ui_x', [cartItem.quantity, product?.unit ?? AppTranslations.t('ui_unit'), AppUtils.formatCurrency(product?.price ?? 0)]),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: AppConstants.textDarkGray,
@@ -2039,7 +2039,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     // Recent sales notifications
                     if (last5Sales.isNotEmpty) ...[
                       Text(
-                        'การขายล่าสุด (${last5Sales.length})',
+                        AppTranslations.t('ui_recent_sales_2', [last5Sales.length]),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -2114,7 +2114,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                                           ),
                                         ),
                                         Text(
-                                          AppUtils.formatDateTimeThai(sale.saleDate),
+                                          AppUtils.formatDateTime(sale.saleDate),
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: AppConstants.textDarkGray,
@@ -2147,14 +2147,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                             ),
                             SizedBox(height: 12),
                             Text(
-                              'ไม่มีการแจ้งเตือน',
+                              AppTranslations.t('ui_no_notifications'),
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             Text(
-                              'ไม่มีสินค้าใกล้หมดและยังไม่มีการขายวันนี้',
+                              AppTranslations.t('ui_no_low_stock_products_and_no'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppConstants.textDarkGray,
@@ -2173,11 +2173,11 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     Navigator.pop(context);
                     Navigator.pushNamed(context, '/notifications');
                   },
-                  child: Text('ดูการแจ้งเตือนทั้งหมด'),
+                  child: Text(AppTranslations.t('ui_view_all_notifications')),
                 ),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('ปิด'),
+                  child: Text(AppTranslations.t('ui_close')),
                 ),
               ],
             );
@@ -2335,8 +2335,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
   }
 
   bool _isToday(DateTime date) {
-    final now = AppUtils.toThaiTime(DateTime.now());
-    final thaiDate = AppUtils.toThaiTime(date);
+    final now = AppUtils.toShopTime(DateTime.now());
+    final thaiDate = AppUtils.toShopTime(date);
     return thaiDate.year == now.year && 
            thaiDate.month == now.month && 
            thaiDate.day == now.day;
@@ -2361,7 +2361,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             children: [
               Icon(Icons.warning_amber_rounded, color: AppConstants.errorRed),
               SizedBox(width: 8),
-              Text('สินค้าใกล้หมด'),
+              Text(AppTranslations.t('ui_low_stock_products')),
             ],
           ),
           content: Container(
@@ -2426,7 +2426,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                               ),
                             ),
                             Text(
-                              'เหลือ ${product.quantity} ${product.unit}',
+                              AppTranslations.t('ui_left', [product.quantity, product.unit]),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppConstants.textDarkGray,
@@ -2442,7 +2442,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'น้อยกว่า ${product.lowStock}',
+                          AppTranslations.t('ui_below', [product.lowStock]),
                           style: TextStyle(
                             color: AppConstants.errorRed,
                             fontSize: 10,
@@ -2459,7 +2459,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('ปิด'),
+              child: Text(AppTranslations.t('ui_close')),
             ),
           ],
         );
@@ -2520,7 +2520,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('ไม่สามารถโหลดข้อมูลได้'),
+              content: Text(AppTranslations.t('ui_unable_to_load_data')),
               backgroundColor: AppConstants.errorRed,
             ),
           );
@@ -2544,7 +2544,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
         children: [
           Icon(Icons.trending_up, color: AppConstants.primaryDarkBlue),
           SizedBox(width: 8),
-          Text('สินค้ายอดนิยม'),
+          Text(AppTranslations.t('ui_top_products')),
         ],
       ),
       content: Container(
@@ -2567,7 +2567,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   child: Text(
-                    'ตามจำนวนขาย',
+                    AppTranslations.t('ui_by_quantity_sold'),
                     style: TextStyle(
                       fontSize: 12,
                       color: _currentSort == 'quantity' ? Colors.white : Colors.black,
@@ -2585,7 +2585,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   child: Text(
-                    'ตามยอดขาย',
+                    AppTranslations.t('ui_by_sales_amount'),
                     style: TextStyle(
                       fontSize: 12,
                       color: _currentSort == 'price' ? Colors.white : Colors.black,
@@ -2600,7 +2600,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
               child: _isLoading
                 ? Center(child: CircularProgressIndicator(color: AppConstants.primaryDarkBlue))
                 : _currentList.isEmpty
-                  ? Center(child: Text('ไม่พบข้อมูลสินค้า'))
+                  ? Center(child: Text(AppTranslations.t('ui_product_data_not_found')))
                   : ListView.builder(
                       shrinkWrap: true,
                       itemCount: _currentList.length,
@@ -2625,7 +2625,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
                           return value.toString();
                         }
                         
-                        final productName = _safeString(product['name']) ?? 'ไม่ระบุ';
+                        final productName = _safeString(product['name']) ?? AppTranslations.t('ui_unspecified');
                         final productImage = _safeString(product['image']);
                         final totalRevenue = product['total_revenue'] is int 
                             ? product['total_revenue'].toDouble() 
@@ -2688,7 +2688,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
                                       ),
                                     ),
                                     Text(
-                                      'ขายได้ $totalQuantity หน่วย',
+                                      AppTranslations.t('ui_sold_units', [totalQuantity]),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: AppConstants.textDarkGray,
@@ -2716,7 +2716,7 @@ class _TopProductsDialogState extends State<_TopProductsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('ปิด'),
+          child: Text(AppTranslations.t('ui_close')),
         ),
       ],
     );

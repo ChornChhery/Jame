@@ -6,6 +6,7 @@ import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/product.dart';
 import '../core/constants.dart';
+import '../core/translations.dart';
 
 class ManualSaleDialog extends StatefulWidget {
   final VoidCallback? onSaleCompleted;
@@ -73,7 +74,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
         height: MediaQuery.of(context).size.height * 0.85,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('ขายด่วน - เลือกสินค้า'),
+            title: Text(AppTranslations.t('ui_quick_sale_select_product')),
             backgroundColor: AppConstants.primaryDarkBlue,
             foregroundColor: Colors.white,
             leading: IconButton(
@@ -90,7 +91,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'ค้นหาสินค้า...',
+                    hintText: AppTranslations.t('ui_search_products'),
                     prefixIcon: const Icon(Icons.search),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -160,7 +161,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
             ),
             const SizedBox(height: 16),
             Text(
-              _searchController.text.isEmpty ? 'ไม่มีสินค้าในสต็อก' : 'ไม่พบสินค้าที่ค้นหา',
+              _searchController.text.isEmpty ? AppTranslations.t('ui_no_products_in_stock') : AppTranslations.t('ui_no_matching_products_found'),
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -211,7 +212,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('รหัส: ${product.code}'),
+                Text(AppTranslations.t('ui_code', [product.code])),
                 Row(
                   children: [
                     Flexible(
@@ -232,7 +233,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        'คงเหลือ ${product.quantity}',
+                        AppTranslations.t('ui_in_stock_3', [product.quantity]),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -274,8 +275,8 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
               size: 20,
             ),
             const SizedBox(width: 8),
-            const Text(
-              'สินค้าที่เลือก',
+            Text(
+              AppTranslations.t('ui_selected_product'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -319,7 +320,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                 controller: _quantityController,
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
-                  labelText: 'จำนวน',
+                  labelText: AppTranslations.t('ui_qty'),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -346,8 +347,8 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'ยอดรวม:',
+              Text(
+                AppTranslations.t('ui_total_2'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -373,14 +374,14 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
       children: [
         // Customer info (optional)
         ExpansionTile(
-          title: const Text('ข้อมูลลูกค้า (ไม่บังคับ)'),
+          title: Text(AppTranslations.t('ui_customer_information_optional')),
           leading: const Icon(Icons.person_outline),
           children: [
             const SizedBox(height: 8),
             TextField(
               controller: _customerNameController,
               decoration: InputDecoration(
-                labelText: 'ชื่อลูกค้า',
+                labelText: AppTranslations.t('ui_customer_name'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -390,7 +391,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
             TextField(
               controller: _customerPhoneController,
               decoration: InputDecoration(
-                labelText: 'เบอร์โทรศัพท์',
+                labelText: AppTranslations.t('ui_phone_number'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -413,8 +414,8 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'วิธีชำระเงิน',
+              Text(
+                AppTranslations.t('ui_payment_method_3'),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -425,7 +426,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                 children: [
                   Expanded(
                     child: RadioListTile<String>(
-                      title: const Text('เงินสด'),
+                      title: Text(AppTranslations.t('ui_cash')),
                       value: 'Cash',
                       groupValue: _paymentMethod,
                       onChanged: (value) => setState(() => _paymentMethod = value!),
@@ -464,7 +465,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                     ),
                   )
                 : const Icon(Icons.check_circle),
-            label: Text(_isLoading ? 'กำลังดำเนินการ...' : 'ขายเรียบร้อย'),
+            label: Text(_isLoading ? AppTranslations.t('ui_processing') : AppTranslations.t('ui_sale_completed')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.primaryDarkBlue,
               foregroundColor: Colors.white,
@@ -492,8 +493,8 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
     final quantity = int.tryParse(_quantityController.text) ?? 0;
     if (quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณากรอกจำนวนที่ถูกต้อง'),
+        SnackBar(
+          content: Text(AppTranslations.t('ui_please_enter_a_valid_quantity')),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -503,7 +504,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
     if (quantity > _selectedProduct!.quantity) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('จำนวนสินค้าไม่เพียงพอ (เหลือ ${_selectedProduct!.quantity} ${_selectedProduct!.unit})'),
+          content: Text(AppTranslations.t('ui_insufficient_quantity_left', [_selectedProduct!.quantity, _selectedProduct!.unit])),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -540,8 +541,8 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
         widget.onSaleCompleted?.call();
         
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ขายสินค้าเรียบร้อยแล้ว'),
+          SnackBar(
+            content: Text(AppTranslations.t('ui_product_sold_successfully')),
             backgroundColor: AppConstants.successGreen,
           ),
         );
@@ -549,12 +550,12 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
         // Navigate to receipt
         Navigator.pushNamed(context, AppConstants.receiptRoute);
       } else {
-        throw Exception('ไม่สามารถบันทึกการขายได้');
+        throw Exception(AppTranslations.t('ui_unable_to_record_the_sale'));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
+          content: Text(AppTranslations.t('ui_an_error_occurred', [e])),
           backgroundColor: AppConstants.errorRed,
         ),
       );

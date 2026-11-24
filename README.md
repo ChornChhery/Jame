@@ -71,7 +71,7 @@ The app will help you:
 
 ## 📸 App Screenshots
 
-See Jame in action! All screenshots reflect the Thai-localized interface with Thai Baht (฿) currency and PromptPay integration.
+See Jame in action! Screenshots were captured from an earlier build; the interface now ships in English and Khmer (language switch in the app), with Thai Baht (฿) currency and PromptPay integration.
 
 | Login / Forget Password / Register | Dashboard / Profile | Product Managermant|
 |-----------------|----------------------------|--------------------|
@@ -699,7 +699,7 @@ In your user model and currency formatter:
 - 🖨️ Bluetooth printer integration
 
 ### Localization Features
-- 🇹🇭 Full Thai language support
+- 🌐 Full English and Khmer language support
 - 💰 Thai Baht currency formatting
 - 📋 Thai tax receipt compliance
 - 🏪 Thai business registration integration
@@ -741,7 +741,7 @@ In your user model and currency formatter:
 - **Currency Formatting**: 1,234.56 ฿
 - **Number Format**: Thai number formatting standards
 - **Date Format**: Buddhist calendar option
-- **Language Support**: Thai and English interface
+- **Language Support**: English and Khmer interface
 
 ### Payment Integration
 - **PromptPay QR Code**: Generate PromptPay QR for payments
@@ -757,13 +757,13 @@ In your user model and currency formatter:
 
 ### Sample Thai User Data Structure
 ```sql
--- Example Thai user data
+-- Example user data
 INSERT INTO users (
   username, email, first_name, last_name, shop_name, 
   shop_address, shop_phone, currency, payment_qr_info
 ) VALUES (
-  'somchai_shop', 'somchai@email.com', 'สมชาย', 'ใจดี',
-  'ร้านขายของชำสมชาย', '123 ถนนสุขุมวิท กรุงเทพฯ 10110',
+  'demo_shop', 'demo@gmail.com', 'Demo', 'User',
+  'Demo Grocery Store', '123 Example Street, Phnom Penh',
   '081-234-5678', 'THB', '0812345678' -- PromptPay phone number
 );
 ```
@@ -889,3 +889,15 @@ INSERT INTO users (
 5. **Business Growth** → Expansion planning with Thai market data
 
 This updated documentation now focuses specifically on adding only the users table while maintaining all existing functionality, with Thai Baht as the default currency and consideration for the Thai market. The architecture is simplified but still provides complete user authentication and data isolation without unnecessary additional tables.
+---
+
+## 🌐 Localization (English / Khmer)
+
+All user-facing text lives in `lib/core/translations.dart` (`'en'` and `'km'` maps).
+
+- In widgets, prefer `context.tr('key')` (rebuilds on language change).
+- Where no `BuildContext` is handy, use `AppTranslations.t('key', [arg0, arg1])`.
+  Placeholders in the text are `{0}`, `{1}`, ...
+- Values that are stored or compared in code (product categories, report periods) are
+  English canonical strings; show them with `AppTranslations.label(value)`.
+- Dates and numbers use the `en_US` locale. Currency is still shown with the baht sign (฿).

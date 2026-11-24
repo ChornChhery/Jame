@@ -82,7 +82,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              'สินค้าใกล้หมด',
+                              AppTranslations.t('ui_low_stock_products'),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
@@ -120,7 +120,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              'ตะกร้าสินค้า',
+                              AppTranslations.t('ui_shopping_cart'),
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
@@ -185,7 +185,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
             ),
             SizedBox(height: 16),
             Text(
-              'ไม่มีสินค้าใกล้หมด',
+              AppTranslations.t('ui_no_low_stock_products'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -194,7 +194,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
             ),
             SizedBox(height: 8),
             Text(
-              'สินค้าทั้งหมดมีสต็อกเพียงพอ',
+              AppTranslations.t('ui_all_products_have_sufficient_stock'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppConstants.textDarkGray.withOpacity(0.6),
@@ -281,9 +281,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  urgencyLevel == 2 ? 'หมด! ต้องเติมสต็อกด่วน' :
-                  urgencyLevel == 1 ? 'สต็อกต่ำมาก! ควรเติมสต็อก' :
-                  'สต็อกต่ำ แนะนำให้เติมสต็อก',
+                  urgencyLevel == 2 ? AppTranslations.t('ui_out_of_stock_restock_urgently') :
+                  urgencyLevel == 1 ? AppTranslations.t('ui_very_low_stock_should_restock') :
+                  AppTranslations.t('ui_low_stock_restocking_recommended'),
                   style: TextStyle(
                     color: urgencyLevel == 2 ? AppConstants.errorRed :
                            urgencyLevel == 1 ? Colors.orange : Colors.amber[700],
@@ -296,7 +296,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                   children: [
                     Expanded(
                       child: Text(
-                        'คงเหลือ: ${product.quantity} ${product.unit}',
+                        AppTranslations.t('ui_in_stock_2', [product.quantity, product.unit]),
                         style: TextStyle(
                           color: AppConstants.textDarkGray,
                           fontSize: 12,
@@ -306,7 +306,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                     ),
                     SizedBox(width: 16),
                     Text(
-                      'ขั้นต่ำ: ${product.lowStock}',
+                      AppTranslations.t('ui_minimum', [product.lowStock]),
                       style: TextStyle(
                         color: AppConstants.textDarkGray,
                         fontSize: 12,
@@ -325,7 +325,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                   arguments: {'product': product}
                 );
               },
-              child: Text('ดูรายละเอียด'),
+              child: Text(AppTranslations.t('ui_view_details')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppConstants.primaryDarkBlue,
                 foregroundColor: Colors.white,
@@ -352,7 +352,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
             ),
             SizedBox(height: 16),
             Text(
-              'ไม่มีสินค้าในตะกร้า',
+              AppTranslations.t('ui_no_items_in_cart'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w500,
@@ -361,7 +361,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
             ),
             SizedBox(height: 8),
             Text(
-              'เพิ่มสินค้าในตะกร้าเพื่อทำการขาย',
+              AppTranslations.t('ui_add_products_to_the_cart_to'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppConstants.textDarkGray.withOpacity(0.6),
@@ -386,7 +386,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
               children: [
                 Icon(Icons.add_shopping_cart, color: Colors.white),
                 SizedBox(width: 8),
-                Text('ไปยังหน้าตะกร้าสินค้า'),
+                Text(AppTranslations.t('ui_go_to_cart')),
               ],
             ),
             style: ElevatedButton.styleFrom(
@@ -454,7 +454,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                           ),
                   ),
                   title: Text(
-                    product?.name ?? 'ไม่ระบุสินค้า',
+                    product?.name ?? AppTranslations.t('ui_unknown_product'),
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -464,7 +464,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${cartItem.quantity} ${product?.unit ?? 'หน่วย'}',
+                        AppTranslations.t('ui_text', [cartItem.quantity, product?.unit ?? AppTranslations.t('ui_unit')]),
                         style: TextStyle(
                           color: AppConstants.textDarkGray,
                           fontSize: 12,
@@ -472,7 +472,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'ราคาต่อหน่วย: ${AppUtils.formatCurrency(product?.price ?? 0)}',
+                        AppTranslations.t('ui_unit_price', [AppUtils.formatCurrency(product?.price ?? 0)]),
                         style: TextStyle(
                           color: AppConstants.textDarkGray,
                           fontSize: 12,
@@ -494,7 +494,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with TickerPr
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'รวม ${cartItem.quantity} หน่วย',
+                        AppTranslations.t('ui_total_units', [cartItem.quantity]),
                         style: TextStyle(
                           color: AppConstants.textDarkGray.withOpacity(0.6),
                           fontSize: 10,

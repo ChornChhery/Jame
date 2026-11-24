@@ -23,12 +23,14 @@ class SettingsProvider extends ChangeNotifier {
   void setLanguage(String language) {
     if (_language != language) {
       _language = (language == 'km') ? 'km' : 'en';
+      AppTranslations.currentLanguage = _language;
       notifyListeners();
     }
   }
 
   void toggleLanguage() {
     _language = (_language == 'en') ? 'km' : 'en';
+    AppTranslations.currentLanguage = _language;
     notifyListeners();
   }
 

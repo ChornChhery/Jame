@@ -36,14 +36,14 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
   bool _isLoading = false;
 
   final List<String> _categories = [
-    'อาหารและเครื่องดื่ม',
-    'ของใช้ในบ้าน',
-    'เครื่องเขียน',
-    'ยาและอุปกรณ์การแพทย์',
-    'เสื้อผ้าและเครื่องแต่งกาย',
-    'อิเล็กทรอนิกส์',
-    'เครื่องใช้ในครัว',
-    'อื่นๆ'
+    'Food & Beverage',
+    'Household Items',
+    'Stationery',
+    'Medicine & Medical Supplies',
+    'Clothing & Apparel',
+    'Electronics',
+    'Kitchenware',
+    'Other'
   ];
 
   @override
@@ -67,7 +67,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
       _lowStockController.text = '5';
     }
     if (_unitController.text.isEmpty) {
-      _unitController.text = 'ชิ้น';
+      _unitController.text = 'pcs';
     }
   }
 
@@ -79,7 +79,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
         height: MediaQuery.of(context).size.height * 0.8,
         child: Scaffold(
           appBar: AppBar(
-            title: Text(widget.product == null ? 'เพิ่มสินค้า' : 'แก้ไขสินค้า'),
+            title: Text(widget.product == null ? AppTranslations.t('ui_add_products') : AppTranslations.t('ui_edit_product')),
             backgroundColor: AppConstants.primaryDarkBlue,
             foregroundColor: Colors.white,
             leading: IconButton(
@@ -95,12 +95,12 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 TextFormField(
                   controller: _nameController,
                   decoration: InputDecoration(
-                    labelText: 'ชื่อสินค้า *',
+                    labelText: AppTranslations.t('ui_product_name_2'),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'กรุณากรอกชื่อสินค้า';
+                      return AppTranslations.t('ui_please_enter_the_product_name');
                     }
                     return null;
                   },
@@ -110,12 +110,12 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 TextFormField(
                   controller: _codeController,
                   decoration: InputDecoration(
-                    labelText: 'รหัสสินค้า *',
+                    labelText: AppTranslations.t('ui_product_code_2'),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'กรุณากรอกรหัสสินค้า';
+                      return AppTranslations.t('ui_please_enter_the_product_code');
                     }
                     return null;
                   },
@@ -125,13 +125,13 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 DropdownButtonFormField<String>(
                   value: _selectedCategory,
                   decoration: InputDecoration(
-                    labelText: 'หมวดหมู่',
+                    labelText: AppTranslations.t('ui_category'),
                     border: OutlineInputBorder(),
                   ),
                   items: _categories.map((String category) {
                     return DropdownMenuItem<String>(
                       value: category,
-                      child: Text(category),
+                      child: Text(AppTranslations.label(category)),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -145,17 +145,17 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 TextFormField(
                   controller: _priceController,
                   decoration: InputDecoration(
-                    labelText: 'ราคา (บาท) *',
+                    labelText: AppTranslations.t('ui_price_baht'),
                     border: OutlineInputBorder(),
                     prefixText: '฿ ',
                   ),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'กรุณากรอกราคา';
+                      return AppTranslations.t('ui_please_enter_the_price');
                     }
                     if (double.tryParse(value) == null) {
-                      return 'กรุณากรอกราคาที่ถูกต้อง';
+                      return AppTranslations.t('ui_please_enter_a_valid_price');
                     }
                     return null;
                   },
@@ -168,16 +168,16 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                       child: TextFormField(
                         controller: _quantityController,
                         decoration: InputDecoration(
-                          labelText: 'จำนวนคงเหลือ *',
+                          labelText: AppTranslations.t('ui_quantity_in_stock_2'),
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'กรุณากรอกจำนวน';
+                            return AppTranslations.t('ui_please_enter_the_quantity');
                           }
                           if (int.tryParse(value) == null) {
-                            return 'กรุณากรอกจำนวนที่ถูกต้อง';
+                            return AppTranslations.t('ui_please_enter_a_valid_quantity');
                           }
                           return null;
                         },
@@ -188,7 +188,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                       child: TextFormField(
                         controller: _unitController,
                         decoration: InputDecoration(
-                          labelText: 'หน่วย',
+                          labelText: AppTranslations.t('ui_unit_2'),
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -200,15 +200,15 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                 TextFormField(
                   controller: _lowStockController,
                   decoration: InputDecoration(
-                    labelText: 'แจ้งเตือนสต็อกต่ำ',
+                    labelText: AppTranslations.t('ui_low_stock_alert'),
                     border: OutlineInputBorder(),
-                    helperText: 'แจ้งเตือนเมื่อสินค้าเหลือน้อยกว่าจำนวนนี้',
+                    helperText: AppTranslations.t('ui_alert_when_product_quantity_falls_below'),
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
                       if (int.tryParse(value) == null) {
-                        return 'กรุณากรอกจำนวนที่ถูกต้อง';
+                        return AppTranslations.t('ui_please_enter_a_valid_quantity');
                       }
                     }
                     return null;
@@ -225,7 +225,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                   ),
                   child: _isLoading
                       ? CircularProgressIndicator(color: Colors.white)
-                      : Text(widget.product == null ? 'เพิ่มสินค้า' : 'บันทึกการแก้ไข'),
+                      : Text(widget.product == null ? AppTranslations.t('ui_add_products') : AppTranslations.t('ui_save_changes')),
                 ),
               ],
             ),
@@ -253,7 +253,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
         price: double.parse(_priceController.text),
         quantity: int.parse(_quantityController.text),
         lowStock: int.parse(_lowStockController.text.isEmpty ? '5' : _lowStockController.text),
-        unit: _unitController.text.trim().isEmpty ? 'ชิ้น' : _unitController.text.trim(),
+        unit: _unitController.text.trim().isEmpty ? 'pcs' : _unitController.text.trim(),
       );
 
       if (widget.product == null) {
@@ -267,14 +267,14 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.product == null ? 'เพิ่มสินค้าเรียบร้อยแล้ว' : 'แก้ไขสินค้าเรียบร้อยแล้ว'),
+          content: Text(widget.product == null ? AppTranslations.t('ui_product_added_successfully') : AppTranslations.t('ui_product_edited_successfully')),
           backgroundColor: Colors.green,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
+          content: Text(AppTranslations.t('ui_an_error_occurred', [e])),
           backgroundColor: Colors.red,
         ),
       );

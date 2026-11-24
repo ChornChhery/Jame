@@ -20,26 +20,26 @@ class AppUtils {
     return password.length >= 6;
   }
 
-  // Format currency with Thai Baht symbol
+  // Format currency with Baht symbol
   static String formatCurrency(double amount) {
-    final format = NumberFormat("#,##0.00", "th_TH");
+    final format = NumberFormat("#,##0.00", "en_US");
     return '฿${format.format(amount)}';
   }
 
-  // Format datetime for Thai display
-  static String formatDateTimeThai(DateTime dateTime) {
-    final format = DateFormat('dd/MM/yyyy HH:mm', 'th_TH');
-    return format.format(toThaiTime(dateTime));
+  // Format datetime for display
+  static String formatDateTime(DateTime dateTime) {
+    final format = DateFormat('dd/MM/yyyy HH:mm', 'en_US');
+    return format.format(toShopTime(dateTime));
   }
 
-  // Format date only for Thai display
-  static String formatDateThai(DateTime dateTime) {
-    final format = DateFormat('dd/MM/yyyy', 'th_TH');
-    return format.format(toThaiTime(dateTime));
+  // Format date only for display
+  static String formatDate(DateTime dateTime) {
+    final format = DateFormat('dd/MM/yyyy', 'en_US');
+    return format.format(toShopTime(dateTime));
   }
 
   // Convert UTC time to Thailand time (UTC+7)
-  static DateTime toThaiTime(DateTime dateTime) {
+  static DateTime toShopTime(DateTime dateTime) {
     // Thailand is UTC+7
     return dateTime.toUtc().add(const Duration(hours: 7));
   }
@@ -52,7 +52,7 @@ class AppUtils {
 
   // Generate receipt number with Thai timezone consideration
   static String generateReceiptNumber(String username) {
-    final now = toThaiTime(DateTime.now());
+    final now = toShopTime(DateTime.now());
     final datePart = DateFormat('yyyyMMddHHmmss').format(now);
     final randomPart = Random().nextInt(9999).toString().padLeft(4, '0');
     return 'RCT${datePart}${randomPart}';

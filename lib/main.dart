@@ -14,8 +14,8 @@ import 'core/constants.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize date formatting for Thai locale
-  await initializeDateFormatting('th_TH', null);
+  // Initialize date formatting for the app locale
+  await initializeDateFormatting('en_US', null);
 
   final api = JameApi();
   runApp(MyApp(api: api));

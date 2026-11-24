@@ -117,7 +117,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) {
-      _showErrorMessage('กรุณากรอกข้อมูลให้ครบถ้วน');
+      _showErrorMessage(AppTranslations.t('ui_please_fill_in_all_required_information'));
       return;
     }
 
@@ -134,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       else if (_profileImage != null) {
         imagePath = await AppUtils.saveImageToDocuments(_profileImage!);
         if (imagePath == null) {
-          _showErrorMessage('ไม่สามารถบันทึกรูปภาพได้');
+          _showErrorMessage(AppTranslations.t('ui_unable_to_save_the_image'));
           setState(() => _isLoading = false);
           return;
         }
@@ -167,10 +167,10 @@ class _ProfileScreenState extends State<ProfileScreen>
           _useImageUrl = false;
         });
 
-        _showSuccessMessage('บันทึกข้อมูลเรียบร้อยแล้ว');
+        _showSuccessMessage(AppTranslations.t('ui_data_saved_successfully'));
       }
     } catch (e) {
-      _showErrorMessage('เกิดข้อผิดพลาด: $e');
+      _showErrorMessage(AppTranslations.t('ui_an_error_occurred', [e]));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -186,20 +186,20 @@ class _ProfileScreenState extends State<ProfileScreen>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          title: const Row(
+          title: Row(
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.orange),
               SizedBox(width: 12),
-              Text('ยกเลิกการแก้ไข'),
+              Text(AppTranslations.t('ui_discard_changes')),
             ],
           ),
-          content: const Text(
-            'คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก\nต้องการยกเลิกการแก้ไขหรือไม่?',
+          content: Text(
+            AppTranslations.t('ui_you_have_unsaved_changes_do_you'),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('กลับไปแก้ไข'),
+              child: Text(AppTranslations.t('ui_keep_editing')),
             ),
             ElevatedButton(
               onPressed: () {
@@ -215,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 backgroundColor: AppConstants.errorRed,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('ยกเลิก'),
+              child: Text(AppTranslations.t('ui_cancel')),
             ),
           ],
         ),
@@ -253,14 +253,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               child: const Icon(Icons.logout, color: AppConstants.errorRed),
             ),
             const SizedBox(width: 12),
-            const Text('ออกจากระบบ'),
+            Text(AppTranslations.t('ui_sign_out')),
           ],
         ),
-        content: const Text('คุณต้องการออกจากระบบหรือไม่?'),
+        content: Text(AppTranslations.t('ui_do_you_want_to_sign_out')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -271,7 +271,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text('ออกจากระบบ'),
+            child: Text(AppTranslations.t('ui_sign_out')),
           ),
         ],
       ),
@@ -338,13 +338,13 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'เลือกรูปโปรไฟล์',
+            Text(
+              AppTranslations.t('ui_choose_profile_picture'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             Text(
-              'เลือกวิธีการอัปโหลดรูปภาพของคุณ',
+              AppTranslations.t('ui_choose_how_to_upload_your_image'),
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
@@ -355,7 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Expanded(
                     child: _buildImageOptionCard(
                       icon: Icons.camera_alt_rounded,
-                      label: 'ถ่ายรูป',
+                      label: AppTranslations.t('ui_take_photo'),
                       color: Colors.blue,
                       onTap: () {
                         Navigator.pop(context);
@@ -367,7 +367,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Expanded(
                     child: _buildImageOptionCard(
                       icon: Icons.photo_library_rounded,
-                      label: 'แกลเลอรี่',
+                      label: AppTranslations.t('ui_gallery'),
                       color: Colors.purple,
                       onTap: () {
                         Navigator.pop(context);
@@ -401,13 +401,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.delete_outline, size: 20),
                     SizedBox(width: 8),
                     Text(
-                      'ลบรูปโปรไฟล์',
+                      AppTranslations.t('ui_remove_profile_picture'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -529,8 +529,8 @@ class _ProfileScreenState extends State<ProfileScreen>
           onPressed: _isLoading ? null : _saveProfile,
           backgroundColor: AppConstants.successGreen,
           icon: const Icon(Icons.check, color: Colors.white),
-          label: const Text(
-            'บันทึก',
+          label: Text(
+            AppTranslations.t('ui_save'),
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
           heroTag: 'save',
@@ -748,8 +748,8 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'กำลังบันทึกข้อมูล...',
+          Text(
+            AppTranslations.t('ui_saving_data'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -758,7 +758,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'กรุณารอสักครู่',
+            AppTranslations.t('ui_please_wait_a_moment'),
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
         ],
@@ -879,7 +879,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           ),
           const SizedBox(height: 20),
           Text(
-            displayName.isEmpty ? 'ไม่มีชื่อ' : displayName,
+            displayName.isEmpty ? AppTranslations.t('ui_no_name') : displayName,
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -904,7 +904,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  email.isEmpty ? 'ไม่มีอีเมล' : email,
+                  email.isEmpty ? AppTranslations.t('ui_no_email') : email,
                   style: TextStyle(
                     fontSize: 13,
                     color: AppConstants.primaryDarkBlue.withOpacity(0.7),
@@ -928,7 +928,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'กดไอคอนกล้องเพื่อเปลี่ยนรูปโปรไฟล์',
+                      AppTranslations.t('ui_tap_the_camera_icon_to_change'),
                       style: TextStyle(fontSize: 12, color: Colors.blue[700]),
                     ),
                   ),
@@ -962,8 +962,8 @@ class _ProfileScreenState extends State<ProfileScreen>
               },
               activeColor: AppConstants.primaryDarkBlue,
             ),
-            const Text(
-              'ใช้ลิงก์รูปภาพ',
+            Text(
+              AppTranslations.t('ui_use_image_link'),
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ],
@@ -974,7 +974,7 @@ class _ProfileScreenState extends State<ProfileScreen>
             child: TextFormField(
               controller: _imageUrlController,
               decoration: InputDecoration(
-                labelText: 'ลิงก์รูปภาพ',
+                labelText: AppTranslations.t('ui_image_link'),
                 hintText: 'https://example.com/image.jpg',
                 prefixIcon: const Icon(Icons.link, size: 20),
                 border: OutlineInputBorder(
@@ -1073,7 +1073,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildPersonalInfoCard() {
     return _buildCard(
-      title: 'ข้อมูลส่วนตัว',
+      title: AppTranslations.t('ui_personal_information'),
       icon: Icons.person_outline,
       child: Column(
         children: [
@@ -1082,22 +1082,22 @@ class _ProfileScreenState extends State<ProfileScreen>
               Expanded(
                 child: _buildModernTextField(
                   controller: _firstNameController,
-                  label: 'ชื่อ',
+                  label: AppTranslations.t('ui_first_name'),
                   icon: Icons.badge_outlined,
                   enabled: _isEditing,
                   validator: (value) =>
-                      value?.isEmpty ?? true ? 'กรุณากรอกชื่อ' : null,
+                      value?.isEmpty ?? true ? AppTranslations.t('ui_please_enter_your_first_name') : null,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildModernTextField(
                   controller: _lastNameController,
-                  label: 'นามสกุล',
+                  label: AppTranslations.t('ui_last_name'),
                   icon: Icons.badge_outlined,
                   enabled: _isEditing,
                   validator: (value) =>
-                      value?.isEmpty ?? true ? 'กรุณากรอกนามสกุล' : null,
+                      value?.isEmpty ?? true ? AppTranslations.t('ui_please_enter_your_last_name') : null,
                 ),
               ),
             ],
@@ -1105,16 +1105,16 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(height: 20),
           _buildModernTextField(
             controller: _emailController,
-            label: 'อีเมล',
+            label: AppTranslations.t('ui_email'),
             icon: Icons.email_outlined,
             keyboardType: TextInputType.emailAddress,
             enabled: _isEditing,
             validator: (value) {
-              if (value?.isEmpty ?? true) return 'กรุณากรอกอีเมล';
+              if (value?.isEmpty ?? true) return AppTranslations.t('ui_please_enter_your_email');
               if (!RegExp(
                 r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
               ).hasMatch(value!)) {
-                return 'รูปแบบอีเมลไม่ถูกต้อง';
+                return AppTranslations.t('ui_invalid_email_format');
               }
               return null;
             },
@@ -1182,20 +1182,20 @@ class _ProfileScreenState extends State<ProfileScreen>
         children: [
           _buildModernTextField(
             controller: _shopNameController,
-            label: 'ชื่อร้าน',
+            label: AppTranslations.t('ui_shop_name'),
             icon: Icons.store,
             enabled: _isEditing,
             validator: (value) =>
-                value?.isEmpty ?? true ? 'กรุณากรอกชื่อร้าน' : null,
+                value?.isEmpty ?? true ? AppTranslations.t('ui_please_enter_the_shop_name') : null,
           ),
           const SizedBox(height: 20),
           _buildModernTextField(
             controller: _shopAddressController,
-            label: 'ที่อยู่ร้าน',
+            label: AppTranslations.t('ui_shop_address'),
             icon: Icons.location_on_outlined,
             maxLines: 3,
             enabled: _isEditing,
-            hint: 'กรอกที่อยู่ร้านค้าของคุณ',
+            hint: AppTranslations.t('ui_enter_your_shop_address'),
           ),
           const SizedBox(height: 20),
           Row(
@@ -1203,7 +1203,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Expanded(
                 child: _buildModernTextField(
                   controller: _shopPhoneController,
-                  label: 'เบอร์โทรร้าน',
+                  label: AppTranslations.t('ui_shop_phone'),
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
                   enabled: _isEditing,
@@ -1213,7 +1213,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       if (!RegExp(
                         r'^[0-9]{9,10}$',
                       ).hasMatch(value.replaceAll('-', ''))) {
-                        return 'เบอร์โทรไม่ถูกต้อง';
+                        return AppTranslations.t('ui_invalid_phone_number');
                       }
                     }
                     return null;
@@ -1224,7 +1224,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Expanded(
                 child: _buildModernTextField(
                   controller: _shopEmailController,
-                  label: 'อีเมลร้าน',
+                  label: AppTranslations.t('ui_shop_email'),
                   icon: Icons.alternate_email,
                   keyboardType: TextInputType.emailAddress,
                   enabled: _isEditing,
@@ -1234,7 +1234,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       if (!RegExp(
                         r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                       ).hasMatch(value)) {
-                        return 'อีเมลไม่ถูกต้อง';
+                        return AppTranslations.t('ui_invalid_email');
                       }
                     }
                     return null;
@@ -1368,8 +1368,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'สถิติร้านค้า',
+              Text(
+                AppTranslations.t('ui_shop_statistics'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1384,7 +1384,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Expanded(
                 child: _buildStatItem(
                   icon: Icons.shopping_cart,
-                  label: 'ยอดขาย',
+                  label: AppTranslations.t('ui_sales'),
                   value: '-',
                   color: Colors.green,
                 ),
@@ -1393,7 +1393,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               Expanded(
                 child: _buildStatItem(
                   icon: Icons.inventory_2,
-                  label: 'สินค้า',
+                  label: AppTranslations.t('ui_products'),
                   value: '-',
                   color: Colors.blue,
                 ),
@@ -1521,7 +1521,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'รับชำระเงินผ่าน QR Code',
+                      AppTranslations.t('ui_accept_payments_via_qr_code'),
                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                     ),
                   ],
@@ -1532,16 +1532,16 @@ class _ProfileScreenState extends State<ProfileScreen>
           const SizedBox(height: 24),
           _buildModernTextField(
             controller: _promptPayController,
-            label: 'หมายเลข PromptPay',
+            label: AppTranslations.t('ui_promptpay_number'),
             icon: Icons.account_balance_wallet_outlined,
             keyboardType: TextInputType.phone,
             enabled: _isEditing,
-            hint: 'เบอร์โทร 10 หลัก หรือเลขประจำตัว 13 หลัก',
+            hint: AppTranslations.t('ui_10_digit_phone_number_or_13'),
             validator: (value) {
               if (value != null && value.isNotEmpty) {
                 final cleaned = value.replaceAll('-', '').replaceAll(' ', '');
                 if (!RegExp(r'^[0-9]{10}$|^[0-9]{13}$').hasMatch(cleaned)) {
-                  return 'กรุณากรอกเบอร์โทร 10 หลัก หรือเลขประจำตัว 13 หลัก';
+                  return AppTranslations.t('ui_please_enter_a_10_digit_phone');
                 }
               }
               return null;
@@ -1562,7 +1562,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'หมายเลข PromptPay จะใช้สำหรับสร้าง QR Code รับชำระเงินจากลูกค้า',
+                    AppTranslations.t('ui_the_promptpay_number_is_used_to'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.orange[700],
@@ -1580,13 +1580,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildPaymentMethodsCard() {
     return _buildInfoCard(
-      'วิธีการชำระเงินที่รองรับ',
+      AppTranslations.t('ui_supported_payment_methods'),
       Icons.payment,
       [
-        'PromptPay QR Code - รับเงินผ่านแอปธนาคาร',
-        'เงินสด (Cash) - รับเงินสดโดยตรง',
-        'การโอนเงินผ่านธนาคาร',
-        'บัตรเครดิต/เดบิต (เร็วๆ นี้)',
+        AppTranslations.t('ui_promptpay_qr_code_receive_money_via'),
+        AppTranslations.t('ui_cash_receive_cash_directly'),
+        AppTranslations.t('ui_bank_transfer'),
+        AppTranslations.t('ui_credit_debit_card_coming_soon'),
       ],
       Colors.blue[50]!,
       Colors.blue,
@@ -1595,13 +1595,13 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildSecurityCard() {
     return _buildInfoCard(
-      'ความปลอดภัยและความเป็นส่วนตัว',
+      AppTranslations.t('ui_security_privacy'),
       Icons.security,
       [
-        'ข้อมูลทั้งหมดถูกเข้ารหัสอย่างปลอดภัย',
-        'ไม่มีการเก็บข้อมูลบัตรเครดิต/เดบิต',
-        'ข้อมูลส่วนตัวไม่ถูกแชร์กับบุคคลที่สาม',
-        'ปฏิบัติตามมาตรฐานความปลอดภัย',
+        AppTranslations.t('ui_all_data_is_securely_encrypted'),
+        AppTranslations.t('ui_credit_debit_card_data_is_not'),
+        AppTranslations.t('ui_personal_data_is_not_shared_with'),
+        AppTranslations.t('ui_complies_with_security_standards'),
       ],
       Colors.green[50]!,
       Colors.green,

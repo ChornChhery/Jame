@@ -305,10 +305,10 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                   if (!_animationsInitialized) {
                     return Text(
                       _isProcessing
-                          ? 'กำลังค้นหาข้อมูลสินค้า...'
+                          ? AppTranslations.t('ui_searching_for_product')
                           : _hasScanned
-                              ? 'พบสินค้าแล้ว!'
-                              : 'วางกล้องให้ตรงกับ QR Code ของสินค้า',
+                              ? AppTranslations.t('ui_product_found')
+                              : AppTranslations.t('ui_align_the_camera_with_the_product'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -321,10 +321,10 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     opacity: _fadeAnimation,
                     child: Text(
                       _isProcessing
-                          ? 'กำลังค้นหาข้อมูลสินค้า...'
+                          ? AppTranslations.t('ui_searching_for_product')
                           : _hasScanned
-                              ? 'พบสินค้าแล้ว!'
-                              : 'วางกล้องให้ตรงกับ QR Code ของสินค้า',
+                              ? AppTranslations.t('ui_product_found')
+                              : AppTranslations.t('ui_align_the_camera_with_the_product'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -345,7 +345,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'รหัส: $_lastScannedCode',
+                    AppTranslations.t('ui_code', [_lastScannedCode]),
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -365,7 +365,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     child: OutlinedButton.icon(
                       onPressed: _showManualInputDialog,
                       icon: const Icon(Icons.keyboard, size: 18),
-                      label: const Text('ใส่รหัสสินค้า'),
+                      label: Text(AppTranslations.t('ui_enter_product_code')),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.white,
                         side: const BorderSide(color: Colors.white),
@@ -384,7 +384,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     child: ElevatedButton.icon(
                       onPressed: _showAddProductDialog,
                       icon: const Icon(Icons.add),
-                      label: const Text('เพิ่มสินค้าใหม่'),
+                      label: Text(AppTranslations.t('ui_add_new_product')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryYellow,
                         foregroundColor: AppConstants.primaryDarkBlue,
@@ -406,7 +406,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                 child: OutlinedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, AppConstants.cartRoute),
                   icon: const Icon(Icons.shopping_cart),
-                  label: const Text('ดูตะกร้าสินค้า'),
+                  label: Text(AppTranslations.t('ui_view_cart')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white),
@@ -458,8 +458,8 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'พบสินค้า',
+                            Text(
+                              AppTranslations.t('ui_product_found_2'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppConstants.textDarkGray,
@@ -500,7 +500,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     children: [
                       Expanded(
                         child: _buildProductDetail(
-                          'ราคา',
+                          AppTranslations.t('ui_price'),
                           AppUtils.formatCurrency(_scannedProduct!.price),
                           Icons.attach_money,
                           AppConstants.successGreen,
@@ -509,7 +509,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildProductDetail(
-                          'คงเหลือ',
+                          AppTranslations.t('ui_in_stock'),
                           '${_scannedProduct!.quantity} ${_scannedProduct!.unit}',
                           Icons.inventory,
                           _scannedProduct!.quantity <= _scannedProduct!.lowStock
@@ -529,7 +529,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         child: OutlinedButton.icon(
                           onPressed: _scannedProduct!.quantity > 0 ? () => _addToCart(_scannedProduct!) : null,
                           icon: const Icon(Icons.add_shopping_cart),
-                          label: Text(_scannedProduct!.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก'),
+                          label: Text(_scannedProduct!.quantity > 0 ? AppTranslations.t('ui_add_to_cart') : AppTranslations.t('ui_product_out_of_stock')),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
                             side: BorderSide(color: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey),
@@ -545,7 +545,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         child: ElevatedButton.icon(
                           onPressed: () => _viewProductDetails(_scannedProduct!),
                           icon: const Icon(Icons.info),
-                          label: const Text('ดูรายละเอียด'),
+                          label: Text(AppTranslations.t('ui_view_details')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppConstants.primaryDarkBlue,
                             foregroundColor: Colors.white,
@@ -589,8 +589,8 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'พบสินค้า',
+                            Text(
+                              AppTranslations.t('ui_product_found_2'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: AppConstants.textDarkGray,
@@ -631,7 +631,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                     children: [
                       Expanded(
                         child: _buildProductDetail(
-                          'ราคา',
+                          AppTranslations.t('ui_price'),
                           AppUtils.formatCurrency(_scannedProduct!.price),
                           Icons.attach_money,
                           AppConstants.successGreen,
@@ -640,7 +640,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                       const SizedBox(width: 12),
                       Expanded(
                         child: _buildProductDetail(
-                          'คงเหลือ',
+                          AppTranslations.t('ui_in_stock'),
                           '${_scannedProduct!.quantity} ${_scannedProduct!.unit}',
                           Icons.inventory,
                           _scannedProduct!.quantity <= _scannedProduct!.lowStock
@@ -660,7 +660,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         child: OutlinedButton.icon(
                           onPressed: _scannedProduct!.quantity > 0 ? () => _addToCart(_scannedProduct!) : null,
                           icon: const Icon(Icons.add_shopping_cart),
-                          label: Text(_scannedProduct!.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก'),
+                          label: Text(_scannedProduct!.quantity > 0 ? AppTranslations.t('ui_add_to_cart') : AppTranslations.t('ui_product_out_of_stock')),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
                             side: BorderSide(color: _scannedProduct!.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey),
@@ -676,7 +676,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                         child: ElevatedButton.icon(
                           onPressed: () => _viewProductDetails(_scannedProduct!),
                           icon: const Icon(Icons.info),
-                          label: const Text('ดูรายละเอียด'),
+                          label: Text(AppTranslations.t('ui_view_details')),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppConstants.primaryDarkBlue,
                             foregroundColor: Colors.white,
@@ -787,7 +787,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
       final app = Provider.of<AppProvider>(context, listen: false);
       
       if (auth.currentUser?.id == null) {
-        _showErrorMessage('ไม่พบข้อมูลผู้ใช้');
+        _showErrorMessage(AppTranslations.t('ui_user_data_not_found'));
         return;
       }
       
@@ -806,7 +806,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
       });
     } catch (e) {
       setState(() => _isProcessing = false);
-      _showErrorMessage('เกิดข้อผิดพลาด: ${e.toString()}');
+      _showErrorMessage(AppTranslations.t('ui_an_error_occurred', [e.toString()]));
     }
   }
 
@@ -827,11 +827,11 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ใส่รหัสสินค้า'),
+        title: Text(AppTranslations.t('ui_enter_product_code')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'รหัสสินค้า',
+          decoration: InputDecoration(
+            labelText: AppTranslations.t('ui_product_code'),
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -839,7 +839,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -848,7 +848,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
                 _processScannedCode(controller.text.trim());
               }
             },
-            child: const Text('ค้นหา'),
+            child: Text(AppTranslations.t('ui_search')),
           ),
         ],
       ),
@@ -859,7 +859,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('ไม่พบสินค้า'),
+        title: Text(AppTranslations.t('ui_no_products_found')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -869,10 +869,10 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
               color: AppConstants.textDarkGray,
             ),
             const SizedBox(height: 16),
-            Text('ไม่พบสินค้าที่มีรหัส: $code'),
+            Text(AppTranslations.t('ui_no_product_found_with_code', [code])),
             const SizedBox(height: 8),
-            const Text(
-              'คุณต้องการเพิ่มสินค้าใหม่หรือไม่?',
+            Text(
+              AppTranslations.t('ui_would_you_like_to_add_a'),
               style: TextStyle(fontSize: 14),
               textAlign: TextAlign.center,
             ),
@@ -884,14 +884,14 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
               Navigator.pop(context);
               _resumeScanning();
             },
-            child: const Text('สแกนต่อ'),
+            child: Text(AppTranslations.t('ui_keep_scanning')),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               _showAddProductDialog(prefilledCode: code);
             },
-            child: const Text('เพิ่มสินค้าใหม่'),
+            child: Text(AppTranslations.t('ui_add_new_product')),
           ),
         ],
       ),
@@ -916,7 +916,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     if (product.quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${product.name} หมดสต็อก'),
+          content: Text(AppTranslations.t('ui_is_out_of_stock', [product.name])),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -928,7 +928,7 @@ class _ScannerScreenState extends State<ScannerScreen> with TickerProviderStateM
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
+        content: Text(AppTranslations.t('ui_added_to_the_cart', [product.name])),
         backgroundColor: AppConstants.successGreen,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

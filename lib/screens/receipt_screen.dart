@@ -186,7 +186,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'ไม่พบใบเสร็จ',
+                      AppTranslations.t('ui_receipt_not_found'),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -195,7 +195,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'ไม่พบข้อมูลการชำระเงิน',
+                      AppTranslations.t('ui_payment_data_not_found'),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[500],
@@ -208,7 +208,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                         AppConstants.dashboardRoute
                       ),
                       icon: const Icon(Icons.home),
-                      label: const Text('กลับหน้าหลัก'),
+                      label: Text(AppTranslations.t('ui_back_to_home')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryDarkBlue,
                         foregroundColor: Colors.white,
@@ -345,8 +345,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'ชำระเงินเรียบร้อย',
+            Text(
+              AppTranslations.t('ui_payment_completed'),
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -361,7 +361,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'เลขที่: ${_currentSale!.receiptNumber}',
+                AppTranslations.t('ui_no', [_currentSale!.receiptNumber]),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -372,7 +372,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
             ),
             const SizedBox(height: 8),
             Text(
-              AppUtils.formatDateTimeThai(_currentSale!.saleDate),
+              AppUtils.formatDateTime(_currentSale!.saleDate),
               style: const TextStyle(
                 fontSize: 13,
                 color: Colors.white70,
@@ -484,8 +484,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'ใบเสร็จรับเงิน',
+                  Text(
+                    AppTranslations.t('ui_receipt'),
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -545,7 +545,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        AppUtils.formatDateThai(_currentSale!.saleDate),
+                        AppUtils.formatDate(_currentSale!.saleDate),
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[700],
@@ -570,8 +570,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        DateFormat('HH:mm', 'th_TH').format(
-                          AppUtils.toThaiTime(_currentSale!.saleDate),
+                        DateFormat('HH:mm', 'en_US').format(
+                          AppUtils.toShopTime(_currentSale!.saleDate),
                         ),
                         style: TextStyle(
                           fontSize: 13,
@@ -604,7 +604,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                   ),
                   const SizedBox(width: 12),
                   Text(
-                    'ลูกค้า: ${_currentSale!.customerName}',
+                    AppTranslations.t('ui_customer', [_currentSale!.customerName]),
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
@@ -630,8 +630,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 ),
               ),
               const SizedBox(width: 8),
-              const Text(
-                'รายการสินค้า',
+              Text(
+                AppTranslations.t('ui_items_4'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -652,12 +652,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 topRight: Radius.circular(12),
               ),
             ),
-            child: const Row(
+            child: Row(
               children: [
                 Expanded(
                   flex: 3,
                   child: Text(
-                    'รายการ',
+                    AppTranslations.t('ui_items'),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -667,7 +667,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 ),
                 Expanded(
                   child: Text(
-                    'จำนวน',
+                    AppTranslations.t('ui_qty'),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
@@ -678,7 +678,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 ),
                 Expanded(
                   child: Text(
-                    'ราคา',
+                    AppTranslations.t('ui_price'),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontSize: 12,
@@ -689,7 +689,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 ),
                 Expanded(
                   child: Text(
-                    'รวม',
+                    AppTranslations.t('ui_total'),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                       fontSize: 12,
@@ -712,7 +712,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
               ),
             ),
             child: _isLoading
-                ? const Padding(
+                ? Padding(
                     padding: EdgeInsets.all(32),
                     child: Center(
                       child: Column(
@@ -720,7 +720,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                           CircularProgressIndicator(),
                           SizedBox(height: 16),
                           Text(
-                            'กำลังโหลดรายการสินค้า...',
+                            AppTranslations.t('ui_loading_items'),
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.grey,
@@ -743,7 +743,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'ไม่สามารถโหลดรายการสินค้าได้',
+                                AppTranslations.t('ui_unable_to_load_items'),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[600],
@@ -758,7 +758,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                                   _loadSaleItems();
                                 },
                                 icon: const Icon(Icons.refresh),
-                                label: const Text('ลองอีกครั้ง'),
+                                label: Text(AppTranslations.t('ui_try_again')),
                               ),
                             ],
                           ),
@@ -794,7 +794,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          item.product?.name ?? 'ไม่พบชื่อสินค้า',
+                                          item.product?.name ?? AppTranslations.t('ui_product_name_not_found'),
                                           style: const TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w500,
@@ -802,7 +802,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'รหัส: ${item.product?.code ?? '-'}',
+                                          AppTranslations.t('ui_code', [item.product?.code ?? '-']),
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: Colors.grey[600],
@@ -879,15 +879,15 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'จำนวนรายการ',
+                    Text(
+                      AppTranslations.t('ui_number_of_items_2'),
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey,
                       ),
                     ),
                     Text(
-                      '${_saleItems.length} รายการ',
+                      AppTranslations.t('ui_items_3', [_saleItems.length]),
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -904,8 +904,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'รวมเป็นเงิน',
+                    Text(
+                      AppTranslations.t('ui_total'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -925,8 +925,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'วิธีชำระเงิน',
+                    Text(
+                      AppTranslations.t('ui_payment_method_3'),
                       style: TextStyle(fontSize: 13),
                     ),
                     Container(
@@ -960,7 +960,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                           const SizedBox(width: 6),
                           Text(
                             _currentSale!.paymentMethod == 'Cash'
-                                ? 'เงินสด'
+                                ? AppTranslations.t('ui_cash')
                                 : 'PromptPay',
                             style: TextStyle(
                               fontSize: 12,
@@ -1001,8 +1001,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                   size: 24,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'ขอบคุณที่ใช้บริการ',
+                Text(
+                  AppTranslations.t('ui_thank_you_for_your_business'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -1045,8 +1045,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                         ),
                       )
                     : const Icon(Icons.print, size: 20),
-                label: const Text(
-                  'พิมพ์ใบเสร็จ',
+                label: Text(
+                  AppTranslations.t('ui_print_receipt'),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -1074,8 +1074,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.share, size: 20),
-                label: const Text(
-                  'แชร์',
+                label: Text(
+                  AppTranslations.t('ui_share'),
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -1108,8 +1108,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
               (route) => false,
             ),
             icon: const Icon(Icons.home, size: 20),
-            label: const Text(
-              'กลับหน้าหลัก',
+            label: Text(
+              AppTranslations.t('ui_back_to_home'),
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -1140,13 +1140,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
       
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'ใบเสร็จรับเงิน เลขที่: ${_currentSale!.receiptNumber}',
+        text: AppTranslations.t('ui_receipt_no_2', [_currentSale!.receiptNumber]),
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถแชร์ใบเสร็จได้: ${e.toString()}'),
+            content: Text(AppTranslations.t('ui_unable_to_share_the_receipt', [e.toString()])),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1171,7 +1171,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถพิมพ์ใบเสร็จได้: ${e.toString()}'),
+            content: Text(AppTranslations.t('ui_unable_to_print_the_receipt', [e.toString()])),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -1215,7 +1215,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                     if (user.shopPhone != null && user.shopPhone!.isNotEmpty)
                       pw.Text(
-                        'โทร: ${user.shopPhone}',
+                        AppTranslations.t('ui_tel', [user.shopPhone]),
                         style: const pw.TextStyle(fontSize: 12),
                       ),
                     pw.SizedBox(height: 20),
@@ -1226,7 +1226,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                         borderRadius: pw.BorderRadius.circular(8),
                       ),
                       child: pw.Text(
-                        'ใบเสร็จรับเงิน',
+                        AppTranslations.t('ui_receipt'),
                         style: pw.TextStyle(
                           fontSize: 18,
                           fontWeight: pw.FontWeight.bold,
@@ -1246,11 +1246,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'เลขที่ใบเสร็จ: ${_currentSale!.receiptNumber}',
+                    AppTranslations.t('ui_receipt_no', [_currentSale!.receiptNumber]),
                     style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                   ),
                   pw.Text(
-                    'วันที่: ${DateFormat('dd/MM/yyyy HH:mm').format(_currentSale!.saleDate)}',
+                    AppTranslations.t('ui_date', [DateFormat('dd/MM/yyyy HH:mm').format(_currentSale!.saleDate)]),
                   ),
                 ],
               ),
@@ -1258,7 +1258,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
               if (_currentSale!.customerName != null && 
                   _currentSale!.customerName!.isNotEmpty) ...[
                 pw.SizedBox(height: 5),
-                pw.Text('ลูกค้า: ${_currentSale!.customerName}'),
+                pw.Text(AppTranslations.t('ui_customer', [_currentSale!.customerName])),
               ],
               
               pw.SizedBox(height: 20),
@@ -1283,14 +1283,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'รายการ',
+                          AppTranslations.t('ui_items'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'จำนวน',
+                          AppTranslations.t('ui_qty'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           textAlign: pw.TextAlign.center,
                         ),
@@ -1298,7 +1298,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'ราคา/หน่วย',
+                          AppTranslations.t('ui_price_unit'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           textAlign: pw.TextAlign.right,
                         ),
@@ -1306,7 +1306,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          'รวม',
+                          AppTranslations.t('ui_total'),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                           textAlign: pw.TextAlign.right,
                         ),
@@ -1321,11 +1321,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(
-                              item.product?.name ?? 'ไม่พบชื่อสินค้า',
+                              item.product?.name ?? AppTranslations.t('ui_product_name_not_found'),
                               style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                             ),
                             pw.Text(
-                              'รหัส: ${item.product?.code ?? '-'}',
+                              AppTranslations.t('ui_code', [item.product?.code ?? '-']),
                               style: const pw.TextStyle(fontSize: 10),
                             ),
                           ],
@@ -1369,12 +1369,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('จำนวนรายการ:'),
+                      pw.Text(AppTranslations.t('ui_number_of_items')),
                       pw.SizedBox(height: 5),
-                      pw.Text('วิธีชำระเงิน:'),
+                      pw.Text(AppTranslations.t('ui_payment_method_2')),
                       pw.SizedBox(height: 10),
                       pw.Text(
-                        'รวมเป็นเงิน:',
+                        AppTranslations.t('ui_total_2'),
                         style: pw.TextStyle(
                           fontSize: 16,
                           fontWeight: pw.FontWeight.bold,
@@ -1386,11 +1386,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text('${_saleItems.length} รายการ'),
+                      pw.Text(AppTranslations.t('ui_items_3', [_saleItems.length])),
                       pw.SizedBox(height: 5),
                       pw.Text(
                         _currentSale!.paymentMethod == 'Cash' 
-                            ? 'เงินสด' 
+                            ? AppTranslations.t('ui_cash') 
                             : 'PromptPay',
                       ),
                       pw.SizedBox(height: 10),
@@ -1412,7 +1412,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                 child: pw.Column(
                   children: [
                     pw.Text(
-                      'ขอบคุณที่ใช้บริการ',
+                      AppTranslations.t('ui_thank_you_for_your_business'),
                       style: pw.TextStyle(
                         fontSize: 16,
                         fontWeight: pw.FontWeight.bold,

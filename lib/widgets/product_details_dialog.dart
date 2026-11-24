@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/product.dart';
 import '../core/constants.dart';
+import '../core/translations.dart';
 
 class ProductDetailsDialog extends StatelessWidget {
   final Product product;
@@ -23,7 +24,7 @@ class ProductDetailsDialog extends StatelessWidget {
         height: MediaQuery.of(context).size.height * 0.7,
         child: Scaffold(
           appBar: AppBar(
-            title: Text('รายละเอียดสินค้า'),
+            title: Text(AppTranslations.t('ui_product_details')),
             backgroundColor: AppConstants.primaryDarkBlue,
             foregroundColor: Colors.white,
             leading: IconButton(
@@ -88,21 +89,21 @@ class ProductDetailsDialog extends StatelessWidget {
                 SizedBox(height: 24),
 
                 // Product Name
-                _buildDetailRow('ชื่อสินค้า', product.name),
+                _buildDetailRow(AppTranslations.t('ui_product_name'), product.name),
                 SizedBox(height: 16),
 
                 // Product Code
-                _buildDetailRow('รหัสสินค้า', product.code),
+                _buildDetailRow(AppTranslations.t('ui_product_code'), product.code),
                 SizedBox(height: 16),
 
                 // Category
                 if (product.category != null)
-                  _buildDetailRow('หมวดหมู่', product.category!),
+                  _buildDetailRow(AppTranslations.t('ui_category'), product.category!),
                 if (product.category != null) SizedBox(height: 16),
 
                 // Price
                 _buildDetailRow(
-                  'ราคา',
+                  AppTranslations.t('ui_price'),
                   '฿${NumberFormat('#,##0.00').format(product.price)}',
                   valueColor: AppConstants.primaryDarkBlue,
                   valueWeight: FontWeight.bold,
@@ -114,7 +115,7 @@ class ProductDetailsDialog extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _buildDetailRow(
-                        'จำนวนคงเหลือ',
+                        AppTranslations.t('ui_quantity_in_stock_3'),
                         '${product.quantity}',
                         valueColor: product.isLowStock ? Colors.red : Colors.green,
                         valueWeight: FontWeight.bold,
@@ -122,7 +123,7 @@ class ProductDetailsDialog extends StatelessWidget {
                     ),
                     SizedBox(width: 16),
                     Expanded(
-                      child: _buildDetailRow('หน่วย', product.unit),
+                      child: _buildDetailRow(AppTranslations.t('ui_unit_2'), product.unit),
                     ),
                   ],
                 ),
@@ -130,7 +131,7 @@ class ProductDetailsDialog extends StatelessWidget {
 
                 // Low Stock Alert
                 _buildDetailRow(
-                  'แจ้งเตือนสต็อกต่ำ',
+                  AppTranslations.t('ui_low_stock_alert'),
                   '${product.lowStock}',
                 ),
                 SizedBox(height: 16),
@@ -156,7 +157,7 @@ class ProductDetailsDialog extends StatelessWidget {
                       ),
                       SizedBox(width: 8),
                       Text(
-                        product.isLowStock ? 'สต็อกต่ำ - ควรเติมสต็อก' : 'สต็อกปกติ',
+                        product.isLowStock ? AppTranslations.t('ui_low_stock_should_restock_2') : AppTranslations.t('ui_stock_normal'),
                         style: TextStyle(
                           color: product.isLowStock ? Colors.red : Colors.green,
                           fontWeight: FontWeight.w500,
@@ -170,7 +171,7 @@ class ProductDetailsDialog extends StatelessWidget {
                 // Timestamps
                 if (product.createdAt != null) ...[
                   _buildDetailRow(
-                    'วันที่เพิ่ม',
+                    AppTranslations.t('ui_date_added'),
                     DateFormat('dd/MM/yyyy HH:mm').format(product.createdAt!),
                     labelSize: 12,
                     valueSize: 12,
@@ -181,7 +182,7 @@ class ProductDetailsDialog extends StatelessWidget {
                 ],
                 if (product.updatedAt != null) ...[
                   _buildDetailRow(
-                    'วันที่แก้ไขล่าสุด',
+                    AppTranslations.t('ui_last_modified'),
                     DateFormat('dd/MM/yyyy HH:mm').format(product.updatedAt!),
                     labelSize: 12,
                     valueSize: 12,

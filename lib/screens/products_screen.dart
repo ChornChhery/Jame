@@ -248,23 +248,23 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             }
           },
           itemBuilder: (context) => [
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'export',
               child: Row(
                 children: [
                   Icon(Icons.download_rounded),
                   SizedBox(width: 8),
-                  Text('ส่งออกข้อมูล'),
+                  Text(AppTranslations.t('ui_export_data')),
                 ],
               ),
             ),
-            const PopupMenuItem(
+            PopupMenuItem(
               value: 'import',
               child: Row(
                 children: [
                   Icon(Icons.upload_rounded),
                   SizedBox(width: 8),
-                  Text('นำเข้าข้อมูล'),
+                  Text(AppTranslations.t('ui_import_data')),
                 ],
               ),
             ),
@@ -295,7 +295,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'ค้นหาสินค้า, รหัส, หรือหมวดหมู่...',
+                hintText: AppTranslations.t('ui_search_products_codes_or_categories'),
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 prefixIcon: Icon(Icons.search_rounded, 
                   color: AppConstants.primaryDarkBlue),
@@ -333,11 +333,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     underline: const SizedBox(),
                     icon: Icon(Icons.sort_rounded, 
                       color: AppConstants.primaryDarkBlue),
-                    items: const [
-                      DropdownMenuItem(value: 'name', child: Text('เรียงตามชื่อ')),
-                      DropdownMenuItem(value: 'price', child: Text('เรียงตามราคา')),
-                      DropdownMenuItem(value: 'quantity', child: Text('เรียงตามจำนวน')),
-                      DropdownMenuItem(value: 'category', child: Text('เรียงตามหมวดหมู่')),
+                    items: [
+                      DropdownMenuItem(value: 'name', child: Text(AppTranslations.t('ui_sort_by_name'))),
+                      DropdownMenuItem(value: 'price', child: Text(AppTranslations.t('ui_sort_by_price'))),
+                      DropdownMenuItem(value: 'quantity', child: Text(AppTranslations.t('ui_sort_by_quantity'))),
+                      DropdownMenuItem(value: 'category', child: Text(AppTranslations.t('ui_sort_by_category'))),
                     ],
                     onChanged: (value) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -369,7 +369,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           ? AppConstants.primaryDarkBlue 
                           : Colors.grey[600],
                       ),
-                      tooltip: 'มุมมองรายการ',
+                      tooltip: AppTranslations.t('ui_list_view'),
                     ),
                     IconButton(
                       onPressed: () {
@@ -383,7 +383,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           ? AppConstants.primaryDarkBlue 
                           : Colors.grey[600],
                       ),
-                      tooltip: 'มุมมองตาราง',
+                      tooltip: AppTranslations.t('ui_grid_view'),
                     ),
                   ],
                 ),
@@ -418,7 +418,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 children: [
                   const Icon(Icons.inventory_2_rounded),
                   const SizedBox(width: 8),
-                  Text('สินค้าทั้งหมด ($allProductCount)'),
+                  Text(AppTranslations.t('ui_all_products', [allProductCount])),
                 ],
               ),
             ),
@@ -429,7 +429,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   Icon(Icons.warning_rounded, 
                     color: lowStockCount > 0 ? AppConstants.errorRed : null),
                   const SizedBox(width: 8),
-                  Text('สิ้นค้าใกล้หมด ($lowStockCount)'),
+                  Text(AppTranslations.t('ui_low_stock_products_2', [lowStockCount])),
                 ],
               ),
             ),
@@ -450,7 +450,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           ),
           const SizedBox(height: 16),
           Text(
-            'กำลังโหลดข้อมูลสินค้า...',
+            AppTranslations.t('ui_loading_products'),
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 16,
@@ -475,11 +475,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     if (_filteredProducts.isEmpty) {
       return _buildEmptyState(
         icon: Icons.inventory_2_outlined,
-        title: _searchQuery.isEmpty ? 'ยังไม่มีสินค้า' : 'ไม่พบสินค้า',
+        title: _searchQuery.isEmpty ? AppTranslations.t('ui_no_products_yet') : AppTranslations.t('ui_no_products_found'),
         subtitle: _searchQuery.isEmpty 
-          ? 'เริ่มต้นด้วยการเพิ่มสินค้าแรกของคุณ'
-          : 'ลองเปลี่ยนคำค้นหาหรือปรับเกณฑ์การค้นหา',
-        actionText: _searchQuery.isEmpty ? 'เพิ่มสินค้าแรก' : 'ล้างการค้นหา',
+          ? AppTranslations.t('ui_get_started_by_adding_your_first')
+          : AppTranslations.t('ui_try_changing_your_search_term_or'),
+        actionText: _searchQuery.isEmpty ? AppTranslations.t('ui_add_first_product') : AppTranslations.t('ui_clear_search'),
         onAction: _searchQuery.isEmpty 
           ? _showAddProductDialog 
           : () {
@@ -526,8 +526,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       return _buildEmptyState(
         icon: Icons.check_circle_outline_rounded,
         iconColor: AppConstants.successGreen,
-        title: 'สต็อกสินค้าเพียงพอ',
-        subtitle: 'ไม่มีสินค้าที่มีสต็อกต่ำในขณะนี้',
+        title: AppTranslations.t('ui_stock_is_sufficient'),
+        subtitle: AppTranslations.t('ui_no_products_are_low_on_stock'),
       );
     }
     
@@ -630,7 +630,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        'รหัส: ${product.code}',
+                        AppTranslations.t('ui_code', [product.code]),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -674,7 +674,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                product.quantity <= 0 ? 'หมดสต็อก' : '${product.quantity} ${product.unit}',
+                                product.quantity <= 0 ? AppTranslations.t('ui_out_of_stock') : '${product.quantity} ${product.unit}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w500,
@@ -702,7 +702,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                'สต็อกต่ำ! ควรเติมสต็อก',
+                                AppTranslations.t('ui_low_stock_should_restock'),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -725,7 +725,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         onPressed: product.quantity > 0 ? () => _showAddToCartDialog(product) : null,
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 24), // Increased from 20 to 24
                         color: product.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
-                        tooltip: product.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก',
+                        tooltip: product.quantity > 0 ? AppTranslations.t('ui_add_to_cart') : AppTranslations.t('ui_product_out_of_stock'),
                         padding: const EdgeInsets.all(0),
                         constraints: const BoxConstraints(),
                       ),
@@ -736,33 +736,33 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           color: Colors.grey[600], size: 20),
                         onSelected: (value) => _handleProductAction(value, product),
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'addStock',
                             child: Row(
                               children: [
                                 Icon(Icons.add_box_rounded, size: 16),
                                 SizedBox(width: 6),
-                                Text('เติมสต็อก', style: TextStyle(fontSize: 12)),
+                                Text(AppTranslations.t('ui_restock'), style: TextStyle(fontSize: 12)),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
                                 Icon(Icons.edit_rounded, size: 16),
                                 SizedBox(width: 6),
-                                Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                                Text(AppTranslations.t('ui_edit'), style: TextStyle(fontSize: 12)),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
                                 Icon(Icons.delete_rounded, color: Colors.red, size: 16),
                                 SizedBox(width: 6),
-                                Text('ลบ', style: TextStyle(color: Colors.red, fontSize: 12)),
+                                Text(AppTranslations.t('ui_delete'), style: TextStyle(color: Colors.red, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -871,7 +871,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     const SizedBox(width: 3),
                     Expanded(
                       child: Text(
-                        product.quantity <= 0 ? 'หมดสต็อก' : '${product.quantity} ${product.unit}',
+                        product.quantity <= 0 ? AppTranslations.t('ui_out_of_stock') : '${product.quantity} ${product.unit}',
                         style: TextStyle(
                           fontSize: 11,
                           color: product.quantity <= 0 
@@ -892,7 +892,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'หมดสต็อก',
+                          AppTranslations.t('ui_out_of_stock'),
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.grey,
@@ -908,7 +908,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'สต็อกต่ำ',
+                          AppTranslations.t('ui_low_stock'),
                           style: TextStyle(
                             fontSize: 10,
                             color: AppConstants.errorRed,
@@ -928,40 +928,40 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         onPressed: product.quantity > 0 ? () => _showAddToCartDialog(product) : null,
                         icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
                         color: product.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
-                        tooltip: product.quantity > 0 ? 'เพิ่มในตะกร้า' : 'สินค้าหมดสต็อก',
+                        tooltip: product.quantity > 0 ? AppTranslations.t('ui_add_to_cart') : AppTranslations.t('ui_product_out_of_stock'),
                       ),
                       PopupMenuButton<String>(
                         icon: Icon(Icons.more_vert_rounded, 
                           color: Colors.grey[600], size: 20),
                         onSelected: (value) => _handleProductAction(value, product),
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'addStock',
                             child: Row(
                               children: [
                                 Icon(Icons.add_box_rounded, size: 16),
                                 SizedBox(width: 6),
-                                Text('เติมสต็อก', style: TextStyle(fontSize: 12)),
+                                Text(AppTranslations.t('ui_restock'), style: TextStyle(fontSize: 12)),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'edit',
                             child: Row(
                               children: [
                                 Icon(Icons.edit_rounded, size: 16),
                                 SizedBox(width: 6),
-                                Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                                Text(AppTranslations.t('ui_edit'), style: TextStyle(fontSize: 12)),
                               ],
                             ),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
                                 Icon(Icons.delete_rounded, color: Colors.red, size: 16),
                                 SizedBox(width: 6),
-                                Text('ลบ', style: TextStyle(color: Colors.red, fontSize: 12)),
+                                Text(AppTranslations.t('ui_delete'), style: TextStyle(color: Colors.red, fontSize: 12)),
                               ],
                             ),
                           ),
@@ -1134,7 +1134,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         // Show snackbar using the stored scaffold messenger reference
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('สินค้านี้หมดสต็อกแล้ว'),
+            content: Text(AppTranslations.t('ui_this_product_is_out_of_stock')),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1173,13 +1173,13 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       // Show snackbar using the stored scaffold messenger reference
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('เพิ่ม ${product.name} ในตะกร้าแล้ว'),
+          content: Text(AppTranslations.t('ui_added_to_the_cart', [product.name])),
           backgroundColor: AppConstants.successGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: EdgeInsets.all(16),
           action: SnackBarAction(
-            label: 'ดูตะกร้า',
+            label: AppTranslations.t('ui_view_cart_2'),
             textColor: Colors.white,
             onPressed: () {
               // Note: We can't safely navigate from here as the context might be disposed
@@ -1195,7 +1195,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     if (product.quantity <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${product.name} หมดสต็อก'),
+          content: Text(AppTranslations.t('ui_is_out_of_stock', [product.name])),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -1226,8 +1226,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'เพิ่มในตะกร้า',
+                  Text(
+                    AppTranslations.t('ui_add_to_cart'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   Text(
@@ -1261,7 +1261,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'สต็อกปัจจุบัน: ${product.quantity} ${product.unit}',
+                    AppTranslations.t('ui_current_stock', [product.quantity, product.unit]),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                     ),
@@ -1275,8 +1275,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               autofocus: true,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'จำนวนที่ต้องการ',
-                hintText: 'ใส่จำนวนที่ต้องการ',
+                labelText: AppTranslations.t('ui_quantity_needed'),
+                hintText: AppTranslations.t('ui_enter_quantity_needed'),
                 prefixIcon: const Icon(Icons.numbers_rounded),
                 suffix: Text(product.unit),
                 border: const OutlineInputBorder(),
@@ -1290,12 +1290,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton.icon(
             onPressed: () => _addToCartConfirmed(product, quantityController.text),
             icon: const Icon(Icons.add_shopping_cart_rounded),
-            label: const Text('เพิ่มในตะกร้า'),
+            label: Text(AppTranslations.t('ui_add_to_cart')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.primaryYellow,
               foregroundColor: AppConstants.primaryDarkBlue,
@@ -1322,8 +1322,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       Future.delayed(Duration(milliseconds: 100), () {
         // Show snackbar using the stored scaffold messenger reference
         scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('กรุณาใส่จำนวนที่ถูกต้อง'),
+          SnackBar(
+            content: Text(AppTranslations.t('ui_please_enter_a_valid_quantity')),
             backgroundColor: AppConstants.errorRed,
           ),
         );
@@ -1340,7 +1340,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         // Show snackbar using the stored scaffold messenger reference
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('จำนวนที่ต้องการมากกว่าสต็อกที่มี (${product.quantity} ${product.unit})'),
+            content: Text(AppTranslations.t('ui_requested_quantity_exceeds_available_stock', [product.quantity, product.unit])),
             backgroundColor: AppConstants.errorRed,
           ),
         );
@@ -1397,7 +1397,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'เพิ่ม ${product.name} จำนวน $quantity ${product.unit} ในตะกร้าแล้ว',
+                  AppTranslations.t('ui_added_x_to_the_cart', [product.name, quantity, product.unit]),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1435,8 +1435,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'รายละเอียดสินค้า',
+              Text(
+                AppTranslations.t('ui_product_details'),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 20),
@@ -1462,16 +1462,16 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildDetailRow('รหัสสินค้า', product.code),
+                    _buildDetailRow(AppTranslations.t('ui_product_code'), product.code),
                     const SizedBox(height: 12),
-                    _buildDetailRow('ราคา', AppUtils.formatCurrency(product.price)),
+                    _buildDetailRow(AppTranslations.t('ui_price'), AppUtils.formatCurrency(product.price)),
                     const SizedBox(height: 12),
-                    _buildDetailRow('จำนวนในสต็อก', '${product.quantity} ${product.unit}'),
+                    _buildDetailRow(AppTranslations.t('ui_quantity_in_stock'), '${product.quantity} ${product.unit}'),
                     const SizedBox(height: 12),
-                    _buildDetailRow('จุดเตือนสต็อกต่ำ', '${product.lowStock} ${product.unit}'),
+                    _buildDetailRow(AppTranslations.t('ui_low_stock_threshold'), '${product.lowStock} ${product.unit}'),
                     if (product.category != null) ...[
                       const SizedBox(height: 12),
-                      _buildDetailRow('หมวดหมู่', product.category!),
+                      _buildDetailRow(AppTranslations.t('ui_category'), product.category!),
                     ],
                   ],
                 ),
@@ -1487,7 +1487,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         _showAddToCartDialog(product);
                       },
                       icon: const Icon(Icons.add_shopping_cart_rounded),
-                      label: const Text('เพิ่มในตะกร้า'),
+                      label: Text(AppTranslations.t('ui_add_to_cart')),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppConstants.primaryYellow,
                         foregroundColor: AppConstants.primaryDarkBlue,
@@ -1507,7 +1507,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         _showEditProductDialog(product);
                       },
                       icon: const Icon(Icons.edit_rounded),
-                      label: const Text('แก้ไขสินค้า'),
+                      label: Text(AppTranslations.t('ui_edit_product')),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -1518,7 +1518,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     child: OutlinedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close_rounded),
-                      label: const Text('ปิด'),
+                      label: Text(AppTranslations.t('ui_close')),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -1574,19 +1574,19 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     final priceController = TextEditingController(text: product?.price.toString() ?? '');
     final quantityController = TextEditingController(text: product?.quantity.toString() ?? '');
     final lowStockController = TextEditingController(text: product?.lowStock.toString() ?? '5');
-    final unitController = TextEditingController(text: product?.unit ?? 'ชิ้น');
+    final unitController = TextEditingController(text: product?.unit ?? 'pcs');
     final categoryController = TextEditingController(text: product?.category ?? '');
     final imageController = TextEditingController(text: product?.image ?? '');
     
     final List<String> categories = [
-      'อาหารและเครื่องดื่ม',
-      'ของใช้ในบ้าน',
-      'เครื่องเขียน',
-      'ยาและอุปกรณ์การแพทย์',
-      'เสื้อผ้าและเครื่องแต่งกาย',
-      'อิเล็กทรอนิกส์',
-      'เครื่องใช้ในครัว',
-      'อื่นๆ'
+      'Food & Beverage',
+      'Household Items',
+      'Stationery',
+      'Medicine & Medical Supplies',
+      'Clothing & Apparel',
+      'Electronics',
+      'Kitchenware',
+      'Other'
     ];
     
     String? selectedCategory = product?.category;
@@ -1622,7 +1622,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            isEditing ? 'แก้ไขสินค้า' : 'เพิ่มสินค้าใหม่',
+                            isEditing ? AppTranslations.t('ui_edit_product') : AppTranslations.t('ui_add_new_product'),
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
@@ -1647,7 +1647,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                         children: [
                           _buildFormField(
                             controller: nameController,
-                            label: 'ชื่อสินค้า',
+                            label: AppTranslations.t('ui_product_name'),
                             icon: Icons.inventory_2_rounded,
                             required: true,
                           ),
@@ -1657,7 +1657,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               Expanded(
                                 child: _buildFormField(
                                   controller: priceController,
-                                  label: 'ราคา',
+                                  label: AppTranslations.t('ui_price'),
                                   icon: Icons.attach_money_rounded,
                                   keyboardType: TextInputType.number,
                                   required: true,
@@ -1667,7 +1667,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               Expanded(
                                 child: _buildFormField(
                                   controller: quantityController,
-                                  label: 'จำนวน',
+                                  label: AppTranslations.t('ui_qty'),
                                   icon: Icons.numbers_rounded,
                                   keyboardType: TextInputType.number,
                                   required: true,
@@ -1681,7 +1681,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               Expanded(
                                 child: _buildFormField(
                                   controller: lowStockController,
-                                  label: 'จุดเตือนสต็อกต่ำ',
+                                  label: AppTranslations.t('ui_low_stock_threshold'),
                                   icon: Icons.warning_rounded,
                                   keyboardType: TextInputType.number,
                                 ),
@@ -1690,7 +1690,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               Expanded(
                                 child: _buildFormField(
                                   controller: unitController,
-                                  label: 'หน่วย',
+                                  label: AppTranslations.t('ui_unit_2'),
                                   icon: Icons.scale_rounded,
                                 ),
                               ),
@@ -1705,9 +1705,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             ),
                             child: DropdownButtonFormField<String>(
                               value: selectedCategory,
-                              hint: const Text('เลือกหมวดหมู่'),
+                              hint: Text(AppTranslations.t('ui_select_category')),
                               decoration: InputDecoration(
-                                labelText: 'หมวดหมู่',
+                                labelText: AppTranslations.t('ui_category'),
                                 prefixIcon: Icon(Icons.category_rounded, 
                                   color: AppConstants.primaryDarkBlue),
                                 border: InputBorder.none,
@@ -1717,7 +1717,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               items: categories.map((String category) {
                                 return DropdownMenuItem(
                                   value: category,
-                                  child: Text(category),
+                                  child: Text(AppTranslations.label(category)),
                                 );
                               }).toList(),
                               onChanged: (String? newValue) {
@@ -1731,7 +1731,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                           const SizedBox(height: 16),
                           _buildFormField(
                             controller: imageController,
-                            label: 'ลิงค์รูปภาพ',
+                            label: AppTranslations.t('ui_image_link'),
                             icon: Icons.image_rounded,
                             maxLines: 2,
                           ),
@@ -1748,7 +1748,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                             child: TextButton.icon(
                               onPressed: () => _showImageUploadOptions(context, imageController),
                               icon: const Icon(Icons.cloud_upload_rounded),
-                              label: const Text('อัปโหลดรูปภาพ'),
+                              label: Text(AppTranslations.t('ui_upload_image')),
                               style: TextButton.styleFrom(
                                 foregroundColor: AppConstants.primaryDarkBlue,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -1772,7 +1772,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Text('ยกเลิก'),
+                            child: Text(AppTranslations.t('ui_cancel')),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -1785,7 +1785,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                               categoryController, imageController,
                             ),
                             icon: Icon(isEditing ? Icons.save_rounded : Icons.add_rounded),
-                            label: Text(isEditing ? 'บันทึก' : 'เพิ่มสินค้า'),
+                            label: Text(isEditing ? AppTranslations.t('ui_save') : AppTranslations.t('ui_add_products')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isEditing 
                                 ? AppConstants.primaryDarkBlue 
@@ -1868,8 +1868,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'เลือกวิธีอัปโหลดรูปภาพ',
+            Text(
+              AppTranslations.t('ui_choose_how_to_upload_the_image'),
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 20),
@@ -1882,8 +1882,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
                 child: Icon(Icons.link_rounded, color: AppConstants.primaryDarkBlue),
               ),
-              title: const Text('ใช้ลิงค์รูปภาพ'),
-              subtitle: const Text('ใส่ URL ของรูปภาพจากอินเทอร์เน็ต'),
+              title: Text(AppTranslations.t('ui_use_image_link')),
+              subtitle: Text(AppTranslations.t('ui_enter_an_image_url_from_the')),
               onTap: () {
                 Navigator.pop(context);
                 _showImageUrlDialog(imageController);
@@ -1898,8 +1898,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
                 child: Icon(Icons.camera_alt_rounded, color: AppConstants.primaryDarkBlue),
               ),
-              title: const Text('ถ่ายรูป'),
-              subtitle: const Text('ใช้กล้องเพื่อถ่ายรูปสินค้า'),
+              title: Text(AppTranslations.t('ui_take_photo')),
+              subtitle: Text(AppTranslations.t('ui_use_the_camera_to_take_a')),
               onTap: () {
                 Navigator.pop(context);
                 _captureImage(context, imageController);
@@ -1914,8 +1914,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
                 child: Icon(Icons.photo_library_rounded, color: AppConstants.primaryDarkBlue),
               ),
-              title: const Text('เลือกจากแกลเลอรี่'),
-              subtitle: const Text('เลือกรูปจากแกลเลอรี่ในเครื่อง'),
+              title: Text(AppTranslations.t('ui_choose_from_gallery')),
+              subtitle: Text(AppTranslations.t('ui_choose_a_photo_from_the_device')),
               onTap: () {
                 Navigator.pop(context);
                 _pickImageFromGallery(context, imageController);
@@ -1935,11 +1935,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.link_rounded),
             SizedBox(width: 8),
-            Text('ใส่ลิงค์รูปภาพ'),
+            Text(AppTranslations.t('ui_enter_image_link')),
           ],
         ),
         content: Column(
@@ -1947,8 +1947,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           children: [
             TextField(
               controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'URL ของรูปภาพ',
+              decoration: InputDecoration(
+                labelText: AppTranslations.t('ui_image_url'),
                 hintText: 'https://example.com/image.jpg',
                 prefixIcon: Icon(Icons.image_rounded),
                 border: OutlineInputBorder(),
@@ -1957,7 +1957,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
             ),
             const SizedBox(height: 12),
             Text(
-              'ใส่ลิงค์รูปภาพที่สามารถเข้าถึงได้จากอินเทอร์เน็ต',
+              AppTranslations.t('ui_enter_an_image_link_that_is'),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -1968,7 +1968,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -1979,7 +1979,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               backgroundColor: AppConstants.primaryYellow,
               foregroundColor: AppConstants.primaryDarkBlue,
             ),
-            child: const Text('บันทึก'),
+            child: Text(AppTranslations.t('ui_save')),
           ),
         ],
       ),
@@ -1991,11 +1991,11 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.info_outline_rounded, color: Colors.blue),
             SizedBox(width: 8),
-            Text('แจ้งเตือน'),
+            Text(AppTranslations.t('ui_notice')),
           ],
         ),
         content: Text(message),
@@ -2006,7 +2006,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               backgroundColor: AppConstants.primaryYellow,
               foregroundColor: AppConstants.primaryDarkBlue,
             ),
-            child: const Text('ตกลง'),
+            child: Text(AppTranslations.t('ui_ok')),
           ),
         ],
       ),
@@ -2068,7 +2068,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               ),
               const SizedBox(width: 12),
               Text(
-                isEditing ? 'อัพเดทสินค้าสำเร็จ' : 'เพิ่มสินค้าสำเร็จ',
+                isEditing ? AppTranslations.t('ui_product_updated_successfully') : AppTranslations.t('ui_product_added_successfully'),
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
@@ -2097,8 +2097,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
-                'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
+              Text(
+                AppTranslations.t('ui_an_error_occurred_please_try_again'),
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
@@ -2131,9 +2131,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               ),
             ),
             const SizedBox(width: 12),
-            const Expanded(
+            Expanded(
               child: Text(
-                'ยืนยันการลบ',
+                AppTranslations.t('ui_confirm_deletion'),
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
@@ -2147,12 +2147,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               text: TextSpan(
                 style: const TextStyle(color: AppConstants.textDarkGray),
                 children: [
-                  const TextSpan(text: 'คุณต้องการลบสินค้า '),
+                  TextSpan(text: AppTranslations.t('ui_do_you_want_to_delete_product')),
                   TextSpan(
                     text: '"${product.name}"',
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
-                  const TextSpan(text: ' ใช่หรือไม่?'),
+                  TextSpan(text: AppTranslations.t('ui_delete_product_suffix')),
                 ],
               ),
             ),
@@ -2174,9 +2174,9 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     size: 16,
                   ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'หมายเหตุ: หากสินค้านี้เคยถูกขายไปแล้ว ระบบจะลบประวัติการขายที่เกี่ยวข้องด้วย',
+                      AppTranslations.t('ui_note_if_this_product_has_been'),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppConstants.textDarkGray,
@@ -2191,12 +2191,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton.icon(
             onPressed: () => _deleteProduct(product),
             icon: const Icon(Icons.delete_rounded),
-            label: const Text('ลบสินค้า'),
+            label: Text(AppTranslations.t('ui_delete_product')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.errorRed,
               foregroundColor: Colors.white,
@@ -2244,8 +2244,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'ลบสินค้าสำเร็จ',
+                  Text(
+                    AppTranslations.t('ui_product_deleted_successfully'),
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -2278,8 +2278,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'ไม่สามารถลบสินค้าได้ กรุณาลองใหม่อีกครั้ง',
+                  Text(
+                    AppTranslations.t('ui_unable_to_delete_the_product_please'),
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ],
@@ -2314,7 +2314,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                 ),
                 const SizedBox(width: 12),
                 Text(
-                  'เกิดข้อผิดพลาด: ${e.toString()}',
+                  AppTranslations.t('ui_an_error_occurred', [e.toString()]),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -2354,8 +2354,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'เพิ่มสต็อก',
+                  Text(
+                    AppTranslations.t('ui_add_stock'),
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                   Text(
@@ -2389,7 +2389,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'สต็อกปัจจุบัน: ${product.quantity} ${product.unit}',
+                    AppTranslations.t('ui_current_stock', [product.quantity, product.unit]),
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                     ),
@@ -2403,8 +2403,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               autofocus: true,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'จำนวนที่ต้องการเพิ่ม',
-                hintText: 'ใส่จำนวนที่ต้องการเพิ่ม',
+                labelText: AppTranslations.t('ui_quantity_to_add'),
+                hintText: AppTranslations.t('ui_enter_quantity_to_add'),
                 prefixIcon: const Icon(Icons.add_rounded),
                 suffix: Text(product.unit),
                 border: const OutlineInputBorder(),
@@ -2418,12 +2418,12 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('ยกเลิก'),
+            child: Text(AppTranslations.t('ui_cancel')),
           ),
           ElevatedButton.icon(
             onPressed: () => _addStock(product, controller.text),
             icon: const Icon(Icons.add_rounded),
-            label: const Text('เพิ่มสต็อก'),
+            label: Text(AppTranslations.t('ui_add_stock')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.primaryYellow,
               foregroundColor: AppConstants.primaryDarkBlue,
@@ -2438,8 +2438,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
     final amount = int.tryParse(amountText) ?? 0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('กรุณาใส่จำนวนที่ถูกต้อง'),
+        SnackBar(
+          content: Text(AppTranslations.t('ui_please_enter_a_valid_quantity')),
           backgroundColor: AppConstants.errorRed,
         ),
       );
@@ -2475,7 +2475,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'เพิ่มสต็อก ${product.name} จำนวน $amount ${product.unit} สำเร็จ',
+                  AppTranslations.t('ui_added_of_to_stock_successfully', [product.name, amount, product.unit]),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
@@ -2506,7 +2506,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               ),
               const SizedBox(width: 12),
               Text(
-                'เกิดข้อผิดพลาดในการเพิ่มสต็อก',
+                AppTranslations.t('ui_error_adding_stock'),
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
             ],
@@ -2525,14 +2525,14 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.download_rounded),
             SizedBox(width: 8),
-            Text('ส่งออกข้อมูลสินค้า'),
+            Text(AppTranslations.t('ui_export_product_data')),
           ],
         ),
-        content: const Text('ฟีเจอร์ส่งออกข้อมูลจะพร้อมใช้งานในเวอร์ชันถัดไป'),
+        content: Text(AppTranslations.t('ui_the_export_feature_will_be_available')),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
@@ -2540,7 +2540,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               backgroundColor: AppConstants.primaryYellow,
               foregroundColor: AppConstants.primaryDarkBlue,
             ),
-            child: const Text('ตกลง'),
+            child: Text(AppTranslations.t('ui_ok')),
           ),
         ],
       ),
@@ -2552,14 +2552,14 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
             Icon(Icons.upload_rounded),
             SizedBox(width: 8),
-            Text('นำเข้าข้อมูลสินค้า'),
+            Text(AppTranslations.t('ui_import_product_data')),
           ],
         ),
-        content: const Text('ฟีเจอร์นำเข้าข้อมูลจะพร้อมใช้งานในเวอร์ชันถัดไป'),
+        content: Text(AppTranslations.t('ui_the_import_feature_will_be_available')),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
@@ -2567,7 +2567,7 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
               backgroundColor: AppConstants.primaryYellow,
               foregroundColor: AppConstants.primaryDarkBlue,
             ),
-            child: const Text('ตกลง'),
+            child: Text(AppTranslations.t('ui_ok')),
           ),
         ],
       ),
@@ -2586,8 +2586,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       } else {
         // Show error if failed to save
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ไม่สามารถบันทึกรูปภาพได้'),
+          SnackBar(
+            content: Text(AppTranslations.t('ui_unable_to_save_the_image')),
             backgroundColor: AppConstants.errorRed,
           ),
         );
@@ -2607,8 +2607,8 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
       } else {
         // Show error if failed to save
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ไม่สามารถบันทึกรูปภาพได้'),
+          SnackBar(
+            content: Text(AppTranslations.t('ui_unable_to_save_the_image')),
             backgroundColor: AppConstants.errorRed,
           ),
         );

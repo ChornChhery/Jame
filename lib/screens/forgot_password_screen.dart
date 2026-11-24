@@ -86,7 +86,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ลืมรหัสผ่าน?',
+          AppTranslations.t('ui_forgot_password'),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -95,35 +95,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'กรอกอีเมลของคุณเพื่อรับรหัสยืนยันแบบใช้ครั้งเดียว',
+          AppTranslations.t('ui_enter_your_email_to_receive_a'),
           style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray),
         ),
         const SizedBox(height: 32),
         _buildTextField(
           controller: _emailController,
-          label: 'อีเมล',
+          label: AppTranslations.t('ui_email'),
           icon: Icons.email_outlined,
           key: const ValueKey('reset-email'),
           keyboardType: TextInputType.emailAddress,
           validator: (value) {
             final email = value?.trim() ?? '';
-            if (email.isEmpty) return 'กรุณากรอกอีเมล';
-            if (!AppUtils.isValidEmail(email)) return 'รูปแบบอีเมลไม่ถูกต้อง';
+            if (email.isEmpty) return AppTranslations.t('ui_please_enter_your_email');
+            if (!AppUtils.isValidEmail(email)) return AppTranslations.t('ui_invalid_email_format');
             if (!email.toLowerCase().endsWith('@gmail.com')) {
-              return 'กรุณาใช้บัญชี Gmail เท่านั้น';
+              return AppTranslations.t('ui_please_use_a_gmail_account_only_2');
             }
             return null;
           },
         ),
         const SizedBox(height: 24),
         _infoBox(
-          'หากบัญชีนี้มีอยู่ เราจะส่งรหัสยืนยันไปยังอีเมลของคุณ',
+          AppTranslations.t('ui_if_this_account_exists_we_will'),
           Icons.info_outline,
         ),
         const SizedBox(height: 32),
         _actionButton(
           key: const ValueKey('request-reset-code'),
-          label: 'ส่งรหัสยืนยัน',
+          label: AppTranslations.t('ui_send_verification_code'),
           onPressed: _requestResetCode,
         ),
       ],
@@ -135,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'ตั้งรหัสผ่านใหม่',
+          AppTranslations.t('ui_set_new_password'),
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -144,19 +144,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'กรอกรหัสที่ส่งไปยัง ${_emailController.text.trim()}',
+          AppTranslations.t('ui_enter_the_code_sent_to', [_emailController.text.trim()]),
           style: TextStyle(fontSize: 14, color: AppConstants.textDarkGray),
         ),
         const SizedBox(height: 32),
         _buildTextField(
           controller: _verificationCodeController,
-          label: 'รหัสยืนยัน 6 หลัก',
+          label: AppTranslations.t('ui_6_digit_verification_code'),
           icon: Icons.pin_outlined,
           key: const ValueKey('verification-code'),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (value == null || !RegExp(r'^\d{6}$').hasMatch(value.trim())) {
-              return 'กรุณากรอกรหัสยืนยัน 6 หลัก';
+              return AppTranslations.t('ui_please_enter_the_6_digit_verification');
             }
             return null;
           },
@@ -164,7 +164,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 20),
         _buildTextField(
           controller: _newPasswordController,
-          label: 'รหัสผ่านใหม่',
+          label: AppTranslations.t('ui_new_password'),
           icon: Icons.lock_outline,
           key: const ValueKey('new-password'),
           obscureText: _obscureNewPassword,
@@ -178,7 +178,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           validator: (value) {
             if (value == null || value.length < 8) {
-              return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
+              return AppTranslations.t('ui_password_must_be_at_least_8');
             }
             return null;
           },
@@ -186,7 +186,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         const SizedBox(height: 20),
         _buildTextField(
           controller: _confirmPasswordController,
-          label: 'ยืนยันรหัสผ่านใหม่',
+          label: AppTranslations.t('ui_confirm_new_password'),
           icon: Icons.lock_outline,
           key: const ValueKey('confirm-password'),
           obscureText: _obscureConfirmPassword,
@@ -201,20 +201,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
           validator: (value) {
             if (value != _newPasswordController.text) {
-              return 'รหัสผ่านไม่ตรงกัน';
+              return AppTranslations.t('ui_passwords_do_not_match');
             }
             return null;
           },
         ),
         const SizedBox(height: 24),
         _infoBox(
-          'รหัสยืนยันใช้ได้ครั้งเดียวและหมดอายุภายในเวลาที่กำหนด',
+          AppTranslations.t('ui_the_verification_code_can_be_used'),
           Icons.security_outlined,
         ),
         const SizedBox(height: 32),
         _actionButton(
           key: const ValueKey('confirm-password-reset'),
-          label: 'รีเซ็ตรหัสผ่าน',
+          label: AppTranslations.t('ui_reset_password'),
           onPressed: _resetPassword,
         ),
       ],
@@ -327,7 +327,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (!mounted) return;
       setState(() => _isVerificationStep = false);
       _showMessage(
-        'หากบัญชีนี้มีอยู่ เราจะส่งรหัสยืนยันไปยังอีเมลของคุณ',
+        AppTranslations.t('ui_if_this_account_exists_we_will'),
         AppConstants.successGreen,
       );
     } on Exception catch (error) {
@@ -352,7 +352,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _newPasswordController.clear();
       _confirmPasswordController.clear();
       setState(() => _isVerificationStep = true);
-      _showMessage('รีเซ็ตรหัสผ่านสำเร็จ', AppConstants.successGreen);
+      _showMessage(AppTranslations.t('ui_password_reset_successful'), AppConstants.successGreen);
     } on Exception catch (error) {
       if (mounted) _showMessage(error.toString(), AppConstants.errorRed);
     } finally {

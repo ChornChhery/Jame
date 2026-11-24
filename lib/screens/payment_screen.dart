@@ -78,8 +78,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         Future.delayed(Duration(milliseconds: 100), () {
           // Show snackbar using the stored scaffold messenger reference
           scaffoldMessenger.showSnackBar(
-            const SnackBar(
-              content: Text('ตะกร้าสินค้าว่างเปล่า กรุณาเพิ่มสินค้าก่อนชำระเงิน'),
+            SnackBar(
+              content: Text(AppTranslations.t('ui_your_cart_is_empty_please_add')),
               backgroundColor: AppConstants.errorRed,
             ),
           );
@@ -228,8 +228,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 size: 24,
               ),
               const SizedBox(width: 12),
-              const Text(
-                'สรุปรายการสั่งซื้อ',
+              Text(
+                AppTranslations.t('ui_order_summary'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -282,7 +282,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'รวม ${app.cartItemCount} รายการ',
+                AppTranslations.t('ui_total_items', [app.cartItemCount]),
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],
@@ -328,8 +328,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 size: 24,
               ),
               const SizedBox(width: 12),
-              const Text(
-                'ข้อมูลลูกค้า (ไม่บังคับ)',
+              Text(
+                AppTranslations.t('ui_customer_information_optional'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -342,8 +342,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           TextField(
             controller: _customerNameController,
             decoration: InputDecoration(
-              labelText: 'ชื่อลูกค้า',
-              hintText: 'กรอกชื่อลูกค้า',
+              labelText: AppTranslations.t('ui_customer_name'),
+              hintText: AppTranslations.t('ui_enter_customer_name'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -355,8 +355,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           TextField(
             controller: _customerPhoneController,
             decoration: InputDecoration(
-              labelText: 'เบอร์โทรศัพท์',
-              hintText: 'กรอกเบอร์โทรศัพท์',
+              labelText: AppTranslations.t('ui_phone_number'),
+              hintText: AppTranslations.t('ui_enter_phone_number'),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -394,8 +394,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 size: 24,
               ),
               const SizedBox(width: 12),
-              const Text(
-                'วิธีชำระเงิน',
+              Text(
+                AppTranslations.t('ui_payment_method_3'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -409,7 +409,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           _buildPaymentOption(
             'PromptPay',
             'PromptPay QR Code',
-            'สแกน QR Code เพื่อชำระผ่าน PromptPay',
+            AppTranslations.t('ui_scan_the_qr_code_to_pay'),
             Icons.qr_code,
             Colors.blue,
           ),
@@ -419,8 +419,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           // Cash option
           _buildPaymentOption(
             'Cash',
-            'เงินสด',
-            'ชำระด้วยเงินสดและบันทึกการขาย',
+            AppTranslations.t('ui_cash'),
+            AppTranslations.t('ui_pay_with_cash_and_record_the'),
             Icons.money,
             Colors.green,
           ),
@@ -558,8 +558,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           
           const SizedBox(height: 8),
           
-          const Text(
-            'ให้ลูกค้าสแกน QR Code ด้วยแอปธนาคารเพื่อชำระเงิน',
+          Text(
+            AppTranslations.t('ui_ask_the_customer_to_scan_the'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
@@ -586,7 +586,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'QR Code นี้สามารถใช้ได้กับแอปธนาคารและ e-Wallet ทุกประเภท',
+                    AppTranslations.t('ui_this_qr_code_works_with_all'),
                     style: TextStyle(
                       color: Colors.blue[700],
                       fontSize: 12,
@@ -625,8 +625,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 size: 24,
               ),
               const SizedBox(width: 12),
-              const Text(
-                'ชำระด้วยเงินสด',
+              Text(
+                AppTranslations.t('ui_pay_with_cash'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -661,7 +661,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'ยอดที่ต้องชำระ',
+                  AppTranslations.t('ui_amount_due'),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.green[600],
@@ -690,7 +690,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'รับเงินสดจากลูกค้าแล้วกดยืนยันการชำระเงินเพื่อบันทึกการขาย',
+                    AppTranslations.t('ui_receive_cash_from_the_customer_then'),
                     style: TextStyle(
                       color: Colors.orange[700],
                       fontSize: 12,
@@ -723,7 +723,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                     ),
                   )
                 : const Icon(Icons.check_circle),
-            label: Text(_isProcessing ? 'กำลังดำเนินการ...' : 'ยืนยันการชำระเงิน'),
+            label: Text(_isProcessing ? AppTranslations.t('ui_processing') : AppTranslations.t('ui_confirm_payment')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppConstants.primaryDarkBlue,
               foregroundColor: Colors.white,
@@ -743,7 +743,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           child: OutlinedButton.icon(
             onPressed: _isProcessing ? null : () => Navigator.pop(context),
             icon: const Icon(Icons.arrow_back),
-            label: const Text('กลับไปยังตะกร้า'),
+            label: Text(AppTranslations.t('ui_back_to_cart')),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppConstants.primaryDarkBlue,
               side: const BorderSide(color: AppConstants.primaryDarkBlue),
@@ -807,8 +807,8 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text(_paymentMethod == 'Cash' 
-                  ? 'ชำระเงินด้วยเงินสดเรียบร้อยแล้ว' 
-                  : 'ชำระเงินผ่าน QR Code เรียบร้อยแล้ว'),
+                  ? AppTranslations.t('ui_cash_payment_completed') 
+                  : AppTranslations.t('ui_qr_code_payment_completed')),
               backgroundColor: AppConstants.successGreen,
               behavior: SnackBarBehavior.floating,
             ),
@@ -819,7 +819,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
         // Show error message immediately before any potential navigation
         scaffoldMessenger.showSnackBar(
           SnackBar(
-            content: Text('ไม่สามารถบันทึกการขายได้'),
+            content: Text(AppTranslations.t('ui_unable_to_record_the_sale')),
             backgroundColor: AppConstants.errorRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -830,7 +830,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
       // Show error message immediately before any potential navigation
       scaffoldMessenger.showSnackBar(
         SnackBar(
-          content: Text('เกิดข้อผิดพลาด: $e'),
+          content: Text(AppTranslations.t('ui_an_error_occurred', [e])),
           backgroundColor: AppConstants.errorRed,
           behavior: SnackBarBehavior.floating,
         ),
