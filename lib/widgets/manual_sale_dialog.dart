@@ -217,7 +217,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                   children: [
                     Flexible(
                       child: Text(
-                        '฿${NumberFormat('#,##0.00').format(product.price)}',
+                        '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(product.price)}',
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           color: AppConstants.primaryDarkBlue,
@@ -302,7 +302,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                     ),
                   ),
                   Text(
-                    '฿${NumberFormat('#,##0.00').format(_selectedProduct!.price)} / ${_selectedProduct!.unit}',
+                    '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(_selectedProduct!.price)} / ${_selectedProduct!.unit}',
                     style: const TextStyle(
                       color: AppConstants.primaryDarkBlue,
                       fontWeight: FontWeight.w600,
@@ -355,7 +355,7 @@ class _ManualSaleDialogState extends State<ManualSaleDialog> {
                 ),
               ),
               Text(
-                '฿${NumberFormat('#,##0.00').format(_calculateTotal())}',
+                '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(_calculateTotal())}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,

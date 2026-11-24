@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
+import 'constants.dart';
 
 class AppUtils {
   // Email validation regex
@@ -23,7 +24,7 @@ class AppUtils {
   // Format currency with Baht symbol
   static String formatCurrency(double amount) {
     final format = NumberFormat("#,##0.00", "en_US");
-    return '฿${format.format(amount)}';
+    return '${AppConstants.currencySymbol}${format.format(amount)}';
   }
 
   // Format datetime for display

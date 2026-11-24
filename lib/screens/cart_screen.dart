@@ -289,7 +289,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '฿${NumberFormat('#,##0.00').format(cartItem.product.price)}/${cartItem.product.unit}',
+                            '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(cartItem.product.price)}/${cartItem.product.unit}',
                             style: TextStyle(
                               color: AppConstants.primaryDarkBlue,
                               fontWeight: FontWeight.w600,
@@ -388,7 +388,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                           ),
                         ),
                         Text(
-                          '฿${NumberFormat('#,##0.00').format(cartItem.totalPrice)}',
+                          '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(cartItem.totalPrice)}',
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -656,7 +656,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 Text(
-                  '฿${NumberFormat('#,##0.00').format(app.cartTotal)}',
+                  '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
                   style: TextStyle(
                     color: Colors.grey[600],
                     fontSize: 14,
@@ -681,7 +681,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 Text(
-                  '฿${NumberFormat('#,##0.00').format(app.cartTotal)}',
+                  '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,

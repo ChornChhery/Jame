@@ -147,7 +147,7 @@ class _AddEditProductDialogState extends State<AddEditProductDialog> {
                   decoration: InputDecoration(
                     labelText: AppTranslations.t('ui_price_baht'),
                     border: OutlineInputBorder(),
-                    prefixText: '฿ ',
+                    prefixText: '${AppConstants.currencySymbol} ',
                   ),
                   keyboardType: TextInputType.numberWithOptions(decimal: true),
                   validator: (value) {

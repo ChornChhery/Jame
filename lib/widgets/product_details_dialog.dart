@@ -104,7 +104,7 @@ class ProductDetailsDialog extends StatelessWidget {
                 // Price
                 _buildDetailRow(
                   AppTranslations.t('ui_price'),
-                  '฿${NumberFormat('#,##0.00').format(product.price)}',
+                  '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(product.price)}',
                   valueColor: AppConstants.primaryDarkBlue,
                   valueWeight: FontWeight.bold,
                 ),

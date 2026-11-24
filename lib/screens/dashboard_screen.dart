@@ -586,7 +586,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return Text(
-                        '฿0.00',
+                        '${AppConstants.currencySymbol}0.00',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 32,

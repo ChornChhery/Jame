@@ -65,7 +65,7 @@ Android emulator: `http://10.0.2.2:8000/api/v1`. Tests: `flutter test` and `cd b
 - **NOT yet done – please run on the real machine:** `flutter pub get`, `flutter analyze` (baseline before this work: 477 pre-existing warnings/info, 0 errors), `flutter test` (baseline: 16 passing), `cd backend; python -m pytest -q` (baseline: 30 passing), then click through the app in both languages.
 
 ### Intentionally NOT changed (decide with the user)
-- **Currency symbol `฿` and "Thai Baht"/`THB`, `PromptPay`** are payment/currency features, not language. The old `en` map used `$` for `currency_symbol`, so the app is currently inconsistent. If the shop is in Cambodia, consider USD (`$`) and/or KHR (`៛`) and replacing PromptPay with Bakong/KHQR.
+- **Update (round 2):** every `฿` in the UI was replaced by `AppConstants.currencySymbol` (default `$`, change it in `lib/core/constants.dart`, e.g. `'៛'`), and "Baht" labels now say USD. The profile currency dropdown still offers USD/KHR/THB (THB kept so existing users whose saved currency is `THB` don't break). Original note: **`฿`/THB and `PromptPay`** are payment/currency features, not language. The old `en` map used `$` for `currency_symbol`, so the app is currently inconsistent. If the shop is in Cambodia, consider USD (`$`) and/or KHR (`៛`) and replacing PromptPay with Bakong/KHQR.
 - `AppUtils.isValidThaiID` (13-digit PromptPay ID validation) and a Thai-style PromptPay QR payload in `payment_screen.dart` are kept as-is.
 - `.superpowers/sdd/.../review-5d02a2b..84505b7.diff` is a generated historical review diff that still contains the *old* Thai strings. It is not app code; delete or ignore it.
 - `lib/screens/reports_screen_backup.dart` is an **unused** backup copy (not imported anywhere). Safe to delete.

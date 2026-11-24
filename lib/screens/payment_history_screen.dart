@@ -1157,14 +1157,14 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          '฿${NumberFormat('#,##0.00').format(item.unitPrice)}',
+                          '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.unitPrice)}',
                           textAlign: pw.TextAlign.right,
                         ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
+                          '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.totalPrice)}',
                           textAlign: pw.TextAlign.right,
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
@@ -1211,7 +1211,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> with Ticker
                       ),
                       pw.SizedBox(height: 10),
                       pw.Text(
-                        '฿${NumberFormat('#,##0.00').format(sale.totalAmount)}',
+                        '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(sale.totalAmount)}',
                         style: pw.TextStyle(
                           fontSize: 18,
                           fontWeight: pw.FontWeight.bold,

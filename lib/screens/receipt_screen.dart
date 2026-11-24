@@ -823,7 +823,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                                   ),
                                   Expanded(
                                     child: Text(
-                                      '฿${NumberFormat('#,##0.00').format(item.unitPrice)}',
+                                      '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.unitPrice)}',
                                       textAlign: TextAlign.right,
                                       style: TextStyle(
                                         fontSize: 12,
@@ -833,7 +833,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                                   ),
                                   Expanded(
                                     child: Text(
-                                      '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
+                                      '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.totalPrice)}',
                                       textAlign: TextAlign.right,
                                       style: const TextStyle(
                                         fontSize: 13,
@@ -912,7 +912,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                     ),
                     Text(
-                      '฿${NumberFormat('#,##0.00').format(_currentSale!.totalAmount)}',
+                      '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(_currentSale!.totalAmount)}',
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1341,14 +1341,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          '฿${NumberFormat('#,##0.00').format(item.unitPrice)}',
+                          '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.unitPrice)}',
                           textAlign: pw.TextAlign.right,
                         ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(8),
                         child: pw.Text(
-                          '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
+                          '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.totalPrice)}',
                           textAlign: pw.TextAlign.right,
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                         ),
@@ -1395,7 +1395,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> with TickerProviderStateM
                       ),
                       pw.SizedBox(height: 10),
                       pw.Text(
-                        '฿${NumberFormat('#,##0.00').format(_currentSale!.totalAmount)}',
+                        '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(_currentSale!.totalAmount)}',
                         style: pw.TextStyle(
                           fontSize: 18,
                           fontWeight: pw.FontWeight.bold,

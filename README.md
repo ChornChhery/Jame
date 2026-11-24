@@ -900,4 +900,4 @@ All user-facing text lives in `lib/core/translations.dart` (`'en'` and `'km'` ma
   Placeholders in the text are `{0}`, `{1}`, ...
 - Values that are stored or compared in code (product categories, report periods) are
   English canonical strings; show them with `AppTranslations.label(value)`.
-- Dates and numbers use the `en_US` locale. Currency is still shown with the baht sign (฿).
+- Dates and numbers use the `en_US` locale. The currency symbol is `AppConstants.currencySymbol` in `lib/core/constants.dart` (default `$`).

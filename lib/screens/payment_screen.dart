@@ -263,7 +263,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 ),
                 Expanded(
                   child: Text(
-                    '฿${NumberFormat('#,##0.00').format(item.totalPrice)}',
+                    '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(item.totalPrice)}',
                     textAlign: TextAlign.right,
                     style: const TextStyle(
                       fontSize: 14,
@@ -289,7 +289,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 ),
               ),
               Text(
-                '฿${NumberFormat('#,##0.00').format(app.cartTotal)}',
+                '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -548,7 +548,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
           const SizedBox(height: 16),
           
           Text(
-            '฿${NumberFormat('#,##0.00').format(app.cartTotal)}',
+            '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
             style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -652,7 +652,7 @@ class _PaymentScreenState extends State<PaymentScreen> with TickerProviderStateM
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '฿${NumberFormat('#,##0.00').format(app.cartTotal)}',
+                  '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
