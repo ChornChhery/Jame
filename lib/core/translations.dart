@@ -669,6 +669,16 @@ class AppTranslations {
       'ui_pf_code_auto': 'Leave blank to generate automatically',
       'ui_pf_stock_not_set': 'Stock not set',
       'ui_pf_create': 'Add product',
+      'ui_cart_n_lines': '{0} products',
+      'ui_cart_n_pieces': '{0} pieces',
+      'ui_cart_subtotal': 'Subtotal',
+      'ui_cart_total_due': 'Total due',
+      'ui_cart_pay_now': 'Pay {0}',
+      'ui_cart_max_reached': 'Max stock reached',
+      'ui_cart_edit_qty': 'Edit quantity',
+      'ui_cart_in_stock_n': '{0} in stock',
+      'ui_cart_fix_stock': 'Fix the stock issues to continue',
+      'ui_cart_apply': 'Apply',
     },
 
     'km': {
@@ -1335,6 +1345,16 @@ class AppTranslations {
       'ui_pf_code_auto': 'ទុកទទេដើម្បីបង្កើតដោយស្វ័យប្រវត្តិ',
       'ui_pf_stock_not_set': 'មិនទាន់កំណត់ស្តុក',
       'ui_pf_create': 'បន្ថែមផលិតផល',
+      'ui_cart_n_lines': '{0} ផលិតផល',
+      'ui_cart_n_pieces': '{0} ឯកតា',
+      'ui_cart_subtotal': 'សរុបរង',
+      'ui_cart_total_due': 'ចំនួនទឹកប្រាក់ត្រូវទូទាត់',
+      'ui_cart_pay_now': 'ទូទាត់ {0}',
+      'ui_cart_max_reached': 'ដល់កម្រិតស្តុកអតិបរមា',
+      'ui_cart_edit_qty': 'កែប្រែចំនួន',
+      'ui_cart_in_stock_n': 'មាន {0} ក្នុងស្តុក',
+      'ui_cart_fix_stock': 'សូមដោះស្រាយបញ្ហាស្តុកដើម្បីបន្ត',
+      'ui_cart_apply': 'អនុវត្ត',
     },
   };
 

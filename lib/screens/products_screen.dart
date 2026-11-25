@@ -497,22 +497,36 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   Widget _buildProductsListView() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _filteredProducts.length,
-      itemBuilder: (context, index) => _buildEnhancedProductCard(_filteredProducts[index]),
+    return _productListLayout(_filteredProducts);
+  }
+
+  /// Centered, width-limited list so cards stay readable on wide screens.
+  Widget _productListLayout(List<Product> products) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 900),
+        child: ListView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          itemCount: products.length,
+          itemBuilder: (context, index) => _buildEnhancedProductCard(products[index]),
+        ),
+      ),
     );
   }
 
+  SliverGridDelegate get _productGridDelegate =>
+      const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 230,
+        mainAxisExtent: 296,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+      );
+
   Widget _buildProductsGrid() {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      gridDelegate: _productGridDelegate,
       itemCount: _filteredProducts.length,
       itemBuilder: (context, index) => _buildProductGridCard(_filteredProducts[index]),
     );
@@ -538,240 +552,247 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
   }
 
   Widget _buildLowStockListview(List<Product> lowStockProducts) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: lowStockProducts.length,
-      itemBuilder: (context, index) => _buildEnhancedProductCard(lowStockProducts[index]),
-    );
+    return _productListLayout(lowStockProducts);
   }
 
   Widget _buildLowStockGrid(List<Product> lowStockProducts) {
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.75,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      gridDelegate: _productGridDelegate,
       itemCount: lowStockProducts.length,
       itemBuilder: (context, index) => _buildProductGridCard(lowStockProducts[index]),
     );
   }
 
-  Widget _buildEnhancedProductCard(Product product) {
-    final isLowStock = product.quantity <= product.lowStock;
-    
+  // ---------------------------------------------------------------------------
+  // Product card building blocks
+  // ---------------------------------------------------------------------------
+
+  static const Color _cardBorder = Color(0xFFE5E7EB);
+  static const Color _cardMuted = Color(0xFF6B7280);
+
+  Widget _stockPill(Product product) {
+    final bool out = product.quantity <= 0;
+    final bool low = !out && product.quantity <= product.lowStock;
+    final String text = out
+        ? AppTranslations.t('ui_out_of_stock')
+        : low
+            ? '${AppTranslations.t('ui_low_stock')} · ${product.quantity} ${product.unit}'
+            : '${product.quantity} ${product.unit}';
+    final Color bg = out
+        ? const Color(0xFFFEE2E2)
+        : low
+            ? const Color(0xFFFEF3C7)
+            : const Color(0xFFDCFCE7);
+    final Color fg = out
+        ? const Color(0xFF991B1B)
+        : low
+            ? const Color(0xFF92400E)
+            : const Color(0xFF166534);
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(color: fg, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700),
+            ),
           ),
         ],
-        border: isLowStock
-            ? Border.all(color: AppConstants.errorRed.withOpacity(0.3))
-            : null,
+      ),
+    );
+  }
+
+  Widget _categoryChip(Product product) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppConstants.primaryDarkBlue.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        AppTranslations.label(product.category!),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppConstants.primaryDarkBlue,
+        ),
+      ),
+    );
+  }
+
+  /// One-tap "add to cart" button (48px touch target).
+  Widget _cartButton(Product product, {double size = 48}) {
+    final bool enabled = product.quantity > 0;
+    return Tooltip(
+      message: enabled
+          ? AppTranslations.t('ui_add_to_cart')
+          : AppTranslations.t('ui_product_out_of_stock'),
+      child: Material(
+        color: enabled ? AppConstants.primaryYellow : const Color(0xFFE5E7EB),
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: enabled ? () => _showAddToCartDialog(product) : null,
+          child: SizedBox(
+            width: size,
+            height: size,
+            child: Icon(
+              Icons.add_shopping_cart_rounded,
+              size: size * 0.5,
+              color: enabled ? AppConstants.primaryDarkBlue : const Color(0xFF9CA3AF),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _moreMenu(Product product) {
+    PopupMenuItem<String> item(String value, IconData icon, String label, {Color? color}) {
+      return PopupMenuItem<String>(
+        value: value,
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color ?? AppConstants.textDarkGray),
+            const SizedBox(width: 12),
+            Text(label, style: TextStyle(fontSize: 14, color: color ?? AppConstants.textDarkGray)),
+          ],
+        ),
+      );
+    }
+
+    return PopupMenuButton<String>(
+      tooltip: '',
+      padding: EdgeInsets.zero,
+      icon: const Icon(Icons.more_vert_rounded, color: _cardMuted),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onSelected: (value) => _handleProductAction(value, product),
+      itemBuilder: (context) => [
+        item('addStock', Icons.add_box_rounded, AppTranslations.t('ui_restock')),
+        item('edit', Icons.edit_rounded, AppTranslations.t('ui_edit')),
+        item('delete', Icons.delete_rounded, AppTranslations.t('ui_delete'),
+            color: AppConstants.errorRed),
+      ],
+    );
+  }
+
+  Widget _priceText(Product product, {double size = 18}) {
+    return Text(
+      AppUtils.formatCurrency(product.price),
+      maxLines: 1,
+      style: TextStyle(
+        fontSize: size,
+        fontWeight: FontWeight.w800,
+        color: AppConstants.primaryDarkBlue,
+      ),
+    );
+  }
+
+  Widget _buildEnhancedProductCard(Product product) {
+    final bool out = product.quantity <= 0;
+    final bool low = !out && product.quantity <= product.lowStock;
+    final Color stripe = out
+        ? AppConstants.errorRed
+        : low
+            ? const Color(0xFFF59E0B)
+            : Colors.transparent;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _cardBorder),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
           onTap: () => _showProductDetailsDialog(product),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
+          child: IntrinsicHeight(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildEnhancedProductImage(product, size: 50),
-                const SizedBox(width: 8),
+                // Status stripe: only shown for low / out of stock
+                Container(width: 5, color: stripe),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              product.name,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (product.category != null)
-                            Container(
-                              constraints: const BoxConstraints(maxWidth: 90), // Increased from 65 to 90
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: AppConstants.primaryDarkBlue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                product.category!,
-                                style: TextStyle(
-                                  fontSize: 14, // Increased from 8 to 12
-                                  color: AppConstants.primaryDarkBlue,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        AppTranslations.t('ui_code', [product.code]),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+                    child: Row(
+                      children: [
+                        Opacity(
+                          opacity: out ? 0.55 : 1,
+                          child: _buildEnhancedProductImage(product, size: 76),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppConstants.primaryYellow.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                AppUtils.formatCurrency(product.price),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppConstants.primaryDarkBlue,
-                                ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                product.name,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            flex: 1,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: product.quantity <= 0
-                                  ? Colors.grey.withOpacity(0.1)
-                                  : isLowStock 
-                                    ? AppConstants.errorRed.withOpacity(0.1)
-                                    : AppConstants.successGreen.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                product.quantity <= 0 ? AppTranslations.t('ui_out_of_stock') : '${product.quantity} ${product.unit}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: product.quantity <= 0
-                                    ? Colors.grey
-                                    : isLowStock 
-                                      ? AppConstants.errorRed
-                                      : AppConstants.successGreen,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.25,
+                                  color: AppConstants.textDarkGray,
                                 ),
-                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                              const SizedBox(height: 4),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  if (product.category != null && product.category!.isNotEmpty)
+                                    _categoryChip(product),
+                                  Text(
+                                    product.code,
+                                    style: const TextStyle(fontSize: 12, color: _cardMuted),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  _priceText(product),
+                                  _stockPill(product),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      if (isLowStock) ...[
-                        const SizedBox(height: 8),
-                        Row(
+                        ),
+                        const SizedBox(width: 4),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.warning_rounded,
-                              size: 12,
-                              color: AppConstants.errorRed,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                AppTranslations.t('ui_low_stock_should_restock'),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppConstants.errorRed,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
+                            _cartButton(product),
+                            const SizedBox(height: 4),
+                            SizedBox(width: 48, height: 40, child: _moreMenu(product)),
                           ],
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                Container(
-                  width: 60,
-                  child: Column(
-                    children: [
-                      IconButton(
-                        onPressed: product.quantity > 0 ? () => _showAddToCartDialog(product) : null,
-                        icon: const Icon(Icons.add_shopping_cart_rounded, size: 24), // Increased from 20 to 24
-                        color: product.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
-                        tooltip: product.quantity > 0 ? AppTranslations.t('ui_add_to_cart') : AppTranslations.t('ui_product_out_of_stock'),
-                        padding: const EdgeInsets.all(0),
-                        constraints: const BoxConstraints(),
-                      ),
-                      const SizedBox(height: 4),
-                      const SizedBox(width: 10),
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert_rounded, 
-                          color: Colors.grey[600], size: 20),
-                        onSelected: (value) => _handleProductAction(value, product),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'addStock',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_box_rounded, size: 16),
-                                SizedBox(width: 6),
-                                Text(AppTranslations.t('ui_restock'), style: TextStyle(fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_rounded, size: 16),
-                                SizedBox(width: 6),
-                                Text(AppTranslations.t('ui_edit'), style: TextStyle(fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_rounded, color: Colors.red, size: 16),
-                                SizedBox(width: 6),
-                                Text(AppTranslations.t('ui_delete'), style: TextStyle(color: Colors.red, fontSize: 12)),
-                              ],
-                            ),
-                          ),
-                        ],
-                        padding: const EdgeInsets.all(0),
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -779,201 +800,126 @@ class _ProductsScreenState extends State<ProductsScreen> with TickerProviderStat
           ),
         ),
       ),
-      );
-    }
+    );
+  }
 
   Widget _buildProductGridCard(Product product) {
-    final isLowStock = product.quantity <= product.lowStock;
-    
+    final bool out = product.quantity <= 0;
+    final bool hasImage = product.image != null && product.image!.isNotEmpty;
+
+    Widget placeholder() => Container(
+          color: const Color(0xFFF3F4F6),
+          alignment: Alignment.center,
+          child: const Icon(Icons.inventory_2_rounded, size: 44, color: Color(0xFF9CA3AF)),
+        );
+
     return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: isLowStock
-            ? Border.all(color: AppConstants.errorRed.withOpacity(0.3))
-            : null,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _cardBorder),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
           onTap: () => _showProductDetailsDialog(product),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 140,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    Center(child: _buildEnhancedProductImage(product, size: 60)),
-                    if (isLowStock)
-                      Positioned(
-                        top: -4,
-                        right: -4,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: AppConstants.errorRed,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.warning_rounded,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                        ),
+                    Opacity(
+                      opacity: out ? 0.5 : 1,
+                      child: hasImage
+                          ? Image.network(
+                              product.image!,
+                              fit: BoxFit.cover,
+                              headers: const {'Accept': 'image/*'},
+                              errorBuilder: (context, error, stackTrace) => placeholder(),
+                              loadingBuilder: (context, child, progress) =>
+                                  progress == null ? child : placeholder(),
+                            )
+                          : placeholder(),
+                    ),
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      right: 52,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: _stockPill(product),
                       ),
+                    ),
+                    Positioned(
+                      right: 4,
+                      top: 4,
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: _moreMenu(product),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  product.name,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppConstants.primaryYellow.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: Text(
-                    AppUtils.formatCurrency(product.price),
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppConstants.primaryDarkBlue,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      product.quantity <= 0 ? Icons.block : Icons.inventory_2_rounded,
-                      size: 12,
-                      color: product.quantity <= 0 
-                        ? Colors.grey 
-                        : isLowStock ? AppConstants.errorRed : Colors.grey[600],
-                    ),
-                    const SizedBox(width: 3),
-                    Expanded(
-                      child: Text(
-                        product.quantity <= 0 ? AppTranslations.t('ui_out_of_stock') : '${product.quantity} ${product.unit}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: product.quantity <= 0 
-                            ? Colors.grey 
-                            : isLowStock ? AppConstants.errorRed : Colors.grey[600],
-                          fontWeight: product.quantity <= 0 
-                            ? FontWeight.normal 
-                            : isLowStock ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (product.quantity <= 0)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          AppTranslations.t('ui_out_of_stock'),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )
-                    else if (isLowStock)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppConstants.errorRed.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          AppTranslations.t('ui_low_stock'),
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: AppConstants.errorRed,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      IconButton(
-                        onPressed: product.quantity > 0 ? () => _showAddToCartDialog(product) : null,
-                        icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
-                        color: product.quantity > 0 ? AppConstants.primaryDarkBlue : Colors.grey,
-                        tooltip: product.quantity > 0 ? AppTranslations.t('ui_add_to_cart') : AppTranslations.t('ui_product_out_of_stock'),
-                      ),
-                      PopupMenuButton<String>(
-                        icon: Icon(Icons.more_vert_rounded, 
-                          color: Colors.grey[600], size: 20),
-                        onSelected: (value) => _handleProductAction(value, product),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: 'addStock',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_box_rounded, size: 16),
-                                SizedBox(width: 6),
-                                Text(AppTranslations.t('ui_restock'), style: TextStyle(fontSize: 12)),
-                              ],
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            product.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              height: 1.25,
+                              color: AppConstants.textDarkGray,
                             ),
                           ),
-                          PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit_rounded, size: 16),
-                                SizedBox(width: 6),
-                                Text(AppTranslations.t('ui_edit'), style: TextStyle(fontSize: 12)),
-                              ],
+                          if (product.category != null && product.category!.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              AppTranslations.label(product.category!),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontSize: 12, color: _cardMuted),
                             ),
-                          ),
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_rounded, color: Colors.red, size: 16),
-                                SizedBox(width: 6),
-                                Text(AppTranslations.t('ui_delete'), style: TextStyle(color: Colors.red, fontSize: 12)),
-                              ],
-                            ),
-                          ),
+                          ],
                         ],
-                        padding: const EdgeInsets.all(0),
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: _priceText(product, size: 19),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _cartButton(product, size: 44),
+                        ],
                       ),
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

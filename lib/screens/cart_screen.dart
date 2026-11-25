@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+
 import '../providers/app_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
@@ -14,144 +16,603 @@ class CartScreen extends StatefulWidget {
   _CartScreenState createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
+class _CartScreenState extends State<CartScreen> {
+  static const Color _surface = Color(0xFFF3F4F6);
+  static const Color _border = Color(0xFFE5E7EB);
+  static const Color _muted = Color(0xFF6B7280);
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeAnimations();
-  }
-
-  void _initializeAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-    );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeOutBack),
-    );
-    
-    _animationController.forward();
-  }
+  String _money(num value) =>
+      '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(value)}';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: _surface,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(),
-            Expanded(
-              child: Consumer<AppProvider>(
-                builder: (context, app, child) {
-                  return FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: app.cartItems.isEmpty
-                          ? _buildEmptyCart()
-                          : Column(
+        child: Consumer<AppProvider>(
+          builder: (context, app, child) {
+            return Column(
+              children: [
+                _buildTopBar(app),
+                Expanded(
+                  child: app.cartItems.isEmpty
+                      ? _buildEmptyCart()
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            // Wide screens: items on the left, sticky order summary on the right.
+                            if (constraints.maxWidth >= 900) {
+                              return Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Expanded(child: _buildItemList(app, 24)),
+                                  SizedBox(
+                                    width: 400,
+                                    child: _buildSummaryPanel(app),
+                                  ),
+                                ],
+                              );
+                            }
+                            // Phones / narrow windows: items with a pay bar pinned to the bottom.
+                            return Column(
                               children: [
-                                Expanded(child: _buildCartItems(app)),
-                                _buildCartSummary(app),
+                                Expanded(child: _buildItemList(app, 16)),
+                                _buildBottomBar(app),
                               ],
-                            ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildAppBar() {
+  // ------------------------------------------------------------------ top bar
+
+  Widget _buildTopBar(AppProvider app) {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppConstants.primaryDarkBlue,
-            AppConstants.primaryDarkBlue.withOpacity(0.8),
-          ],
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
+      padding: const EdgeInsets.fromLTRB(8, 8, 12, 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: _border)),
       ),
       child: Row(
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios,
-              color: Colors.white,
-              size: 20,
+            icon: const Icon(Icons.arrow_back_rounded),
+            color: AppConstants.primaryDarkBlue,
+            iconSize: 26,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              context.tr('shopping_cart'),
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: AppConstants.primaryDarkBlue,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          if (app.cartItems.isNotEmpty) ...[
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryYellow,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${app.cartItemCount}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: AppConstants.primaryDarkBlue,
+                ),
+              ),
+            ),
+          ],
+          const Spacer(),
+          const LanguageSwitchButton(compact: true),
+          if (app.cartItems.isNotEmpty) ...[
+            const SizedBox(width: 4),
+            TextButton.icon(
+              onPressed: () => _showClearCartDialog(app),
+              icon: const Icon(Icons.delete_sweep_rounded, size: 20),
+              label: Text(AppTranslations.t('ui_clear_cart')),
+              style: TextButton.styleFrom(
+                foregroundColor: AppConstants.errorRed,
+                minimumSize: const Size(48, 48),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --------------------------------------------------------------- item list
+
+  Widget _buildItemList(AppProvider app, double padding) {
+    return ListView.separated(
+      padding: EdgeInsets.all(padding),
+      itemCount: app.cartItems.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) =>
+          _buildItemTile(app, app.cartItems[index]),
+    );
+  }
+
+  Widget _buildItemTile(AppProvider app, CartItem item) {
+    final stock = item.product.quantity;
+    final over = item.quantity > stock;
+    final atMax = item.quantity == stock;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: over ? AppConstants.errorRed : _border,
+          width: over ? 1.5 : 1,
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildProductImage(item.product),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                        color: AppConstants.textDarkGray,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_money(item.product.price)} / ${item.product.unit}',
+                      style: const TextStyle(fontSize: 13, color: _muted),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _money(item.totalPrice),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppConstants.primaryDarkBlue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildStepper(app, item),
+              const SizedBox(width: 12),
+              if (over || atMax)
+                Flexible(
+                  child: _stockNote(over: over, stock: stock),
+                ),
+              const Spacer(),
+              IconButton(
+                tooltip: AppTranslations.t('ui_delete'),
+                onPressed: () => _showRemoveItemDialog(app, item),
+                icon: const Icon(Icons.delete_outline_rounded),
+                color: AppConstants.errorRed,
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stockNote({required bool over, required int stock}) {
+    final color = over ? AppConstants.errorRed : const Color(0xFFB45309);
+    final bg = over ? const Color(0xFFFEE2E2) : const Color(0xFFFEF3C7);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 16, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              over
+                  ? AppTranslations.t('ui_cart_in_stock_n', [stock])
+                  : AppTranslations.t('ui_cart_max_reached'),
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepper(AppProvider app, CartItem item) {
+    final canDecrease = item.quantity > 1;
+    final canIncrease = item.quantity < item.product.quantity;
+
+    Widget roundButton(IconData icon, VoidCallback? onTap) => SizedBox(
+      width: 48,
+      height: 48,
+      child: IconButton(
+        onPressed: onTap,
+        icon: Icon(icon),
+        iconSize: 24,
+        color: AppConstants.primaryDarkBlue,
+        disabledColor: const Color(0xFFD1D5DB),
+      ),
+    );
+
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: _surface,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          roundButton(
+            Icons.remove_rounded,
+            canDecrease
+                ? () => _updateCartItemQuantity(app, item, item.quantity - 1)
+                : null,
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _editQuantity(app, item),
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 48),
+              height: 48,
+              alignment: Alignment.center,
+              child: Text(
+                '${item.quantity}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppConstants.textDarkGray,
+                ),
+              ),
+            ),
+          ),
+          roundButton(
+            Icons.add_rounded,
+            canIncrease
+                ? () => _updateCartItemQuantity(app, item, item.quantity + 1)
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Tap the quantity to type it (fast for bulk sales).
+  void _editQuantity(AppProvider app, CartItem item) {
+    final controller = TextEditingController(text: '${item.quantity}');
+    final stock = item.product.quantity;
+    void apply(BuildContext dialogContext) {
+      final value = int.tryParse(controller.text.trim()) ?? item.quantity;
+      final int clamped = value.clamp(1, stock < 1 ? 1 : stock).toInt();
+      Navigator.pop(dialogContext);
+      if (clamped != item.quantity) _updateCartItemQuantity(app, item, clamped);
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(AppTranslations.t('ui_cart_edit_qty')),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+          onSubmitted: (_) => apply(dialogContext),
+          decoration: InputDecoration(
+            helperText: AppTranslations.t('ui_cart_in_stock_n', [stock]),
+            filled: true,
+            fillColor: _surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppTranslations.t('ui_cancel')),
+          ),
+          FilledButton(
+            onPressed: () => apply(dialogContext),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppConstants.primaryDarkBlue,
+            ),
+            child: Text(AppTranslations.t('ui_cart_apply')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------- summary (wide/narrow)
+
+  Widget _payButton(
+    AppProvider app, {
+    required String label,
+    double height = 60,
+  }) {
+    final enabled = _canProceedToPayment(app);
+    return SizedBox(
+      height: height,
+      child: FilledButton(
+        onPressed: enabled ? _proceedToPayment : null,
+        style: FilledButton.styleFrom(
+          backgroundColor: AppConstants.primaryYellow,
+          foregroundColor: AppConstants.primaryDarkBlue,
+          disabledBackgroundColor: Colors.white24,
+          disabledForegroundColor: Colors.white54,
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_forward_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stockBlocker() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppConstants.primaryYellow,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Text(
+              AppTranslations.t('ui_cart_fix_stock'),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryPanel(AppProvider app) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(0, 24, 24, 24),
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: AppConstants.primaryDarkBlue,
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              AppTranslations.t('ui_order_summary'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 20),
+            _summaryRow(
+              AppTranslations.t('ui_cart_n_lines', [app.cartItems.length]),
+              '',
+            ),
+            _summaryRow(
+              AppTranslations.t('ui_cart_n_pieces', [app.cartItemCount]),
+              '',
+            ),
+            _summaryRow(
+              AppTranslations.t('ui_cart_subtotal'),
+              _money(app.cartTotal),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(color: Colors.white24, height: 1),
+            ),
+            Text(
+              AppTranslations.t('ui_cart_total_due'),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                _money(app.cartTotal),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 44,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+            if (_hasStockWarnings(app)) ...[
+              _stockBlocker(),
+              const SizedBox(height: 12),
+            ],
+            _payButton(
+              app,
+              label: AppTranslations.t('ui_cart_pay_now', [
+                _money(app.cartTotal),
+              ]),
+              height: 64,
+            ),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Text(
-                  context.tr('shopping_cart'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: _secondaryAction(
+                    Icons.qr_code_scanner_rounded,
+                    AppTranslations.t('ui_scan'),
+                    AppConstants.scannerRoute,
                   ),
                 ),
-                // Fixed: Remove Consumer to prevent setState during build
-                Builder(
-                  builder: (context) {
-                    final app = Provider.of<AppProvider>(context, listen: false);
-                    return Text(
-                      '${app.cartItems.length} ${context.tr('items_in_cart')}',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
-                      ),
-                    );
-                  },
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _secondaryAction(
+                    Icons.inventory_2_rounded,
+                    AppTranslations.t('ui_products'),
+                    AppConstants.productsRoute,
+                  ),
                 ),
               ],
             ),
-          ),
-          const LanguageSwitchButton(isDarkBackground: true, compact: true),
-          const SizedBox(width: 8),
-          // Fixed: Remove Consumer to prevent setState during build
-          Builder(
-            builder: (context) {
-              final app = Provider.of<AppProvider>(context, listen: false);
-              if (app.cartItems.isEmpty) return const SizedBox();
-              
-              return IconButton(
-                onPressed: () => _showClearCartDialog(app),
-                icon: const Icon(
-                  Icons.delete_sweep,
-                  color: Colors.white,
-                  size: 24,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _secondaryAction(IconData icon, String label, String route) {
+    return OutlinedButton.icon(
+      onPressed: () => Navigator.pushNamed(context, route),
+      icon: Icon(icon, size: 20),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white38),
+        minimumSize: const Size(48, 52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(AppProvider app) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+      decoration: const BoxDecoration(
+        color: AppConstants.primaryDarkBlue,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_hasStockWarnings(app)) ...[
+            _stockBlocker(),
+            const SizedBox(height: 12),
+          ],
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppTranslations.t('ui_cart_n_pieces', [
+                        app.cartItemCount,
+                      ]),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _money(app.cartTotal),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: 12),
+              _payButton(
+                app,
+                label: AppTranslations.t('ui_payment'),
+                height: 56,
+              ),
+            ],
           ),
         ],
       ),
@@ -191,17 +652,15 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             Text(
               AppTranslations.t('ui_start_adding_products_by_scanning_a'),
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
             const SizedBox(height: 32),
             Row(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, AppConstants.scannerRoute),
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppConstants.scannerRoute),
                     icon: const Icon(Icons.qr_code_scanner),
                     label: Text(AppTranslations.t('ui_scan_qr')),
                     style: ElevatedButton.styleFrom(
@@ -217,12 +676,17 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, AppConstants.productsRoute),
+                    onPressed: () => Navigator.pushNamed(
+                      context,
+                      AppConstants.productsRoute,
+                    ),
                     icon: const Icon(Icons.inventory_2),
                     label: Text(AppTranslations.t('ui_choose_products')),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppConstants.primaryDarkBlue,
-                      side: const BorderSide(color: AppConstants.primaryDarkBlue),
+                      side: const BorderSide(
+                        color: AppConstants.primaryDarkBlue,
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -235,204 +699,6 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildCartItems(AppProvider app) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: app.cartItems.length,
-      itemBuilder: (context, index) {
-        final cartItem = app.cartItems[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // Product Image
-                    _buildProductImage(cartItem.product),
-                    const SizedBox(width: 16),
-                    
-                    // Product Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            cartItem.product.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            AppTranslations.t('ui_code', [cartItem.product.code]),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(cartItem.product.price)}/${cartItem.product.unit}',
-                            style: TextStyle(
-                              color: AppConstants.primaryDarkBlue,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    // Remove button
-                    IconButton(
-                      onPressed: () => _showRemoveItemDialog(app, cartItem),
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: Colors.red[400],
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                
-                // Quantity controls and total
-                Row(
-                  children: [
-                    // Quantity controls
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey[300]!),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            onPressed: cartItem.quantity > 1
-                                ? () => _updateCartItemQuantity(app, cartItem, cartItem.quantity - 1)
-                                : null,
-                            icon: const Icon(Icons.remove),
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 40,
-                            ),
-                            padding: EdgeInsets.zero,
-                            color: cartItem.quantity > 1 
-                                ? AppConstants.primaryDarkBlue 
-                                : Colors.grey[400],
-                          ),
-                          Container(
-                            width: 60,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.symmetric(
-                                vertical: BorderSide(color: Colors.grey[300]!),
-                              ),
-                            ),
-                            child: Text(
-                              '${cartItem.quantity}',
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: cartItem.quantity < cartItem.product.quantity
-                                ? () => _updateCartItemQuantity(app, cartItem, cartItem.quantity + 1)
-                                : null,
-                            icon: const Icon(Icons.add),
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 40,
-                            ),
-                            padding: EdgeInsets.zero,
-                            color: cartItem.quantity < cartItem.product.quantity 
-                                ? AppConstants.primaryDarkBlue 
-                                : Colors.grey[400],
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const Spacer(),
-                    
-                    // Item total
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          AppTranslations.t('ui_total'),
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(cartItem.totalPrice)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: AppConstants.primaryDarkBlue,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                
-                // Stock warning
-                if (cartItem.quantity >= cartItem.product.quantity)
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange[200]!),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.warning_amber_rounded,
-                          color: Colors.orange[700],
-                          size: 16,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          AppTranslations.t('ui_insufficient_stock'),
-                          style: TextStyle(
-                            color: Colors.orange[700],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -464,12 +730,16 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
 
   void _showRemoveItemDialog(AppProvider app, CartItem cartItem) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppTranslations.t('ui_remove_from_cart')),
-        content: Text(AppTranslations.t('ui_do_you_want_to_remove_from', [cartItem.product.name])),
+        content: Text(
+          AppTranslations.t('ui_do_you_want_to_remove_from', [
+            cartItem.product.name,
+          ]),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -479,7 +749,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             onPressed: () async {
               // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
               final scaffoldMessenger = ScaffoldMessenger.of(context);
-              
+
               try {
                 if (auth.currentUser?.id != null) {
                   await app.removeFromCartWithPersistence(
@@ -499,16 +769,22 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 return;
               }
               Navigator.pop(context);
-              
+
               // Use a delayed callback to show snackbar after dialog is completely dismissed
               Future.delayed(Duration(milliseconds: 50), () {
                 // Show snackbar using the stored scaffold messenger reference
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
-                    content: Text(AppTranslations.t('ui_removed_from_the_cart', [cartItem.product.name])),
+                    content: Text(
+                      AppTranslations.t('ui_removed_from_the_cart', [
+                        cartItem.product.name,
+                      ]),
+                    ),
                     backgroundColor: AppConstants.successGreen,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: const EdgeInsets.all(16),
                   ),
                 );
@@ -527,7 +803,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
 
   void _showClearCartDialog(AppProvider app) {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -542,7 +818,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
             onPressed: () async {
               // Store the ScaffoldMessenger state at the very beginning to ensure we have a valid reference
               final scaffoldMessenger = ScaffoldMessenger.of(context);
-              
+
               try {
                 if (auth.currentUser?.id != null) {
                   await app.clearCartWithPersistence(auth.currentUser!.id!);
@@ -559,7 +835,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                 return;
               }
               Navigator.pop(context);
-              
+
               // Use a delayed callback to show snackbar after dialog is completely dismissed
               Future.delayed(Duration(milliseconds: 100), () {
                 // Show snackbar using the stored scaffold messenger reference
@@ -568,7 +844,9 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                     content: Text(AppTranslations.t('ui_cart_cleared')),
                     backgroundColor: AppConstants.successGreen,
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     margin: const EdgeInsets.all(16),
                   ),
                 );
@@ -609,9 +887,7 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
                   );
                 },
                 // Add headers to handle WebP and other formats
-                headers: const {
-                  'Accept': 'image/*',
-                },
+                headers: const {'Accept': 'image/*'},
               ),
             )
           : Icon(
@@ -622,153 +898,9 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCartSummary(AppProvider app) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(24),
-          topRight: Radius.circular(24),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Summary details
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppTranslations.t('ui_items_pcs', [app.cartItemCount]),
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-                Text(
-                  '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            
-            const Divider(),
-            const SizedBox(height: 8),
-            
-            // Total
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  AppTranslations.t('ui_grand_total'),
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '${AppConstants.currencySymbol}${NumberFormat('#,##0.00').format(app.cartTotal)}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppConstants.primaryDarkBlue,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            
-            // Action buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, AppConstants.scannerRoute),
-                    icon: const Icon(Icons.qr_code_scanner),
-                    label: Text(AppTranslations.t('ui_add_products')),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppConstants.primaryDarkBlue,
-                      side: const BorderSide(color: AppConstants.primaryDarkBlue),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: _canProceedToPayment(app) ? () => _proceedToPayment() : null,
-                    icon: const Icon(Icons.payment),
-                    label: Text(AppTranslations.t('ui_payment')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppConstants.primaryDarkBlue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            // Stock warning if any
-            if (_hasStockWarnings(app))
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.orange.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.warning_amber,
-                      color: Colors.orange[700],
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        AppTranslations.t('ui_some_items_in_the_cart_exceed'),
-                        style: TextStyle(
-                          color: Colors.orange[700],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   bool _canProceedToPayment(AppProvider app) {
     if (app.cartItems.isEmpty) return false;
-    
+
     // Check if any items exceed available stock
     for (var item in app.cartItems) {
       if (item.quantity > item.product.quantity) {
@@ -784,11 +916,5 @@ class _CartScreenState extends State<CartScreen> with TickerProviderStateMixin {
 
   void _proceedToPayment() {
     Navigator.pushNamed(context, AppConstants.paymentRoute);
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
   }
 }

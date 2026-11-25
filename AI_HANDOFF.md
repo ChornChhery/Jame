@@ -89,6 +89,21 @@ Android emulator: `http://10.0.2.2:8000/api/v1`. Tests: `flutter test` and `cd b
 - Not compiled here: verify visually in Chrome (add + edit, English + Khmer, narrow window).
 - `lib/widgets/add_edit_product_dialog.dart` is an older unused widget; can be deleted.
 
+### Round 4: Cart page redesign (`lib/screens/cart_screen.dart`)
+- Research-based POS patterns: touch targets >= 48px, item count always visible, no heavy header, full-height item list, total + pay button always in view.
+- Wide (>=900px): item list on the left, sticky dark-blue "Order summary" panel on the right (big total, yellow Pay button, Scan / Products shortcuts). Narrow: list + pinned pay bar at the bottom.
+- Item card: thumbnail, name, unit price, line total, big +/- stepper (tap the number to type a quantity), stock chips ("Max stock reached" / "N in stock"), delete.
+- Cart logic (persistence, remove/clear dialogs, stock check, navigation to payment) was kept unchanged. New keys use `ui_cart_`.
+- Not compiled here; test in Chrome at wide and narrow widths, English + Khmer.
+- Ideas for next pages: Dashboard (2,600 lines, biggest win), Payment page (match cart styling), Products list cards.
+
+### Round 5: Product list/grid cards (`lib/screens/products_screen.dart`)
+- `_buildEnhancedProductCard` (list) and `_buildProductGridCard` (grid) rewritten; shared helpers `_stockPill`, `_categoryChip`, `_cartButton`, `_moreMenu`, `_priceText`.
+- List: 76px photo, bold name, category chip + code, price + colored stock pill, big yellow add-to-cart button (48px) + overflow menu, colored left stripe for low/out of stock, list width capped at 900px on wide screens.
+- Grid: responsive (`maxCrossAxisExtent: 230`, fixed card height 296), full-bleed photo with stock pill and menu overlaid, price + add-to-cart at the bottom, out-of-stock photos dimmed.
+- Behavior unchanged: tap opens details, add-to-cart opens the existing quantity dialog, menu = restock / edit / delete. No new translation keys were needed.
+- Not compiled here; test list + grid, narrow + wide, with and without product photos.
+
 ---
 
 ## 3. How to add or change UI text
